@@ -202,3 +202,21 @@ export interface DnsAnalysis {
   server: string;
   sections: DnsSection[];
 }
+
+// Port scanner (streamed events).
+
+export type ScanEvent =
+  | { type: "open"; host: string; port: number; service: string | null }
+  | { type: "progress"; done: number; total: number; open: number }
+  | {
+      type: "done";
+      total: number;
+      hosts: number;
+      hostsWithOpen: number;
+      open: number;
+      closed: number;
+      filtered: number;
+      elapsedMs: number;
+      cancelled: boolean;
+    }
+  | { type: "error"; message: string };

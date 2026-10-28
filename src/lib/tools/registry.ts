@@ -71,7 +71,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
-  { id: "port-scanner", name: "Port Scanner", category: "Network", enabled: false },
+  {
+    id: "port-scanner",
+    name: "Port Scanner",
+    category: "Network",
+    enabled: true,
+    load: () => import("./PortScanner/PortScanner.svelte"),
+  },
   { id: "syslog-server", name: "Syslog Server", category: "Network", enabled: false },
   { id: "tftp-server", name: "TFTP Server", category: "Network", enabled: false },
 
