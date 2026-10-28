@@ -8,6 +8,7 @@ use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_replace, regex_test};
 use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
+use tools::syslog_server::commands::{SyslogRegistry, syslog_save, syslog_start, syslog_stop};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(SyslogRegistry::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -30,7 +32,10 @@ pub fn run() {
             dig_query,
             dns_analyze,
             port_scan,
-            port_scan_cancel
+            port_scan_cancel,
+            syslog_start,
+            syslog_stop,
+            syslog_save
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
