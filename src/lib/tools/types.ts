@@ -220,3 +220,32 @@ export type ScanEvent =
       cancelled: boolean;
     }
   | { type: "error"; message: string };
+
+// Syslog server.
+
+export interface SyslogMessageData {
+  pri: number | null;
+  facility: number | null;
+  facilityName: string | null;
+  severity: number | null;
+  severityName: string | null;
+  timestamp: string | null;
+  host: string | null;
+  tag: string | null;
+  message: string;
+  raw: string;
+}
+
+export type SyslogEvent =
+  | { type: "started"; port: number; udp: boolean; tcp: boolean }
+  | {
+      type: "message";
+      source: string;
+      transport: string;
+      data: SyslogMessageData;
+    }
+  | { type: "stopped" };
+
+export type SyslogSendEvent =
+  | { type: "sent"; index: number; severity: string; line: string }
+  | { type: "done"; sent: number; cancelled: boolean };

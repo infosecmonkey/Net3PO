@@ -78,7 +78,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./PortScanner/PortScanner.svelte"),
   },
-  { id: "syslog-server", name: "Syslog Server", category: "Network", enabled: false },
+  {
+    id: "syslog-server",
+    name: "Syslog Server",
+    category: "Network",
+    enabled: true,
+    load: () => import("./SyslogServer/SyslogServer.svelte"),
+  },
   { id: "tftp-server", name: "TFTP Server", category: "Network", enabled: false },
 
   // Phase 3, SNMP
