@@ -151,13 +151,19 @@ impl Database {
     /// Longest-prefix lookup: try /36, then /28, then /24. Returns the vendor
     /// and the matched prefix bit length.
     pub fn lookup(&self, bytes: &[u8]) -> Option<(String, u8)> {
-        if bytes.len() >= 5 && let Some(org) = self.map36.get(&key36(bytes)) {
+        if bytes.len() >= 5
+            && let Some(org) = self.map36.get(&key36(bytes))
+        {
             return Some((org.clone(), 36));
         }
-        if bytes.len() >= 4 && let Some(org) = self.map28.get(&key28(bytes)) {
+        if bytes.len() >= 4
+            && let Some(org) = self.map28.get(&key28(bytes))
+        {
             return Some((org.clone(), 28));
         }
-        if bytes.len() >= 3 && let Some(org) = self.map24.get(&key24(bytes)) {
+        if bytes.len() >= 3
+            && let Some(org) = self.map24.get(&key24(bytes))
+        {
             return Some((org.clone(), 24));
         }
         None
