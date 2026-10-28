@@ -57,7 +57,13 @@ const TOOLS: ToolDef[] = [
   },
 
   // Phase 2, network tools
-  { id: "dig", name: "Dig", category: "Network", enabled: false },
+  {
+    id: "dig",
+    name: "Dig",
+    category: "Network",
+    enabled: true,
+    load: () => import("./Dig/Dig.svelte"),
+  },
   { id: "dns-analyzer", name: "DNS Analyzer", category: "Network", enabled: false },
   { id: "port-scanner", name: "Port Scanner", category: "Network", enabled: false },
   { id: "syslog-server", name: "Syslog Server", category: "Network", enabled: false },
