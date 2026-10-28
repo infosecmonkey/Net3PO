@@ -186,7 +186,7 @@ fn run_walk(
     if config.version == "v3"
         && let Err(e) = session.init()
     {
-        let msg = format!("v3 engine discovery failed: {e:?}");
+        let msg = format!("v3 engine discovery failed: {}", humanize(&e));
         let _ = on_event.send(WalkEvent::Done {
             count: 0,
             cancelled: false,
@@ -244,7 +244,7 @@ fn run_walk(
                     continue;
                 }
                 Err(e) => {
-                    error = Some(format!("{e:?}"));
+                    error = Some(humanize(&e));
                     break 'walk;
                 }
             }
@@ -343,6 +343,24 @@ fn build_v3_security(config: &WalkConfig) -> Security {
         }
     };
     sec.with_auth(auth)
+}
+
+/// Turn an snmp2 error into an actionable message.
+fn humanize(e: &snmp2::Error) -> String {
+    match e {
+        snmp2::Error::Receive => "no response from the agent within the timeout. For SNMPv3, \
+            check that the username, auth protocol/password, and privacy protocol/password \
+            exactly match the device's SNMPv3 user (algorithm mismatches such as AES256 vs \
+            AES128, or SHA256 vs SHA1, are common), and that this host is allowed to query it."
+            .to_string(),
+        snmp2::Error::Send => "could not send the request (local socket error).".to_string(),
+        snmp2::Error::AuthFailure(_) => {
+            "authentication failed: the agent rejected the auth credentials.".to_string()
+        }
+        snmp2::Error::Crypto(m) => format!("privacy/crypto error: {m}"),
+        snmp2::Error::CommunityMismatch => "community string mismatch.".to_string(),
+        other => format!("{other:?}"),
+    }
 }
 
 fn oid_to_vec(oid: &Oid) -> Vec<u32> {
