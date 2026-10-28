@@ -5,7 +5,7 @@
 
   const MAX_MESSAGES = 10000;
 
-  let port = $state(5140);
+  let port = $state(514);
   let udp = $state(true);
   let tcp = $state(true);
 
@@ -136,8 +136,9 @@
   <header>
     <h1>Syslog Server</h1>
     <p class="sub">
-      Collect syslog messages over UDP and TCP. Port 5140 avoids needing admin
-      rights; set 514 if you can bind privileged ports.
+      Collect syslog messages over UDP and TCP. 514 is the standard syslog port
+      but needs admin rights to bind; if that is refused, use 5140 (no admin) and
+      point senders there, or forward 514 to it.
     </p>
   </header>
 
@@ -157,6 +158,11 @@
 
   {#if error}
     <div class="error mono">{error}</div>
+    {#if error.toLowerCase().includes("permission")}
+      <button class="small fallback" onclick={() => { port = 5140; error = ""; }}>
+        Use port 5140 (no admin needed)
+      </button>
+    {/if}
   {/if}
   {#if status}
     <div class="status" class:live={running}>
@@ -383,6 +389,10 @@
   .small:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+
+  .fallback {
+    margin: -0.4rem 0 0.9rem;
   }
 
   .table-scroll {
