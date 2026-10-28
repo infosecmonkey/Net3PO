@@ -34,7 +34,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./RegexBuilder/RegexBuilder.svelte"),
   },
-  { id: "grep-builder", name: "Grep Builder", category: "Offline", enabled: false },
+  {
+    id: "grep-builder",
+    name: "Grep Builder",
+    category: "Offline",
+    enabled: true,
+    load: () => import("./GrepBuilder/GrepBuilder.svelte"),
+  },
   { id: "mac-vendor", name: "MAC Vendor Lookup", category: "Offline", enabled: false },
   { id: "forti-sniffer", name: "FortiGate Sniffer to PCAP", category: "Offline", enabled: false },
 

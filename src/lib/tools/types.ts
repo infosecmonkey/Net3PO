@@ -87,3 +87,26 @@ export interface RegexResult {
   truncated: boolean;
   groupNames: (string | null)[];
 }
+
+// Grep builder.
+
+export type GrepMode = "basic" | "extended" | "perl" | "fixed";
+
+export interface GrepOptions {
+  pattern: string;
+  mode: GrepMode;
+  ignoreCase: boolean;
+  invert: boolean;
+  word: boolean;
+  lineMatch: boolean;
+  onlyMatching: boolean;
+  lineNumber: boolean;
+  count: boolean;
+  filesWithMatches: boolean;
+  recursive: boolean;
+  color: boolean;
+  before: number;
+  after: number;
+  context: number;
+  paths: string[];
+}
