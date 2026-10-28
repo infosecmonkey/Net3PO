@@ -245,3 +245,7 @@ export type SyslogEvent =
       data: SyslogMessageData;
     }
   | { type: "stopped" };
+
+export type SyslogSendEvent =
+  | { type: "sent"; index: number; severity: string; line: string }
+  | { type: "done"; sent: number; cancelled: boolean };

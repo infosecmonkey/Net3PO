@@ -2,6 +2,9 @@
   import { invoke, Channel } from "@tauri-apps/api/core";
   import { save } from "@tauri-apps/plugin-dialog";
   import type { SyslogEvent, SyslogMessageData } from "$lib/tools/types";
+  import Send from "./Send.svelte";
+
+  let mode = $state<"receive" | "send">("receive");
 
   const MAX_MESSAGES = 10000;
 
@@ -142,6 +145,18 @@
     </p>
   </header>
 
+  <div class="tabs">
+    <button class="tab" class:active={mode === "receive"} onclick={() => (mode = "receive")}>
+      Receive
+    </button>
+    <button class="tab" class:active={mode === "send"} onclick={() => (mode = "send")}>
+      Send
+    </button>
+  </div>
+
+  {#if mode === "send"}
+    <Send />
+  {:else}
   <div class="controls">
     <div class="field">
       <label for="port">Port</label>
@@ -220,6 +235,7 @@
       </p>
     {/if}
   </div>
+  {/if}
 </div>
 
 <style>
@@ -237,6 +253,30 @@
     margin: 0 0 1.25rem;
     color: var(--muted);
     font-size: 0.85rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.9rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+
+  .tab.active {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
   }
 
   .controls {

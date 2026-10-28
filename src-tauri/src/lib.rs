@@ -8,7 +8,9 @@ use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_replace, regex_test};
 use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
-use tools::syslog_server::commands::{SyslogRegistry, syslog_save, syslog_start, syslog_stop};
+use tools::syslog_server::commands::{
+    SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -35,7 +37,8 @@ pub fn run() {
             port_scan_cancel,
             syslog_start,
             syslog_stop,
-            syslog_save
+            syslog_save,
+            syslog_send
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
