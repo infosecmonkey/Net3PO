@@ -85,7 +85,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./SyslogServer/SyslogServer.svelte"),
   },
-  { id: "tftp-server", name: "TFTP Server", category: "Network", enabled: false },
+  {
+    id: "tftp-server",
+    name: "TFTP Server",
+    category: "Network",
+    enabled: true,
+    load: () => import("./TftpServer/TftpServer.svelte"),
+  },
 
   // Phase 3, SNMP
   { id: "snmp-walk", name: "SNMP Walk", category: "SNMP", enabled: false },

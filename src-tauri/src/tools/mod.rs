@@ -10,3 +10,4 @@ pub mod port_scanner;
 pub mod regex_builder;
 pub mod subnet_calculator;
 pub mod syslog_server;
+pub mod tftp_server;
