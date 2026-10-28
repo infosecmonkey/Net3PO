@@ -258,3 +258,9 @@ export type TftpEvent =
   | { type: "transferProgress"; id: number; bytes: number }
   | { type: "transferEnd"; id: number; bytes: number; ok: boolean; message: string }
   | { type: "stopped" };
+
+// SNMP walk.
+
+export type SnmpWalkEvent =
+  | { type: "varbind"; oid: string; name: string; value: string; valueType: string }
+  | { type: "done"; count: number; cancelled: boolean; error: string | null };

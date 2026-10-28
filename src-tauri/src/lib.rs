@@ -7,6 +7,9 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_replace, regex_test};
+use tools::snmp_walk::commands::{
+    MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
+};
 use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
@@ -21,6 +24,8 @@ pub fn run() {
         .manage(ScanRegistry::default())
         .manage(SyslogRegistry::default())
         .manage(TftpRegistry::default())
+        .manage(SnmpRegistry::default())
+        .manage(MibState::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -42,7 +47,11 @@ pub fn run() {
             syslog_save,
             syslog_send,
             tftp_start,
-            tftp_stop
+            tftp_stop,
+            snmp_walk,
+            snmp_walk_cancel,
+            snmp_load_mib,
+            snmp_mib_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
