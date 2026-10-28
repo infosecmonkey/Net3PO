@@ -95,3 +95,10 @@ Phase 5:
 - Explain the plan briefly before large changes.
 - After a tool works, summarize what changed so Manny can test and commit.
 - Ask before adding a new dependency that is large or has native build requirements.
+
+## Branching
+
+- Cut a new branch from `main` for each tool, named `feat/<tool>`.
+- Finish, test and commit the tool on its branch, then open a PR into `main`.
+- Merge into `main` only after Manny confirms the tool works in `pnpm tauri dev`.
+- Start the next tool from a fresh branch off the updated `main`.
