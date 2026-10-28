@@ -29,6 +29,7 @@ regex = "1"
 fancy-regex = "0.14"
 hickory-client = "0.24"
 hickory-resolver = "0.24"
+snmp2 = { version = "0.5", features = ["crypto-rust"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync"] }
 
 

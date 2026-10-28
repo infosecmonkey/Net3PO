@@ -94,7 +94,13 @@ const TOOLS: ToolDef[] = [
   },
 
   // Phase 3, SNMP
-  { id: "snmp-walk", name: "SNMP Walk", category: "SNMP", enabled: false },
+  {
+    id: "snmp-walk",
+    name: "SNMP Walk",
+    category: "SNMP",
+    enabled: true,
+    load: () => import("./SnmpWalk/SnmpWalk.svelte"),
+  },
   { id: "snmp-sweep", name: "SNMP Sweep", category: "SNMP", enabled: false },
   { id: "port-mapper", name: "Switch Port Mapper", category: "SNMP", enabled: false },
 
