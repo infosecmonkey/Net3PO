@@ -159,3 +159,24 @@ export interface FgtSaveSummary {
   bytesWritten: number;
   skippedEth0: number;
 }
+
+// Dig (DNS lookup).
+
+export interface DnsRecord {
+  name: string;
+  ttl: number;
+  rtype: string;
+  data: string;
+}
+
+export interface DigResponse {
+  server: string;
+  protocol: string;
+  rcode: string;
+  flags: string[];
+  queryTimeMs: number;
+  question: string;
+  answers: DnsRecord[];
+  authority: DnsRecord[];
+  additional: DnsRecord[];
+}
