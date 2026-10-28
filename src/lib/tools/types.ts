@@ -54,3 +54,36 @@ export interface SplitResult {
   truncated: boolean;
   subnets: SubnetEntry[];
 }
+
+// Regex builder.
+
+export type RegexEngine = "standard" | "pcre";
+
+export interface RegexFlags {
+  caseInsensitive: boolean;
+  multiline: boolean;
+  dotAll: boolean;
+  ignoreWhitespace: boolean;
+}
+
+export interface GroupMatch {
+  index: number;
+  name: string | null;
+  value: string | null;
+  start: number | null;
+  end: number | null;
+}
+
+export interface RegexMatch {
+  start: number;
+  end: number;
+  value: string;
+  groups: GroupMatch[];
+}
+
+export interface RegexResult {
+  matches: RegexMatch[];
+  total: number;
+  truncated: boolean;
+  groupNames: (string | null)[];
+}
