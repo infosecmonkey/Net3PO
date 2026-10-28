@@ -249,3 +249,12 @@ export type SyslogEvent =
 export type SyslogSendEvent =
   | { type: "sent"; index: number; severity: string; line: string }
   | { type: "done"; sent: number; cancelled: boolean };
+
+// TFTP server.
+
+export type TftpEvent =
+  | { type: "started"; port: number; root: string; writable: boolean }
+  | { type: "transferStart"; id: number; file: string; client: string; direction: string }
+  | { type: "transferProgress"; id: number; bytes: number }
+  | { type: "transferEnd"; id: number; bytes: number; ok: boolean; message: string }
+  | { type: "stopped" };

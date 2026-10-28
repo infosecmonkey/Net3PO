@@ -11,6 +11,7 @@ use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
 };
+use tools::tftp_server::commands::{TftpRegistry, tftp_start, tftp_stop};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
         .manage(SyslogRegistry::default())
+        .manage(TftpRegistry::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -38,7 +40,9 @@ pub fn run() {
             syslog_start,
             syslog_stop,
             syslog_save,
-            syslog_send
+            syslog_send,
+            tftp_start,
+            tftp_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
