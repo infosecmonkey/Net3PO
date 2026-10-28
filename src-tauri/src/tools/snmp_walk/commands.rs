@@ -179,6 +179,22 @@ fn run_walk(
         }
     };
 
+    // SNMPv3 needs the agent's engine ID before it can build authenticated
+    // requests. init() sends a blank unauthenticated discovery request to learn
+    // it; v1 and v2c need no discovery. Without this, v3 fails locally (no
+    // packet is ever sent) with an authentication error.
+    if config.version == "v3"
+        && let Err(e) = session.init()
+    {
+        let msg = format!("v3 engine discovery failed: {e:?}");
+        let _ = on_event.send(WalkEvent::Done {
+            count: 0,
+            cancelled: false,
+            error: Some(msg.clone()),
+        });
+        return (0, false, Some(msg));
+    }
+
     let mut last = root.clone();
     let mut count = 0usize;
     let mut cancelled = false;
@@ -190,30 +206,47 @@ fn run_walk(
             break;
         }
 
-        // Convert this round's varbinds to owned data before touching `last`
-        // (the varbind values borrow the PDU buffer).
-        let fetched: Result<Vec<(Vec<u32>, String, String)>, String> = (|| {
-            let arcs: Vec<u64> = last.iter().map(|n| *n as u64).collect();
-            let cur = Oid::from(&arcs[..]).map_err(|_| "bad OID".to_string())?;
-            let pdu = if use_bulk {
+        // Fetch one round. Varbind values borrow the PDU buffer, so convert to
+        // owned data before `last` is touched. Retry transparently on
+        // AuthUpdated (the agent's boot/time counters changed and were
+        // re-learned, e.g. after a reboot).
+        let arcs: Vec<u64> = last.iter().map(|n| *n as u64).collect();
+        let cur = match Oid::from(&arcs[..]) {
+            Ok(o) => o,
+            Err(_) => {
+                error = Some("bad OID".to_string());
+                break;
+            }
+        };
+        let mut attempts = 0u32;
+        let rows: Vec<(Vec<u32>, String, String)> = loop {
+            let result = if use_bulk {
                 session.getbulk(&[&cur], 0, GETBULK_REPETITIONS)
             } else {
                 session.getnext(&cur)
-            }
-            .map_err(|e| format!("{e:?}"))?;
-            let mut out = Vec::new();
-            for (oid, val) in pdu.varbinds {
-                let (vt, v) = format_value(&val);
-                out.push((oid_to_vec(&oid), vt, v));
-            }
-            Ok(out)
-        })();
-
-        let rows = match fetched {
-            Ok(r) => r,
-            Err(e) => {
-                error = Some(e);
-                break;
+            };
+            match result {
+                Ok(pdu) => {
+                    break pdu
+                        .varbinds
+                        .map(|(oid, val)| {
+                            let (vt, v) = format_value(&val);
+                            (oid_to_vec(&oid), vt, v)
+                        })
+                        .collect();
+                }
+                Err(snmp2::Error::AuthUpdated) => {
+                    attempts += 1;
+                    if attempts > 3 {
+                        error = Some("SNMPv3 auth parameters kept changing".to_string());
+                        break 'walk;
+                    }
+                    continue;
+                }
+                Err(e) => {
+                    error = Some(format!("{e:?}"));
+                    break 'walk;
+                }
             }
         };
 
