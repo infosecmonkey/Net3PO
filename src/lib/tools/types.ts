@@ -130,3 +130,32 @@ export interface MacDbInfo {
   maM: number;
   maS: number;
 }
+
+// FortiGate sniffer to PCAP.
+
+export interface FgtOptions {
+  skipEth0: boolean;
+}
+
+export interface FgtPacketMeta {
+  index: number;
+  time: string;
+  interface: string | null;
+  direction: string | null;
+  length: number;
+}
+
+export interface FgtParseSummary {
+  total: number;
+  skippedEth0: number;
+  totalBytes: number;
+  shown: number;
+  truncated: boolean;
+  packets: FgtPacketMeta[];
+}
+
+export interface FgtSaveSummary {
+  packets: number;
+  bytesWritten: number;
+  skippedEth0: number;
+}

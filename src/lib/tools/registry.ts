@@ -48,7 +48,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./MacVendor/MacVendor.svelte"),
   },
-  { id: "forti-sniffer", name: "FortiGate Sniffer to PCAP", category: "Offline", enabled: false },
+  {
+    id: "forti-sniffer",
+    name: "FortiGate Sniffer to PCAP",
+    category: "Offline",
+    enabled: true,
+    load: () => import("./FgtSniffer/FgtSniffer.svelte"),
+  },
 
   // Phase 2, network tools
   { id: "dig", name: "Dig", category: "Network", enabled: false },
