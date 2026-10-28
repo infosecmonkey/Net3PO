@@ -223,6 +223,11 @@ fn run_walk(
 
         let mut advanced = false;
         for (oid_vec, value_type, value) in rows {
+            // Stop emitting the current batch the moment a cancel arrives.
+            if cancel.load(Ordering::Relaxed) {
+                cancelled = true;
+                break 'walk;
+            }
             // End of walk: left the requested subtree or stopped advancing
             // (covers endOfMibView and lexicographic end).
             if !oid_vec.starts_with(&root) || oid_vec <= last {
