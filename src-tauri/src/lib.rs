@@ -1,6 +1,7 @@
 mod tools;
 
 use tools::dig::commands::dig_query;
+use tools::dns_analyzer::commands::dns_analyze;
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
 use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
@@ -24,7 +25,8 @@ pub fn run() {
             fgt_parse,
             fgt_save,
             fgt_read_file,
-            dig_query
+            dig_query,
+            dns_analyze
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -180,3 +180,25 @@ export interface DigResponse {
   authority: DnsRecord[];
   additional: DnsRecord[];
 }
+
+// DNS analyzer.
+
+export type Severity = "pass" | "info" | "warn" | "fail";
+
+export interface DnsFinding {
+  severity: Severity;
+  message: string;
+}
+
+export interface DnsSection {
+  name: string;
+  status: Severity;
+  findings: DnsFinding[];
+  records: string[];
+}
+
+export interface DnsAnalysis {
+  domain: string;
+  server: string;
+  sections: DnsSection[];
+}

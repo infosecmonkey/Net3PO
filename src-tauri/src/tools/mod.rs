@@ -2,6 +2,7 @@
 //! `commands.rs`, registered in `lib.rs`.
 
 pub mod dig;
+pub mod dns_analyzer;
 pub mod fgt_sniffer;
 pub mod grep_builder;
 pub mod mac_vendor;
