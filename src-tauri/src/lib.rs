@@ -1,6 +1,6 @@
 mod tools;
 
-use tools::fgt_sniffer::commands::{fgt_parse, fgt_save};
+use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
 use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::regex_builder::commands::{regex_replace, regex_test};
@@ -21,7 +21,8 @@ pub fn run() {
             mac_lookup,
             mac_db_info,
             fgt_parse,
-            fgt_save
+            fgt_save,
+            fgt_read_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

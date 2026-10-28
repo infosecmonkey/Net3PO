@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { save } from "@tauri-apps/plugin-dialog";
+  import { open, save } from "@tauri-apps/plugin-dialog";
   import type { FgtOptions, FgtParseSummary, FgtSaveSummary } from "$lib/tools/types";
 
   const PLACEHOLDER = `Paste "diagnose sniffer packet <iface> '<filter>' 3" output here, for example:
@@ -45,6 +45,24 @@ filters=[none]
     }
   }
 
+  async function loadFile() {
+    error = "";
+    saveMsg = "";
+    try {
+      const path = await open({
+        multiple: false,
+        filters: [
+          { name: "Text", extensions: ["txt", "log"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      });
+      if (typeof path !== "string") return; // cancelled
+      input = await invoke<string>("fgt_read_file", { path });
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   async function savePcap() {
     saveMsg = "";
     error = "";
@@ -82,6 +100,7 @@ filters=[none]
   ></textarea>
 
   <div class="controls">
+    <button class="secondary" onclick={loadFile}>Load .txt file</button>
     <label class="opt">
       <input type="checkbox" bind:checked={skipEth0} /> Skip eth0 (internal)
     </label>
@@ -134,6 +153,12 @@ filters=[none]
       {#if summary.truncated}
         <p class="note">Showing the first {summary.shown.toLocaleString()} packets. The saved .pcap includes all {summary.total.toLocaleString()}.</p>
       {/if}
+    {:else}
+      <p class="empty">
+        No packets recognized. This expects `diagnose sniffer packet` output at a
+        verbose level that includes hex (level 3 or 6), with `0x0000 ...` dump
+        lines under each packet.
+      </p>
     {/if}
   {/if}
 </div>
@@ -207,6 +232,26 @@ filters=[none]
   .save:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+
+  .secondary {
+    background: var(--btn-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    color: var(--fg);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .secondary:hover {
+    border-color: var(--accent);
+  }
+
+  .empty {
+    font-size: 0.85rem;
+    color: var(--muted);
+    max-width: 620px;
   }
 
   .error {

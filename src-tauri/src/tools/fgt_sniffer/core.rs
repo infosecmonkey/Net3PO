@@ -70,20 +70,20 @@ pub fn parse(input: &str, opts: &Options) -> ParseOutput {
         i += 1;
 
         // Gather the hex dump lines that follow, up to a blank line or the
-        // next timestamp header.
+        // next timestamp header. Non-hex lines inside the block are skipped,
+        // not treated as the end: `any` captures at verbose 6 print a
+        // "linux cooked capture, ..." descriptor line between the header and
+        // the hex.
         let mut bytes = Vec::new();
         while i < lines.len() {
             let l = lines[i];
             if l.trim().is_empty() || parse_time(l, &re_rel, &re_abs).is_some() {
                 break;
             }
-            match strip_hex_offset(l) {
-                Some(rest) => {
-                    bytes.extend(parse_hex_bytes(rest));
-                    i += 1;
-                }
-                None => break,
+            if let Some(rest) = strip_hex_offset(l) {
+                bytes.extend(parse_hex_bytes(rest));
             }
+            i += 1;
         }
 
         let is_eth0 = interface.as_deref() == Some("eth0");
@@ -516,6 +516,33 @@ mod tests {
             );
         }
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn parses_any_verbose6_with_sll_descriptor() {
+        // `diagnose sniffer packet any '...' 6` prints a "linux cooked capture"
+        // descriptor line between the header and the hex. It must be skipped,
+        // not treated as the end of the packet.
+        let input = "interfaces=[any]\nfilters=[host 10.1.108.2]\n\
+4.257341 Office-Wired out 10.1.105.1.4443 -> 10.1.108.2.50668: psh 4064655509 ack 3731294975\n\
+linux cooked capture, packet type: 0x4, link layer address type: 0x1, protocol type: 0x800, link layer address: e0:23:ff:5d:a3:64\n\
+0x0000   0000 0000 0000 e023 ff5d a364 0800 4502   .......#.].d..E.\n\
+0x0010   03d3 cf84 0000 4006                        ......@.\n";
+        let out = parse(input, &Options::default());
+        assert_eq!(
+            out.packets.len(),
+            1,
+            "descriptor line should not drop the packet"
+        );
+        let p = &out.packets[0];
+        assert_eq!(p.interface.as_deref(), Some("Office-Wired"));
+        assert_eq!(p.direction.as_deref(), Some("out"));
+        // 16 bytes on the first line + 8 on the second, Ethernet frame intact.
+        assert_eq!(p.bytes.len(), 24);
+        assert_eq!(&p.bytes[0..6], &[0, 0, 0, 0, 0, 0]);
+        assert_eq!(&p.bytes[6..12], &[0xe0, 0x23, 0xff, 0x5d, 0xa3, 0x64]);
+        assert_eq!(&p.bytes[12..14], &[0x08, 0x00]);
+        assert_eq!(&p.bytes[14..16], &[0x45, 0x02]);
     }
 
     #[test]

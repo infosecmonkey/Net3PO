@@ -79,6 +79,12 @@ pub struct SaveSummary {
     pub skipped_eth0: usize,
 }
 
+/// Read a sniffer capture file chosen by the UI via a native open dialog.
+#[tauri::command]
+pub fn fgt_read_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("could not read {path}: {e}"))
+}
+
 /// Convert sniffer text to pcap and write it to `path` (chosen by the UI via a
 /// native save dialog).
 #[tauri::command]
