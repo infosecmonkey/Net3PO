@@ -110,3 +110,23 @@ export interface GrepOptions {
   context: number;
   paths: string[];
 }
+
+// MAC vendor lookup.
+
+export interface MacInfo {
+  normalized: string;
+  oui: string;
+  prefix: string | null;
+  vendor: string | null;
+  block: string | null;
+  isMulticast: boolean;
+  isLocallyAdministered: boolean;
+}
+
+export interface MacDbInfo {
+  source: string;
+  total: number;
+  maL: number;
+  maM: number;
+  maS: number;
+}
