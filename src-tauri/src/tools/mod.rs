@@ -2,5 +2,6 @@
 //! `commands.rs`, registered in `lib.rs`.
 
 pub mod grep_builder;
+pub mod mac_vendor;
 pub mod regex_builder;
 pub mod subnet_calculator;

@@ -1,6 +1,7 @@
 mod tools;
 
 use tools::grep_builder::commands::{grep_build, grep_preview};
+use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::regex_builder::commands::{regex_replace, regex_test};
 use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
 
@@ -14,7 +15,9 @@ pub fn run() {
             regex_test,
             regex_replace,
             grep_build,
-            grep_preview
+            grep_preview,
+            mac_lookup,
+            mac_db_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
