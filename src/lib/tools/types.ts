@@ -264,3 +264,8 @@ export type TftpEvent =
 export type SnmpWalkEvent =
   | { type: "varbind"; oid: string; name: string; value: string; valueType: string }
   | { type: "done"; count: number; cancelled: boolean; error: string | null };
+
+export type SnmpSweepEvent =
+  | { type: "responder"; ip: string; sysDescr: string; sysName: string; sysObjectId: string }
+  | { type: "progress"; done: number; total: number; found: number }
+  | { type: "done"; total: number; found: number; cancelled: boolean };
