@@ -29,6 +29,7 @@ pub struct ScanRegistry {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ScanEvent {
     Open {
+        host: String,
         port: u16,
         service: Option<String>,
     },
@@ -39,6 +40,8 @@ pub enum ScanEvent {
     },
     Done {
         total: usize,
+        hosts: usize,
+        hosts_with_open: usize,
         open: usize,
         closed: usize,
         filtered: usize,
@@ -57,8 +60,11 @@ enum PortState {
     Filtered,
 }
 
-/// How often to emit a progress event, in ports scanned.
-const PROGRESS_EVERY: usize = 64;
+/// Progress events are emitted at most this many times over a scan (plus the
+/// floor below), so a large host*port scan does not flood the UI.
+const MAX_PROGRESS_EVENTS: usize = 200;
+/// Never emit progress more often than every this many connections.
+const PROGRESS_FLOOR: usize = 64;
 
 /// Cancel a running scan by id.
 #[tauri::command]
@@ -104,74 +110,78 @@ async fn run_scan(
     cancel: &Arc<AtomicBool>,
 ) -> Result<(), String> {
     let port_list = core::resolve_ports(ports).map_err(|e| e.to_string())?;
+    let hosts = resolve_targets(target).await?;
     let ScanParams {
         concurrency,
         timeout_ms,
     } = core::preset_params(preset);
     let timeout = Duration::from_millis(timeout_ms);
-    let ip = resolve_target(target).await?;
 
-    let total = port_list.len();
+    let total = hosts.len() * port_list.len();
+    let progress_every = (total / MAX_PROGRESS_EVENTS).max(PROGRESS_FLOOR);
     let start = Instant::now();
     let semaphore = Arc::new(Semaphore::new(concurrency));
-    let mut set: JoinSet<(u16, PortState)> = JoinSet::new();
+    let mut set: JoinSet<(IpAddr, u16, PortState)> = JoinSet::new();
 
     let mut done = 0usize;
     let mut open = 0usize;
     let mut closed = 0usize;
     let mut filtered = 0usize;
+    let mut hosts_with_open: std::collections::HashSet<IpAddr> = std::collections::HashSet::new();
 
-    for port in port_list {
-        if cancel.load(Ordering::Relaxed) {
-            break;
-        }
-        // acquire_owned pauses the loop when all permits are in use, which
-        // bounds concurrency.
-        let permit = semaphore.clone().acquire_owned().await.unwrap();
-        set.spawn(async move {
-            let _permit = permit;
-            (port, scan_one(ip, port, timeout).await)
-        });
-
-        while let Some(joined) = set.try_join_next() {
-            let (port, state) = joined.map_err(|e| e.to_string())?;
-            match state {
-                PortState::Open => open += 1,
-                PortState::Closed => closed += 1,
-                PortState::Filtered => filtered += 1,
+    'outer: for &ip in &hosts {
+        for &port in &port_list {
+            if cancel.load(Ordering::Relaxed) {
+                break 'outer;
             }
-            done += 1;
-            if state == PortState::Open {
-                let _ = on_event.send(ScanEvent::Open {
+            // acquire_owned pauses the loop when all permits are in use, which
+            // bounds concurrency across the whole host*port set.
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
+            set.spawn(async move {
+                let _permit = permit;
+                (ip, port, scan_one(ip, port, timeout).await)
+            });
+
+            while let Some(joined) = set.try_join_next() {
+                let (host, port, state) = joined.map_err(|e| e.to_string())?;
+                tally(
+                    state,
+                    host,
                     port,
-                    service: core::service_name(port).map(String::from),
-                });
-            }
-            if done.is_multiple_of(PROGRESS_EVERY) {
-                let _ = on_event.send(ScanEvent::Progress { done, total, open });
+                    on_event,
+                    &mut open,
+                    &mut closed,
+                    &mut filtered,
+                    &mut hosts_with_open,
+                );
+                done += 1;
+                if done.is_multiple_of(progress_every) {
+                    let _ = on_event.send(ScanEvent::Progress { done, total, open });
+                }
             }
         }
     }
 
     // Drain the remaining in-flight connections.
     while let Some(joined) = set.join_next().await {
-        let (port, state) = joined.map_err(|e| e.to_string())?;
-        match state {
-            PortState::Open => open += 1,
-            PortState::Closed => closed += 1,
-            PortState::Filtered => filtered += 1,
-        }
-        if state == PortState::Open {
-            let _ = on_event.send(ScanEvent::Open {
-                port,
-                service: core::service_name(port).map(String::from),
-            });
-        }
+        let (host, port, state) = joined.map_err(|e| e.to_string())?;
+        tally(
+            state,
+            host,
+            port,
+            on_event,
+            &mut open,
+            &mut closed,
+            &mut filtered,
+            &mut hosts_with_open,
+        );
     }
 
     let cancelled = cancel.load(Ordering::Relaxed);
     let _ = on_event.send(ScanEvent::Done {
         total,
+        hosts: hosts.len(),
+        hosts_with_open: hosts_with_open.len(),
         open,
         closed,
         filtered,
@@ -181,22 +191,63 @@ async fn run_scan(
     Ok(())
 }
 
-/// Resolve a hostname or IP to a single address.
-async fn resolve_target(target: &str) -> Result<IpAddr, String> {
-    let t = target.trim();
-    if t.is_empty() {
-        return Err("enter a host or IP to scan".to_string());
+/// Record one result and stream an Open event for it.
+#[allow(clippy::too_many_arguments)]
+fn tally(
+    state: PortState,
+    host: IpAddr,
+    port: u16,
+    on_event: &Channel<ScanEvent>,
+    open: &mut usize,
+    closed: &mut usize,
+    filtered: &mut usize,
+    hosts_with_open: &mut std::collections::HashSet<IpAddr>,
+) {
+    match state {
+        PortState::Open => {
+            *open += 1;
+            hosts_with_open.insert(host);
+            let _ = on_event.send(ScanEvent::Open {
+                host: host.to_string(),
+                port,
+                service: core::service_name(port).map(String::from),
+            });
+        }
+        PortState::Closed => *closed += 1,
+        PortState::Filtered => *filtered += 1,
     }
-    if let Ok(ip) = t.parse::<IpAddr>() {
-        return Ok(ip);
+}
+
+/// Expand the target spec and resolve any hostnames to addresses.
+async fn resolve_targets(target: &str) -> Result<Vec<IpAddr>, String> {
+    let targets = core::parse_targets(target).map_err(|e| e.to_string())?;
+    let mut ips: Vec<IpAddr> = Vec::new();
+    for t in targets {
+        match t {
+            core::Target::Ip(ip) => ips.push(ip),
+            core::Target::Host(host) => {
+                match tokio::net::lookup_host((host.as_str(), 0u16)).await {
+                    Ok(addrs) => {
+                        // Take the first resolved address for the host.
+                        if let Some(first) = addrs.map(|s| s.ip()).next() {
+                            ips.push(first);
+                        } else {
+                            return Err(format!("could not resolve '{host}'"));
+                        }
+                    }
+                    Err(e) => return Err(format!("could not resolve '{host}': {e}")),
+                }
+            }
+        }
     }
-    match tokio::net::lookup_host((t, 0u16)).await {
-        Ok(mut addrs) => addrs
-            .next()
-            .map(|s| s.ip())
-            .ok_or_else(|| format!("could not resolve '{t}'")),
-        Err(e) => Err(format!("could not resolve '{t}': {e}")),
+    if ips.len() > core::MAX_TARGETS {
+        return Err(format!(
+            "target set too large ({} addresses, max {})",
+            ips.len(),
+            core::MAX_TARGETS
+        ));
     }
+    Ok(ips)
 }
 
 /// A single TCP connect attempt, classified as open/closed/filtered.

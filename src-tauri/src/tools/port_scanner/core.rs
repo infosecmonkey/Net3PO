@@ -2,7 +2,116 @@
 //! names, and speed presets. No network here, so it is unit tested directly.
 //! The scanning loop and streaming live in `commands.rs`.
 
+use std::net::{IpAddr, Ipv4Addr};
+
 use thiserror::Error;
+
+/// Upper bound on how many host addresses a scan may target, to keep a careless
+/// CIDR (like a /8) from enumerating millions of hosts.
+pub const MAX_TARGETS: usize = 65536;
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum TargetError {
+    #[error("enter a host, IP, or CIDR to scan")]
+    Empty,
+    #[error("'{0}' is not a valid CIDR")]
+    BadCidr(String),
+    #[error("IPv6 ranges are not supported; scan a specific IPv6 host instead")]
+    V6Cidr,
+    #[error("target set too large ({count} addresses, max 65536); narrow the range")]
+    TooLarge { count: usize },
+}
+
+/// One scan target: a literal IP, or a hostname to resolve later.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Target {
+    Ip(IpAddr),
+    Host(String),
+}
+
+/// Parse a target spec into individual targets. Accepts a comma/space separated
+/// mix of single IPs, hostnames, and IPv4 CIDRs (expanded to host addresses).
+pub fn parse_targets(spec: &str) -> Result<Vec<Target>, TargetError> {
+    let spec = spec.trim();
+    if spec.is_empty() {
+        return Err(TargetError::Empty);
+    }
+    let mut targets = Vec::new();
+    let mut ip_count = 0usize;
+    for token in spec
+        .split([',', ' ', '\t', '\n', '\r'])
+        .filter(|t| !t.is_empty())
+    {
+        if token.contains('/') {
+            let ips = expand_cidr(token)?;
+            ip_count += ips.len();
+            if ip_count > MAX_TARGETS {
+                return Err(TargetError::TooLarge { count: ip_count });
+            }
+            targets.extend(ips.into_iter().map(Target::Ip));
+        } else if let Ok(ip) = token.parse::<IpAddr>() {
+            targets.push(Target::Ip(ip));
+        } else {
+            targets.push(Target::Host(token.to_string()));
+        }
+    }
+    if targets.is_empty() {
+        return Err(TargetError::Empty);
+    }
+    Ok(targets)
+}
+
+/// Expand an IPv4 CIDR into its host addresses. For prefixes shorter than /31
+/// the network and broadcast addresses are excluded; /31 and /32 return all
+/// addresses. IPv6 CIDRs are rejected.
+pub fn expand_cidr(cidr: &str) -> Result<Vec<IpAddr>, TargetError> {
+    let (addr, prefix) = cidr
+        .split_once('/')
+        .ok_or_else(|| TargetError::BadCidr(cidr.to_string()))?;
+    let ip: IpAddr = addr
+        .trim()
+        .parse()
+        .map_err(|_| TargetError::BadCidr(cidr.to_string()))?;
+    let prefix: u32 = prefix
+        .trim()
+        .parse()
+        .map_err(|_| TargetError::BadCidr(cidr.to_string()))?;
+
+    let v4 = match ip {
+        IpAddr::V4(v4) => v4,
+        IpAddr::V6(_) => return Err(TargetError::V6Cidr),
+    };
+    if prefix > 32 {
+        return Err(TargetError::BadCidr(cidr.to_string()));
+    }
+
+    let base = u32::from(v4);
+    let mask = if prefix == 0 {
+        0
+    } else {
+        u32::MAX << (32 - prefix)
+    };
+    let network = base & mask;
+    let broadcast = network | !mask;
+
+    let hosts: Vec<IpAddr> = match prefix {
+        32 => vec![IpAddr::V4(Ipv4Addr::from(network))],
+        31 => vec![
+            IpAddr::V4(Ipv4Addr::from(network)),
+            IpAddr::V4(Ipv4Addr::from(broadcast)),
+        ],
+        _ => {
+            let count = (broadcast - network - 1) as usize;
+            if count > MAX_TARGETS {
+                return Err(TargetError::TooLarge { count });
+            }
+            ((network + 1)..broadcast)
+                .map(|n| IpAddr::V4(Ipv4Addr::from(n)))
+                .collect()
+        }
+    };
+    Ok(hosts)
+}
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum PortError {
@@ -225,6 +334,60 @@ mod tests {
         assert_eq!(service_name(443), Some("https"));
         assert_eq!(service_name(3306), Some("mysql"));
         assert_eq!(service_name(65000), None);
+    }
+
+    #[test]
+    fn expand_cidr_hosts() {
+        let v = |ip: &str| IpAddr::V4(ip.parse().unwrap());
+        // /30 has two usable hosts (network .0 and broadcast .3 excluded).
+        assert_eq!(
+            expand_cidr("10.1.1.0/30").unwrap(),
+            vec![v("10.1.1.1"), v("10.1.1.2")]
+        );
+        // /31 returns both addresses (RFC 3021 point-to-point).
+        assert_eq!(
+            expand_cidr("10.1.1.0/31").unwrap(),
+            vec![v("10.1.1.0"), v("10.1.1.1")]
+        );
+        // /32 is a single host.
+        assert_eq!(expand_cidr("10.1.1.5/32").unwrap(), vec![v("10.1.1.5")]);
+        // /24 has 254 usable hosts, starting at .1.
+        let slash24 = expand_cidr("192.168.0.0/24").unwrap();
+        assert_eq!(slash24.len(), 254);
+        assert_eq!(slash24[0], v("192.168.0.1"));
+        assert_eq!(slash24[253], v("192.168.0.254"));
+    }
+
+    #[test]
+    fn expand_cidr_errors() {
+        assert!(matches!(
+            expand_cidr("10.0.0.0/8").unwrap_err(),
+            TargetError::TooLarge { .. }
+        ));
+        assert_eq!(
+            expand_cidr("2001:db8::/64").unwrap_err(),
+            TargetError::V6Cidr
+        );
+        assert!(matches!(
+            expand_cidr("nope/24").unwrap_err(),
+            TargetError::BadCidr(_)
+        ));
+    }
+
+    #[test]
+    fn parse_targets_mixed() {
+        let t = parse_targets("10.0.0.1, host.example.com 10.0.0.8/30").unwrap();
+        // 1 IP + 1 host + 2 CIDR hosts (.9, .10).
+        assert_eq!(t.len(), 4);
+        assert_eq!(t[0], Target::Ip("10.0.0.1".parse().unwrap()));
+        assert_eq!(t[1], Target::Host("host.example.com".to_string()));
+        assert_eq!(t[2], Target::Ip("10.0.0.9".parse().unwrap()));
+        assert_eq!(t[3], Target::Ip("10.0.0.10".parse().unwrap()));
+    }
+
+    #[test]
+    fn parse_targets_empty() {
+        assert_eq!(parse_targets("   ").unwrap_err(), TargetError::Empty);
     }
 
     #[test]

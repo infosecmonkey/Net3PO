@@ -9,8 +9,19 @@
   let preset = $state("normal");
 
   interface OpenPort {
+    host: string;
     port: number;
     service: string | null;
+  }
+
+  // Numeric-aware sort so 10.0.0.2 comes before 10.0.0.10, then by port.
+  function ipKey(ip: string): number {
+    const parts = ip.split(".");
+    if (parts.length !== 4) return Number.MAX_SAFE_INTEGER;
+    return parts.reduce((acc, p) => acc * 256 + (Number(p) || 0), 0);
+  }
+  function compareOpen(a: OpenPort, b: OpenPort): number {
+    return ipKey(a.host) - ipKey(b.host) || a.port - b.port;
   }
 
   let scanning = $state(false);
@@ -36,9 +47,9 @@
     channel.onmessage = (ev) => {
       switch (ev.type) {
         case "open":
-          // Keep the list sorted by port as results arrive out of order.
-          openPorts = [...openPorts, { port: ev.port, service: ev.service }].sort(
-            (a, b) => a.port - b.port,
+          // Keep the list sorted by host then port as results arrive.
+          openPorts = [...openPorts, { host: ev.host, port: ev.port, service: ev.service }].sort(
+            compareOpen,
           );
           break;
         case "progress":
@@ -97,7 +108,7 @@
 
   <div class="fields">
     <div class="field grow">
-      <label for="target">Host or IP</label>
+      <label for="target">Host, IP, or subnet</label>
       <input
         id="target"
         class="mono"
@@ -106,7 +117,7 @@
         spellcheck="false"
         autocapitalize="off"
         autocomplete="off"
-        placeholder="10.0.0.1 or host.example.com"
+        placeholder="10.0.0.1, host.example.com, or 10.0.0.0/24"
       />
     </div>
     <div class="field grow">
@@ -150,7 +161,7 @@
     <div class="progress">
       <div class="bar"><div class="fill" style="width: {pct}%"></div></div>
       <div class="pline muted">
-        {progress.done.toLocaleString()} / {progress.total.toLocaleString()} ports
+        {progress.done.toLocaleString()} / {progress.total.toLocaleString()} checks
         · {openPorts.length} open
         {#if scanning}· scanning...{/if}
       </div>
@@ -161,11 +172,12 @@
     <div class="table-scroll">
       <table>
         <thead>
-          <tr><th>Port</th><th>State</th><th>Service</th></tr>
+          <tr><th>Host</th><th>Port</th><th>State</th><th>Service</th></tr>
         </thead>
         <tbody>
-          {#each openPorts as p (p.port)}
+          {#each openPorts as p (p.host + ":" + p.port)}
             <tr>
+              <td class="mono">{p.host}</td>
               <td class="mono">{p.port}</td>
               <td><span class="open-badge">open</span></td>
               <td class="mono">{p.service ?? ""}</td>
@@ -179,8 +191,9 @@
   {#if summary}
     <p class="summary">
       {summary.cancelled ? "Cancelled" : "Done"}:
-      {summary.open} open, {summary.closed} closed, {summary.filtered} filtered
-      of {summary.total} ports in {(summary.elapsedMs / 1000).toFixed(1)}s.
+      {summary.open} open across {summary.hostsWithOpen} of {summary.hosts}
+      host{summary.hosts === 1 ? "" : "s"}
+      ({summary.total.toLocaleString()} host-port checks in {(summary.elapsedMs / 1000).toFixed(1)}s).
     </p>
   {/if}
 </div>
