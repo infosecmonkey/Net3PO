@@ -124,7 +124,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./DhcpMonitor/DhcpMonitor.svelte"),
   },
-  { id: "traceroute", name: "Visual Traceroute", category: "Advanced", enabled: false },
+  {
+    id: "traceroute",
+    name: "Visual Traceroute",
+    category: "Advanced",
+    enabled: true,
+    load: () => import("./Traceroute/Traceroute.svelte"),
+  },
 
   // Phase 5, builders
   { id: "forti-builder", name: "Fortinet Command Builder", category: "Builders", enabled: false },

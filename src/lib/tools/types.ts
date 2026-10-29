@@ -354,3 +354,60 @@ export type DhcpEvent =
   | { type: "reply"; record: DhcpServerRecord; source: string; ours: boolean }
   | { type: "warning"; message: string }
   | { type: "stopped"; probes: number; servers: number; error: string | null };
+
+// Visual traceroute.
+
+export interface TraceResponder {
+  ip: string;
+  count: number;
+  hostname: string | null;
+}
+
+export interface HopView {
+  ttl: number;
+  sent: number;
+  received: number;
+  lossPct: number;
+  lastMs: number | null;
+  avgMs: number | null;
+  bestMs: number | null;
+  worstMs: number | null;
+  stdevMs: number | null;
+  jitterMs: number | null;
+  ip: string | null;
+  hostname: string | null;
+  responders: TraceResponder[];
+  history: (number | null)[];
+  unreachable: number | null;
+}
+
+export interface TraceFinding {
+  kind: "loss" | "latency" | "rateLimit" | "unreachable" | "noReply";
+  ttl: number | null;
+  message: string;
+}
+
+export interface PathSummary {
+  cycles: number;
+  hops: number;
+  reached: boolean;
+  destAvgMs: number | null;
+  destLossPct: number | null;
+  findings: TraceFinding[];
+}
+
+export interface MtuResult {
+  mtu: number | null;
+  limitedBy: string | null;
+  blackHole: boolean;
+  note: string;
+  steps: { size: number; result: string }[];
+}
+
+export type TraceEvent =
+  | { type: "started"; target: string; ip: string; method: string }
+  | { type: "cycle"; n: number; hops: HopView[]; summary: PathSummary }
+  | { type: "mtuStarted" }
+  | { type: "mtu"; result: MtuResult }
+  | { type: "error"; message: string }
+  | { type: "done"; cycles: number; cancelled: boolean };

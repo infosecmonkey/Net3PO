@@ -33,6 +33,7 @@ snmp2 = { version = "0.5", features = ["crypto-rust"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync"] }
 if-addrs = "0.15.0"
 socket2 = { version = "0.6", features = ["all"] }
+libc = "0.2.191"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -42,3 +43,6 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_System_IO"] }

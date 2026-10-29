@@ -18,6 +18,7 @@ use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
 };
 use tools::tftp_server::commands::{TftpRegistry, tftp_start, tftp_stop};
+use tools::traceroute::commands::{TraceRegistry, trace_method, trace_run, trace_stop};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,6 +33,7 @@ pub fn run() {
         .manage(SweepRegistry::default())
         .manage(PortMapRegistry::default())
         .manage(DhcpRegistry::default())
+        .manage(TraceRegistry::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -65,7 +67,10 @@ pub fn run() {
             port_map_save,
             dhcp_interfaces,
             dhcp_monitor,
-            dhcp_stop
+            dhcp_stop,
+            trace_method,
+            trace_run,
+            trace_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
