@@ -1,5 +1,7 @@
+mod store;
 mod tools;
 
+use store::commands::{StoreLock, store_load, store_save};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
@@ -34,6 +36,7 @@ pub fn run() {
         .manage(PortMapRegistry::default())
         .manage(DhcpRegistry::default())
         .manage(TraceRegistry::default())
+        .manage(StoreLock::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -70,7 +73,9 @@ pub fn run() {
             dhcp_stop,
             trace_method,
             trace_run,
-            trace_stop
+            trace_stop,
+            store_load,
+            store_save
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
