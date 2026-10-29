@@ -55,14 +55,6 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./MacVendor/MacVendor.svelte"),
   },
-  {
-    id: "forti-sniffer",
-    icon: "file-down",
-    name: "FortiGate Sniffer to PCAP",
-    category: "Offline",
-    enabled: true,
-    load: () => import("./FgtSniffer/FgtSniffer.svelte"),
-  },
 
   // Phase 2, network tools
   {
@@ -150,8 +142,23 @@ const TOOLS: ToolDef[] = [
     load: () => import("./Traceroute/Traceroute.svelte"),
   },
 
-  // Phase 5, builders
-  { id: "forti-builder", icon: "square-terminal", name: "Fortinet Command Builder", category: "Builders", enabled: false },
+  // Fortinet
+  {
+    id: "forti-builder",
+    icon: "square-terminal",
+    name: "Fortinet Command Builder",
+    category: "Fortinet",
+    enabled: true,
+    load: () => import("./FortinetBuilder/FortinetBuilder.svelte"),
+  },
+  {
+    id: "forti-sniffer",
+    icon: "file-down",
+    name: "FortiGate Sniffer to PCAP",
+    category: "Fortinet",
+    enabled: true,
+    load: () => import("./FgtSniffer/FgtSniffer.svelte"),
+  },
 ];
 
 /** Tools grouped by category, preserving definition order. */

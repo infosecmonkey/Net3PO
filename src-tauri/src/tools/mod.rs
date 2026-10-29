@@ -5,6 +5,7 @@ pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;
 pub mod fgt_sniffer;
+pub mod fortinet_builder;
 pub mod grep_builder;
 pub mod mac_vendor;
 pub mod port_mapper;

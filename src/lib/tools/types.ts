@@ -411,3 +411,22 @@ export type TraceEvent =
   | { type: "mtu"; result: MtuResult }
   | { type: "error"; message: string }
   | { type: "done"; cycles: number; cancelled: boolean };
+
+// Fortinet command builder.
+
+export type FortinetCategory = "session" | "flow" | "sniffer" | "ping" | "traceroute";
+
+export interface BuildError {
+  field: string;
+  message: string;
+}
+
+export interface SavedCommand {
+  id: string;
+  title: string;
+  category: FortinetCategory;
+  command: string;
+  notes: string;
+  /** ISO 8601. */
+  createdAt: string;
+}

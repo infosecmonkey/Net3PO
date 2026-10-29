@@ -13,7 +13,11 @@ use serde_json::Value;
 use thiserror::Error;
 
 /// Collections the app may read and write.
-pub const COLLECTIONS: &[&str] = &["fortinet_saved_commands", "grep_saved_queries"];
+pub const COLLECTIONS: &[&str] = &[
+    "fortinet_saved_commands",
+    "fortinet_interfaces",
+    "grep_saved_queries",
+];
 
 /// Largest collection file accepted, on load and on save.
 pub const MAX_BYTES: usize = 5 * 1024 * 1024;
