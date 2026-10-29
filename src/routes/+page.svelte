@@ -1,15 +1,14 @@
 <script lang="ts">
   import type { Component } from "svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
-  import { defaultToolId, findTool } from "$lib/tools/registry";
-
-  let selected = $state(defaultToolId());
+  import { findTool } from "$lib/tools/registry";
+  import { nav } from "$lib/nav.svelte";
   let ToolComponent = $state<Component | null>(null);
   let loading = $state(false);
 
   // Load the selected tool's panel whenever the selection changes.
   $effect(() => {
-    const tool = findTool(selected);
+    const tool = findTool(nav.selected);
     if (!tool?.load) {
       ToolComponent = null;
       return;
@@ -27,7 +26,7 @@
 </script>
 
 <div class="app">
-  <Sidebar {selected} onselect={(id) => (selected = id)} />
+  <Sidebar selected={nav.selected} onselect={(id) => (nav.selected = id)} />
   <main class="content">
     {#if loading}
       <div class="placeholder">Loading...</div>

@@ -6,6 +6,10 @@ use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor,
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
+use tools::fortinet_builder::commands::{
+    fortinet_bpf_add, fortinet_bpf_preset, fortinet_build, fortinet_offload_snippet,
+    fortinet_save_text,
+};
 use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
@@ -75,7 +79,12 @@ pub fn run() {
             trace_run,
             trace_stop,
             store_load,
-            store_save
+            store_save,
+            fortinet_build,
+            fortinet_bpf_add,
+            fortinet_bpf_preset,
+            fortinet_offload_snippet,
+            fortinet_save_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
