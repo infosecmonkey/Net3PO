@@ -467,3 +467,55 @@ export interface SavedCommand {
   /** ISO 8601. */
   createdAt: string;
 }
+
+// Config diff.
+
+export type DiffWhitespace = "exact" | "trailing" | "amount" | "all";
+export type DiffAlgo = "histogram" | "patience" | "myers";
+
+export interface DiffOptions {
+  whitespace: DiffWhitespace;
+  ignoreCase: boolean;
+  ignoreBlankLines: boolean;
+  ignorePattern: string;
+  /** Unchanged lines around each change; null shows everything. */
+  context: number | null;
+  algorithm: DiffAlgo;
+  leftName: string;
+  rightName: string;
+}
+
+export interface DiffSide {
+  number: number;
+  text: string;
+  spans: { start: number; end: number }[];
+}
+
+export interface DiffRow {
+  kind: "equal" | "delete" | "insert" | "change";
+  left: DiffSide | null;
+  right: DiffSide | null;
+}
+
+export interface DiffHunk {
+  header: string;
+  section: string[];
+  rows: DiffRow[];
+}
+
+export interface DiffStats {
+  added: number;
+  removed: number;
+  changed: number;
+  leftLines: number;
+  rightLines: number;
+  ignoredLeft: number;
+  ignoredRight: number;
+}
+
+export interface DiffResult {
+  identical: boolean;
+  hunks: DiffHunk[];
+  stats: DiffStats;
+  unified: string;
+}

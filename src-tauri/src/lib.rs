@@ -2,6 +2,7 @@ mod store;
 mod tools;
 
 use store::commands::{StoreLock, store_load, store_save};
+use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
@@ -54,6 +55,9 @@ pub fn run() {
             fgt_parse,
             fgt_save,
             fgt_read_file,
+            diff_compare,
+            diff_read_file,
+            diff_save,
             dig_query,
             dns_analyze,
             port_scan,

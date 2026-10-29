@@ -58,6 +58,13 @@
     --error-bg: #fef2f2;
     --error-border: #fca5a5;
     --error-fg: #b91c1c;
+    /* Diff rows: soft fill per line, stronger fill for changed words. */
+    --diff-add-bg: #e9f7ee;
+    --diff-add-strong: #b6e6c6;
+    --diff-del-bg: #fdecec;
+    --diff-del-strong: #f7c1c1;
+    --diff-add-fg: #15803d;
+    --diff-del-fg: #b91c1c;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -78,6 +85,12 @@
       --error-bg: #2a1718;
       --error-border: #7f3034;
       --error-fg: #f6a8a8;
+      --diff-add-bg: #16291e;
+      --diff-add-strong: #22573a;
+      --diff-del-bg: #2e1819;
+      --diff-del-strong: #6b2a2d;
+      --diff-add-fg: #4ade80;
+      --diff-del-fg: #f87171;
     }
   }
 
