@@ -10,7 +10,7 @@
   }
   let { onclose }: Props = $props();
 
-  const REPO = "https://github.com/infosecmonkey/OmniPacket";
+  const REPO = "https://github.com/infosecmonkey/Net3PO";
 
   let version = $state("");
   let notices = $state<string | null>(null);

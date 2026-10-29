@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Network and security engineering toolkit"
 authors = ["InfoSecOps, Inc."]
 license = "Apache-2.0"
-repository = "https://github.com/infosecmonkey/OmniPacket"
+repository = "https://github.com/infosecmonkey/Net3PO"
 edition = "2024"
 # An application, not a library: never published to crates.io.
 publish = false
