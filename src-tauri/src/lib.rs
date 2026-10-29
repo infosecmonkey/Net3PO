@@ -1,5 +1,6 @@
 mod tools;
 
+use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
@@ -30,6 +31,7 @@ pub fn run() {
         .manage(MibState::default())
         .manage(SweepRegistry::default())
         .manage(PortMapRegistry::default())
+        .manage(DhcpRegistry::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -60,7 +62,10 @@ pub fn run() {
             snmp_sweep_cancel,
             port_map,
             port_map_cancel,
-            port_map_save
+            port_map_save,
+            dhcp_interfaces,
+            dhcp_monitor,
+            dhcp_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

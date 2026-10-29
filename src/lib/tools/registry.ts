@@ -117,7 +117,13 @@ const TOOLS: ToolDef[] = [
   },
 
   // Phase 4, advanced
-  { id: "dhcp-monitor", name: "DHCP Monitor", category: "Advanced", enabled: false },
+  {
+    id: "dhcp-monitor",
+    name: "DHCP Monitor",
+    category: "Advanced",
+    enabled: true,
+    load: () => import("./DhcpMonitor/DhcpMonitor.svelte"),
+  },
   { id: "traceroute", name: "Visual Traceroute", category: "Advanced", enabled: false },
 
   // Phase 5, builders
