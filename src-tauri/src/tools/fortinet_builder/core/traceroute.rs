@@ -1,19 +1,26 @@
-//! `execute traceroute-options` + `execute traceroute` builder.
+//! `execute traceroute-options` + `execute traceroute` builder. Options match
+//! a live FortiGate's list: device, queries, reset, source, use-sdwan,
+//! view-settings, vrf. (FortiDebug Builder also emitted min-ttl, max-ttl and
+//! wait, which FortiOS does not accept.) Options persist for the admin
+//! session, so resetting first avoids inheriting stale settings.
 
 use serde::Deserialize;
 
-use super::{BuildResult, err, opt_int, opt_interface, opt_source, target_host};
+use super::{BuildResult, opt_int, opt_interface, opt_source, target_host};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct TracerouteInput {
     pub target: String,
+    pub reset_first: bool,
     pub source: String,
+    /// Interface name or `auto`.
     pub device: String,
     pub queries: String,
-    pub min_ttl: String,
-    pub max_ttl: String,
-    pub wait: String,
+    /// VRF ID.
+    pub vrf: String,
+    /// Pick the egress interface from SD-WAN rules.
+    pub use_sdwan: bool,
     pub view_settings: bool,
 }
 
@@ -21,12 +28,12 @@ impl Default for TracerouteInput {
     fn default() -> Self {
         TracerouteInput {
             target: String::new(),
+            reset_first: true,
             source: String::new(),
             device: String::new(),
             queries: String::new(),
-            min_ttl: String::new(),
-            max_ttl: String::new(),
-            wait: String::new(),
+            vrf: String::new(),
+            use_sdwan: false,
             view_settings: true,
         }
     }
@@ -36,15 +43,10 @@ impl Default for TracerouteInput {
 pub fn build(i: &TracerouteInput) -> BuildResult<String> {
     const O: &str = "exec traceroute-options";
     let target = target_host("target", &i.target)?;
-    let min = opt_int("minTtl", &i.min_ttl, 1, 255)?;
-    let max = opt_int("maxTtl", &i.max_ttl, 1, 255)?;
-    if let (Some(lo), Some(hi)) = (min, max)
-        && hi < lo
-    {
-        return err("maxTtl", "max TTL must be at least the min TTL");
-    }
-
     let mut lines = Vec::new();
+    if i.reset_first {
+        lines.push(format!("{O} reset"));
+    }
     if let Some(s) = opt_source("source", &i.source)? {
         lines.push(format!("{O} source {s}"));
     }
@@ -54,14 +56,11 @@ pub fn build(i: &TracerouteInput) -> BuildResult<String> {
     if let Some(q) = opt_int("queries", &i.queries, 1, 10)? {
         lines.push(format!("{O} queries {q}"));
     }
-    if let Some(n) = min {
-        lines.push(format!("{O} min-ttl {n}"));
+    if let Some(n) = opt_int("vrf", &i.vrf, 0, 511)? {
+        lines.push(format!("{O} vrf {n}"));
     }
-    if let Some(n) = max {
-        lines.push(format!("{O} max-ttl {n}"));
-    }
-    if let Some(w) = opt_int("wait", &i.wait, 1, 60)? {
-        lines.push(format!("{O} wait {w}"));
+    if i.use_sdwan {
+        lines.push(format!("{O} use-sdwan yes"));
     }
     if i.view_settings {
         lines.push(format!("{O} view-settings"));
@@ -75,15 +74,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn all_options_in_swift_order() {
+    fn minimal() {
         let i = TracerouteInput {
             target: "1.1.1.1".into(),
+            ..Default::default()
+        };
+        assert_eq!(
+            build(&i).unwrap(),
+            "exec traceroute-options reset\n\
+             exec traceroute-options view-settings\n\
+             exec traceroute 1.1.1.1"
+        );
+    }
+
+    #[test]
+    fn all_options() {
+        let i = TracerouteInput {
+            target: "fortinet.com".into(),
+            reset_first: false,
             source: "auto".into(),
             device: "wan1".into(),
             queries: "3".into(),
-            min_ttl: "2".into(),
-            max_ttl: "20".into(),
-            wait: "2".into(),
+            vrf: "2".into(),
+            use_sdwan: true,
             view_settings: true,
         };
         assert_eq!(
@@ -91,11 +104,25 @@ mod tests {
             "exec traceroute-options source auto\n\
              exec traceroute-options device wan1\n\
              exec traceroute-options queries 3\n\
-             exec traceroute-options min-ttl 2\n\
-             exec traceroute-options max-ttl 20\n\
-             exec traceroute-options wait 2\n\
+             exec traceroute-options vrf 2\n\
+             exec traceroute-options use-sdwan yes\n\
              exec traceroute-options view-settings\n\
-             exec traceroute 1.1.1.1"
+             exec traceroute fortinet.com"
+        );
+    }
+
+    #[test]
+    fn device_accepts_auto() {
+        let i = TracerouteInput {
+            target: "1.1.1.1".into(),
+            reset_first: false,
+            device: "auto".into(),
+            view_settings: false,
+            ..Default::default()
+        };
+        assert_eq!(
+            build(&i).unwrap(),
+            "exec traceroute-options device auto\nexec traceroute 1.1.1.1"
         );
     }
 
@@ -122,18 +149,17 @@ mod tests {
             ),
             (
                 TracerouteInput {
-                    min_ttl: "10".into(),
-                    max_ttl: "5".into(),
+                    vrf: "-1".into(),
                     ..base.clone()
                 },
-                "maxTtl",
+                "vrf",
             ),
             (
                 TracerouteInput {
-                    wait: "0".into(),
+                    device: "wan 1".into(),
                     ..base
                 },
-                "wait",
+                "device",
             ),
         ];
         for (i, field) in cases {

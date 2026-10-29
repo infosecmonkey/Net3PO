@@ -11,12 +11,12 @@
   let { onsave }: Props = $props();
 
   let target = $state("");
+  let resetFirst = $state(true);
   let source = $state("");
   let device = $state("");
   let queries = $state("");
-  let minTtl = $state("");
-  let maxTtl = $state("");
-  let wait = $state("");
+  let vrf = $state("");
+  let useSdwan = $state(false);
   let viewSettings = $state(true);
 
   let command = $state("");
@@ -30,7 +30,7 @@
   });
 
   $effect(() => {
-    const input = { kind: "traceroute", target, source, device, queries, minTtl, maxTtl, wait, viewSettings };
+    const input = { kind: "traceroute", target, resetFirst, source, device, queries, vrf, useSdwan, viewSettings };
     invoke<string>("fortinet_build", { input })
       .then((c) => {
         command = c;
@@ -53,18 +53,18 @@
   <div class="field"><label for="t-src">Source IP (or auto)</label><input id="t-src" class="mono" class:bad={bad("source")} bind:value={source} spellcheck="false" /></div>
   <div class="field">
     <label for="t-dev">Device (interface)</label>
-    <input id="t-dev" class="mono" class:bad={bad("device")} bind:value={device} list="t-dev-list" placeholder="wan1" spellcheck="false" />
+    <input id="t-dev" class="mono" class:bad={bad("device")} bind:value={device} list="t-dev-list" placeholder="wan1 or auto" spellcheck="false" />
     <datalist id="t-dev-list">{#each [...COMMON_INTERFACES.filter((i) => i !== "any"), ...myIfaces] as i (i)}<option value={i}></option>{/each}</datalist>
   </div>
 </div>
 <div class="grid">
   <div class="field small"><label for="t-q">Queries per hop</label><input id="t-q" class="mono" class:bad={bad("queries")} bind:value={queries} placeholder="3" spellcheck="false" /></div>
-  <div class="field small"><label for="t-min">Min TTL</label><input id="t-min" class="mono" class:bad={bad("minTtl")} bind:value={minTtl} spellcheck="false" /></div>
-  <div class="field small"><label for="t-max">Max TTL</label><input id="t-max" class="mono" class:bad={bad("maxTtl")} bind:value={maxTtl} placeholder="30" spellcheck="false" /></div>
-  <div class="field small"><label for="t-wait">Wait (s)</label><input id="t-wait" class="mono" class:bad={bad("wait")} bind:value={wait} spellcheck="false" /></div>
+  <div class="field small"><label for="t-vrf">VRF ID</label><input id="t-vrf" class="mono" class:bad={bad("vrf")} bind:value={vrf} spellcheck="false" /></div>
 </div>
 
 <div class="checks">
+  <label class="check"><input type="checkbox" bind:checked={resetFirst} /> Reset traceroute options first</label>
+  <label class="check"><input type="checkbox" bind:checked={useSdwan} /> Use SD-WAN rules for egress</label>
   <label class="check"><input type="checkbox" bind:checked={viewSettings} /> Show settings before trace</label>
 </div>
 

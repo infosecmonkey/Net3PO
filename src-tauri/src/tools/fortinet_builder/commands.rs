@@ -122,13 +122,13 @@ mod tests {
              exec ping 8.8.8.8"
         );
         let tr: BuildInput = serde_json::from_value(json!({
-            "kind": "traceroute", "target": "1.1.1.1", "source": "", "device": "wan1", "queries": "",
-            "minTtl": "", "maxTtl": "15", "wait": "", "viewSettings": false
+            "kind": "traceroute", "target": "1.1.1.1", "resetFirst": false, "source": "", "device": "wan1",
+            "queries": "", "vrf": "", "useSdwan": true, "viewSettings": false
         }))
         .unwrap();
         assert_eq!(
             fortinet_build(tr).unwrap(),
-            "exec traceroute-options device wan1\nexec traceroute-options max-ttl 15\nexec traceroute 1.1.1.1"
+            "exec traceroute-options device wan1\nexec traceroute-options use-sdwan yes\nexec traceroute 1.1.1.1"
         );
     }
 
