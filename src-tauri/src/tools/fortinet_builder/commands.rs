@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::core::{BuildError, flow, ping, session, sniffer, traceroute};
+use super::core::{BuildError, flow, ha, ping, routing, session, sniffer, system, traceroute, vpn};
 
 /// Which builder to run, with its form input.
 #[derive(Deserialize)]
@@ -14,6 +14,10 @@ pub enum BuildInput {
     Sniffer(sniffer::SnifferInput),
     Ping(ping::PingInput),
     Traceroute(traceroute::TracerouteInput),
+    Vpn(vpn::VpnInput),
+    Ha(ha::HaInput),
+    Routing(routing::RoutingInput),
+    System(system::SystemInput),
 }
 
 /// Build FortiOS CLI text from a builder's form input.
@@ -25,6 +29,10 @@ pub fn fortinet_build(input: BuildInput) -> Result<String, BuildError> {
         BuildInput::Sniffer(i) => sniffer::build(&i),
         BuildInput::Ping(i) => ping::build(&i),
         BuildInput::Traceroute(i) => traceroute::build(&i),
+        BuildInput::Vpn(i) => vpn::build(&i),
+        BuildInput::Ha(i) => ha::build(&i),
+        BuildInput::Routing(i) => routing::build(&i),
+        BuildInput::System(i) => system::build(&i),
     }
 }
 
@@ -128,6 +136,87 @@ mod tests {
         assert_eq!(
             fortinet_build(tr).unwrap(),
             "exec traceroute-options device wan1\nexec traceroute-options use-sdwan yes\nexec traceroute 1.1.1.1"
+        );
+    }
+
+    #[test]
+    fn vpn_payload_deserializes() {
+        let vpn: BuildInput = serde_json::from_value(json!({
+            "kind": "vpn", "showStatus": false, "gateway": "hub", "tunnelBy": "name", "tunnels": "",
+            "tunnelNumber": "", "resetFirst": false, "vdom": "", "remAddr4": "203.0.113.10",
+            "locAddr4": "", "remAddr6": "", "dstPort": "", "listFilter": false, "timestamps": false,
+            "level": "-1", "stopBlock": false
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(vpn).unwrap(),
+            "# Live IKE debug:\n\
+             diagnose vpn ike log filter clear\n\
+             diagnose vpn ike log filter name hub\n\
+             diagnose vpn ike log filter rem-addr4 203.0.113.10\n\
+             diagnose debug application ike -1\n\
+             diagnose debug enable"
+        );
+    }
+
+    #[test]
+    fn ha_payload_deserializes() {
+        let ha: BuildInput = serde_json::from_value(json!({
+            "kind": "ha", "getStatus": true, "diagStatus": false, "history": true, "stats": false,
+            "heartbeat": false, "mac": false, "syncStats": false, "hasyncStats": false,
+            "checksumCluster": false, "serials": "", "checksumShow": false, "checksumScope": "",
+            "showNonsync": false, "recalculate": false, "dumpBy": "", "debugHatalk": false,
+            "debugHasync": false, "resetFirst": true, "timestamps": true, "level": "-1",
+            "stopBlock": true, "resetUptime": "primaryOnly", "synchronize": "none", "manage": true,
+            "manageIndex": "0", "manageAdmin": "admin"
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(ha).unwrap(),
+            "get system ha status\n\
+             diagnose sys ha history\n\
+             \n\
+             # Changes cluster state: review before running\n\
+             diagnose sys ha reset-uptime-primary-only\n\
+             execute ha manage 0 admin"
+        );
+    }
+
+    #[test]
+    fn routing_payload_deserializes() {
+        let r: BuildInput = serde_json::from_value(json!({
+            "kind": "routing", "mode": "bgp",
+            "ospfStatus": true, "ospfNeighbor": true, "ospfInterface": false, "ospfDatabase": false,
+            "ospfRoute": false, "ospfRib": false, "ospfBorderRouters": false, "ospfVirtualLinks": false,
+            "ospfDebug": false, "ospfAreas": [],
+            "bgpSummary": true, "bgpPeer": "10.0.0.2", "bgpRoutes": false, "bgpAdvertised": true,
+            "bgpReceived": false, "bgpNetwork": false, "bgpPrefix": "", "bgpDebug": false, "bgpAreas": [],
+            "tableViews": ["all"], "detailsIp": "", "prouteList": false, "proute6List": false,
+            "prouteStats": false, "resetFirst": true, "timestamps": true, "stopBlock": true
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(r).unwrap(),
+            "get router info bgp summary\n\
+             get router info bgp neighbors 10.0.0.2\n\
+             get router info bgp neighbors 10.0.0.2 advertised-routes"
+        );
+    }
+
+    #[test]
+    fn system_payload_deserializes() {
+        let y: BuildInput = serde_json::from_value(json!({
+            "kind": "system", "variant": "topMem", "delay": "", "lines": "", "iterations": "",
+            "count": "10", "perfStatus": false, "perfTop": false, "sysinfoMemory": true,
+            "sysinfoCpu": false, "sysinfoInterrupts": false, "sysinfoSlab": true, "sysinfoConserve": false
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(y).unwrap(),
+            "diagnose hardware sysinfo memory\n\
+             diagnose hardware sysinfo slab\n\
+             \n\
+             diagnose sys top-mem 10"
         );
     }
 

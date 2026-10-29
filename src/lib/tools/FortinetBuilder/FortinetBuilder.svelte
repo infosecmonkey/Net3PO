@@ -5,11 +5,15 @@
   import { loadCollection, saveCollection } from "$lib/store";
   import type { FortinetCategory, SavedCommand } from "$lib/tools/types";
   import FlowForm from "./FlowForm.svelte";
+  import HaForm from "./HaForm.svelte";
   import PingForm from "./PingForm.svelte";
+  import RoutingForm from "./RoutingForm.svelte";
   import SavedCommands from "./SavedCommands.svelte";
   import SessionForm from "./SessionForm.svelte";
   import SnifferForm from "./SnifferForm.svelte";
+  import SystemForm from "./SystemForm.svelte";
   import TracerouteForm from "./TracerouteForm.svelte";
+  import VpnForm from "./VpnForm.svelte";
 
   type Tab = FortinetCategory | "saved";
   const TABS: { id: Tab; label: string }[] = [
@@ -18,6 +22,10 @@
     { id: "sniffer", label: "Sniffer" },
     { id: "ping", label: "Ping" },
     { id: "traceroute", label: "Traceroute" },
+    { id: "vpn", label: "VPN" },
+    { id: "ha", label: "HA" },
+    { id: "routing", label: "Routing" },
+    { id: "system", label: "System" },
     { id: "saved", label: "Saved" },
   ];
 
@@ -81,6 +89,10 @@
   <div hidden={tab !== "sniffer"}><SnifferForm onsave={(t, n, c) => add("sniffer", t, n, c)} /></div>
   <div hidden={tab !== "ping"}><PingForm onsave={(t, n, c) => add("ping", t, n, c)} /></div>
   <div hidden={tab !== "traceroute"}><TracerouteForm onsave={(t, n, c) => add("traceroute", t, n, c)} /></div>
+  <div hidden={tab !== "vpn"}><VpnForm onsave={(t, n, c) => add("vpn", t, n, c)} /></div>
+  <div hidden={tab !== "ha"}><HaForm onsave={(t, n, c) => add("ha", t, n, c)} /></div>
+  <div hidden={tab !== "routing"}><RoutingForm onsave={(t, n, c) => add("routing", t, n, c)} /></div>
+  <div hidden={tab !== "system"}><SystemForm onsave={(t, n, c) => add("system", t, n, c)} /></div>
   <div hidden={tab !== "saved"}><SavedCommands items={saved} onchange={persist} /></div>
 </div>
 
