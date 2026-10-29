@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn ping_and_traceroute_payloads_deserialize() {
         let ping: BuildInput = serde_json::from_value(json!({
-            "kind": "ping", "target": "8.8.8.8", "resetFirst": true, "source": "10.0.0.1",
+            "kind": "ping", "target": "8.8.8.8", "resetFirst": true, "source": "",
             "interface": "wan1", "repeatCount": "5", "timeout": "", "dataSize": "1472", "tos": "",
             "pattern": "", "interval": "", "ttl": "", "vrf": "", "useSdwan": false, "dfBit": true, "adaptive": false, "validateReply": false, "viewSettings": false
         }))
@@ -114,7 +114,6 @@ mod tests {
         assert_eq!(
             fortinet_build(ping).unwrap(),
             "exec ping-options reset\n\
-             exec ping-options source 10.0.0.1\n\
              exec ping-options interface wan1\n\
              exec ping-options repeat-count 5\n\
              exec ping-options data-size 1472\n\

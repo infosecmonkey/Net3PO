@@ -82,6 +82,13 @@ fn opt_pattern(field: &str, s: &str) -> BuildResult<Option<String>> {
 pub fn build(i: &PingInput) -> BuildResult<String> {
     const O: &str = "exec ping-options";
     let target = target_host("target", &i.target)?;
+    // FortiOS takes either a source IP or an egress interface, not both.
+    if present(&i.source).is_some() && present(&i.interface).is_some() {
+        return err(
+            "interface",
+            "use either a source IP or an egress interface, not both",
+        );
+    }
     let mut lines = Vec::new();
     if i.reset_first {
         lines.push(format!("{O} reset"));
@@ -161,7 +168,7 @@ mod tests {
             target: "fortinet.com".into(),
             reset_first: false,
             source: "10.10.10.1".into(),
-            interface: "port2".into(),
+            interface: String::new(),
             repeat_count: "10".into(),
             timeout: "2".into(),
             data_size: "1472".into(),
@@ -179,7 +186,6 @@ mod tests {
         assert_eq!(
             build(&i).unwrap(),
             "exec ping-options source 10.10.10.1\n\
-             exec ping-options interface port2\n\
              exec ping-options repeat-count 10\n\
              exec ping-options timeout 2\n\
              exec ping-options data-size 1472\n\
@@ -193,6 +199,28 @@ mod tests {
              exec ping-options adaptive-ping enable\n\
              exec ping-options validate-reply yes\n\
              exec ping fortinet.com"
+        );
+    }
+
+    #[test]
+    fn source_and_interface_are_exclusive() {
+        let both = PingInput {
+            target: "8.8.8.8".into(),
+            source: "10.0.0.1".into(),
+            interface: "port1".into(),
+            ..Default::default()
+        };
+        assert_eq!(build(&both).unwrap_err().field, "interface");
+        let iface_only = PingInput {
+            target: "8.8.8.8".into(),
+            interface: "port1".into(),
+            reset_first: false,
+            view_settings: false,
+            ..Default::default()
+        };
+        assert_eq!(
+            build(&iface_only).unwrap(),
+            "exec ping-options interface port1\nexec ping 8.8.8.8"
         );
     }
 

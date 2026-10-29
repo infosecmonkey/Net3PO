@@ -63,10 +63,10 @@
 
 <div class="grid">
   <div class="field"><label for="p-target">Destination</label><input id="p-target" class="mono" class:bad={bad("target")} bind:value={target} placeholder="8.8.8.8 or fortinet.com" spellcheck="false" /></div>
-  <div class="field"><label for="p-src">Source IP (or auto)</label><input id="p-src" class="mono" class:bad={bad("source")} bind:value={source} placeholder="10.10.10.1" spellcheck="false" /></div>
+  <div class="field"><label for="p-src">Source IP (or auto)</label><input id="p-src" class="mono" class:bad={bad("source")} bind:value={source} placeholder="10.10.10.1" spellcheck="false" disabled={iface.trim() !== ""} /></div>
   <div class="field">
-    <label for="p-if">Egress interface</label>
-    <input id="p-if" class="mono" class:bad={bad("interface")} bind:value={iface} list="p-if-list" placeholder="wan1" spellcheck="false" />
+    <label for="p-if">Egress interface (or auto)</label>
+    <input id="p-if" class="mono" class:bad={bad("interface")} bind:value={iface} list="p-if-list" placeholder="wan1" spellcheck="false" disabled={source.trim() !== ""} />
     <datalist id="p-if-list">{#each [...COMMON_INTERFACES.filter((i) => i !== "any"), ...myIfaces] as i (i)}<option value={i}></option>{/each}</datalist>
   </div>
 </div>
@@ -98,6 +98,7 @@
   <label class="check"><input type="checkbox" bind:checked={viewSettings} /> Show settings before ping</label>
 </div>
 <p class="note muted">
+  Source IP and egress interface are either/or: clear one to use the other.
   Ping options stay set for your admin session, so a reset first avoids inheriting an earlier source or
   size. For an MTU test, set DF and a data size: 1472 bytes of data makes a 1500-byte packet.
 </p>

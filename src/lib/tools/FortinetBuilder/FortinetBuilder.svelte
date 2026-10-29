@@ -186,6 +186,12 @@
     border-color: var(--accent);
   }
 
+  .fb :global(input:disabled),
+  .fb :global(select:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .fb :global(.bad) {
     border-color: var(--error-border) !important;
     background: var(--error-bg) !important;
