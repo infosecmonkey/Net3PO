@@ -254,6 +254,23 @@ pub fn render(report: &Report) -> Vec<u8> {
     }
 
     for s in &report.sections {
+        if s.part {
+            // Each part starts on a fresh page, unless already at the top.
+            if l.y < PAGE_H - MARGIN - 1.0 {
+                l.new_page();
+            }
+            l.paragraph(&s.title, Font::Bold, 16.0, 21.0, MARGIN, TEXT);
+            l.fill(MARGIN, l.y - 1.0, CONTENT_W, 3.0, ACCENT);
+            l.gap(8.0);
+            if !s.subtitle.is_empty() {
+                l.paragraph(&s.subtitle, Font::Regular, 10.0, 14.0, MARGIN, MUTED);
+            }
+            for b in &s.blocks {
+                l.gap(6.0);
+                block(&mut l, b);
+            }
+            continue;
+        }
         // Keep a heading with at least a few lines of its content.
         l.gap(16.0);
         l.ensure(60.0);
@@ -568,6 +585,7 @@ mod tests {
         r.sections.push(Section {
             title: "Ports".to_string(),
             subtitle: String::new(),
+            part: false,
             blocks: vec![Block::Table {
                 headers: vec!["Host".into(), "State".into(), "Service".into()],
                 rows,

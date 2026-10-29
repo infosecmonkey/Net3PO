@@ -32,6 +32,18 @@ pub struct Section {
     pub title: String,
     pub subtitle: String,
     pub blocks: Vec<Block>,
+    /// A part heading that groups the sections after it, used when a project
+    /// combines several results into one report. Rendered more prominently;
+    /// in PDF each part starts a new page.
+    pub part: bool,
+}
+
+impl Report {
+    /// True when any section is a part heading, so plain sections render one
+    /// level down.
+    pub fn has_parts(&self) -> bool {
+        self.sections.iter().any(|s| s.part)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -221,6 +233,7 @@ pub fn sample() -> Report {
             Section {
                 title: "Summary".to_string(),
                 subtitle: String::new(),
+                part: false,
                 blocks: vec![
                     Block::Paragraph {
                         text: "Checks <SPF> & DMARC.".to_string(),
@@ -244,6 +257,7 @@ pub fn sample() -> Report {
             Section {
                 title: "Records".to_string(),
                 subtitle: "Answers".to_string(),
+                part: false,
                 blocks: vec![
                     Block::Table {
                         headers: vec!["Type".to_string(), "Value | data".to_string()],
@@ -320,6 +334,48 @@ mod tests {
         let r: Report = serde_json::from_str(json).unwrap();
         assert_eq!(r.sections[0].blocks.len(), 3);
         assert!(r.subtitle.is_empty());
+    }
+
+    /// The sample with a part heading in front.
+    fn with_part() -> Report {
+        let mut r = sample();
+        r.sections.insert(
+            0,
+            Section {
+                title: "1. Port scan".to_string(),
+                subtitle: "Port Scanner".to_string(),
+                blocks: Vec::new(),
+                part: true,
+            },
+        );
+        r
+    }
+
+    #[test]
+    fn parts_shift_section_levels() {
+        let r = with_part();
+        assert!(r.has_parts() && !sample().has_parts());
+        let html = String::from_utf8(render(&r, Format::Html).unwrap()).unwrap();
+        assert!(html.contains("<h2 class=\"part\">1. Port scan</h2>"));
+        assert!(html.contains("<h3>Records</h3>"));
+        let md = String::from_utf8(render(&r, Format::Markdown).unwrap()).unwrap();
+        assert!(md.contains("## 1. Port scan\n") && md.contains("### Records\n"));
+        let txt = String::from_utf8(render(&r, Format::Text).unwrap()).unwrap();
+        assert!(txt.contains("1. Port scan\n############\n"));
+    }
+
+    #[test]
+    fn pdf_part_starts_a_page() {
+        let mut r = sample();
+        let plain = String::from_utf8_lossy(&render(&r, Format::Pdf).unwrap()).into_owned();
+        r.sections.push(Section {
+            title: "2. Next".to_string(),
+            part: true,
+            ..Default::default()
+        });
+        let parted = String::from_utf8_lossy(&render(&r, Format::Pdf).unwrap()).into_owned();
+        assert!(plain.contains("/Count 1"));
+        assert!(parted.contains("/Count 2"));
     }
 
     #[test]

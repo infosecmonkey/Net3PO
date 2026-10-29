@@ -1,7 +1,12 @@
+mod projects;
 mod report;
 mod store;
 mod tools;
 
+use projects::commands::{
+    ProjectsLock, project_add, project_create, project_delete, project_export, project_get,
+    project_list, project_update,
+};
 use report::commands::report_export;
 use store::commands::{StoreLock, store_load, store_save};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
@@ -44,6 +49,7 @@ pub fn run() {
         .manage(DhcpRegistry::default())
         .manage(TraceRegistry::default())
         .manage(StoreLock::default())
+        .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
             subnet_split,
@@ -61,6 +67,13 @@ pub fn run() {
             diff_read_file,
             diff_save,
             report_export,
+            project_list,
+            project_create,
+            project_get,
+            project_update,
+            project_delete,
+            project_add,
+            project_export,
             dig_query,
             dns_analyze,
             port_scan,

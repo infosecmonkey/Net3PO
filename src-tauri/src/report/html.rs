@@ -12,6 +12,8 @@ h1 { font-size: 24px; margin: 0 0 4px; }
 .meta { color: #6b7280; font-size: 12px; margin: 0 0 24px; }
 h2 { font-size: 18px; margin: 32px 0 4px; padding-bottom: 4px; border-bottom: 2px solid #c2410c; }
 .section-sub { color: #6b7280; margin: 0 0 12px; font-size: 13px; }
+h2.part { font-size: 22px; margin: 48px 0 4px; border-bottom: 4px solid #c2410c; }
+h3 { font-size: 16px; margin: 28px 0 4px; padding-bottom: 3px; border-bottom: 1px solid #e2e5e9; }
 p { margin: 8px 0; }
 table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; }
 th, td { text-align: left; padding: 6px 10px; border: 1px solid #e2e5e9; vertical-align: top; }
@@ -33,7 +35,7 @@ pre.diff .add { background: #e9f7ee; }
 pre.diff .del { background: #fdecec; }
 pre.diff .hunk { background: #eef0f3; color: #6b7280; }
 footer { margin-top: 40px; color: #6b7280; font-size: 12px; border-top: 1px solid #e2e5e9; padding-top: 8px; }
-@media print { main { padding: 0; } h2 { break-after: avoid; } .finding, tr { break-inside: avoid; } }
+@media print { main { padding: 0; } h2, h3 { break-after: avoid; } h2.part { break-before: page; } .finding, tr { break-inside: avoid; } }
 "#;
 
 /// Escape text for HTML element content and attribute values.
@@ -86,8 +88,15 @@ pub fn render(report: &Report) -> String {
         o.push_str(&format!("<p class=\"meta\">{}</p>\n", meta.join(" | ")));
     }
 
+    // With parts, parts take h2 and plain sections drop to h3.
+    let parts = report.has_parts();
     for s in &report.sections {
-        o.push_str(&format!("<section>\n<h2>{}</h2>\n", esc(&s.title)));
+        let tag = if s.part || !parts { "h2" } else { "h3" };
+        let class = if s.part { " class=\"part\"" } else { "" };
+        o.push_str(&format!(
+            "<section>\n<{tag}{class}>{}</{tag}>\n",
+            esc(&s.title)
+        ));
         if !s.subtitle.is_empty() {
             o.push_str(&format!(
                 "<p class=\"section-sub\">{}</p>\n",

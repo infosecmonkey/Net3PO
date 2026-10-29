@@ -43,8 +43,11 @@ pub fn render(report: &Report) -> String {
         o.push_str(&format!("_{}_\n\n", meta.join(" | ")));
     }
 
+    // With parts, parts take ## and plain sections drop to ###.
+    let parts = report.has_parts();
     for s in &report.sections {
-        o.push_str(&format!("## {}\n\n", s.title.trim()));
+        let level = if s.part || !parts { "##" } else { "###" };
+        o.push_str(&format!("{level} {}\n\n", s.title.trim()));
         if !s.subtitle.is_empty() {
             o.push_str(&format!("{}\n\n", s.subtitle.trim()));
         }

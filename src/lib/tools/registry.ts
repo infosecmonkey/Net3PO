@@ -167,6 +167,25 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./FgtSniffer/FgtSniffer.svelte"),
   },
+
+  // Decoders (planned)
+  {
+    id: "script-decoder",
+    icon: "file-code",
+    name: "Script Decoder",
+    category: "Decoders",
+    enabled: false,
+  },
+
+  // Workspace
+  {
+    id: "projects",
+    icon: "folder-open",
+    name: "Projects",
+    category: "Workspace",
+    enabled: true,
+    load: () => import("./Projects/Projects.svelte"),
+  },
 ];
 
 /** Tools grouped by category, preserving definition order. */

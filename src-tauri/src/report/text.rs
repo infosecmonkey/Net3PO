@@ -88,7 +88,12 @@ pub fn render(report: &Report) -> String {
 
     for s in &report.sections {
         o.push('\n');
-        heading(&mut o, &s.title, '-');
+        if s.part {
+            o.push('\n');
+            heading(&mut o, &s.title, '#');
+        } else {
+            heading(&mut o, &s.title, '-');
+        }
         if !s.subtitle.is_empty() {
             o.push_str(&s.subtitle);
             o.push('\n');
