@@ -78,3 +78,25 @@ jobs:
             A few tools need extra privileges on some systems (for example Syslog or TFTP on their standard ports on Linux); the tool explains what it needs.
 
             Send feedback to Manny: what you tried, what you expected, what happened, and your OS.
+
+            **Verify your download** (optional): compare against `SHA256SUMS.txt`.
+            - macOS / Linux: `shasum -a 256 <file>` (or `sha256sum <file>`)
+            - Windows PowerShell: `Get-FileHash <file> -Algorithm SHA256`
+
+  checksums:
+    name: Checksums
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add SHA256SUMS.txt to the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir assets && cd assets
+          gh release download "$TAG" --skip-existing
+          rm -f SHA256SUMS.txt
+          sha256sum $(ls | sort) > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --clobber
