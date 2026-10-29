@@ -589,13 +589,17 @@
   }
 
   /* Two rows filled column first: odd ports on top, even below, like a faceplate. */
+  /* Columns flex between 1.6rem and 2.5rem so a 48-port row fits the panel
+     width; sideways scrolling only kicks in below the minimum. */
   .ports {
     display: grid;
     grid-template-rows: repeat(2, auto);
     grid-auto-flow: column;
-    grid-auto-columns: 2.5rem;
-    gap: 0.3rem;
-    width: max-content;
+    grid-auto-columns: minmax(1.6rem, 2.5rem);
+    gap: 0.25rem;
+    justify-content: start;
+    min-width: min-content;
+    width: 100%;
   }
 
   .tile {
