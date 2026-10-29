@@ -28,6 +28,10 @@ use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
 };
+use tools::ssh::commands::{
+    SshRegistry, ssh_close, ssh_connect, ssh_forget_host, ssh_resize, ssh_secret_delete,
+    ssh_secret_has, ssh_secret_set, ssh_write,
+};
 use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
@@ -50,6 +54,7 @@ pub fn run() {
         .manage(DhcpRegistry::default())
         .manage(TraceRegistry::default())
         .manage(StoreLock::default())
+        .manage(SshRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
             subnet_calculate,
@@ -68,6 +73,14 @@ pub fn run() {
             diff_read_file,
             diff_save,
             report_export,
+            ssh_connect,
+            ssh_write,
+            ssh_resize,
+            ssh_close,
+            ssh_secret_set,
+            ssh_secret_has,
+            ssh_secret_delete,
+            ssh_forget_host,
             script_decode,
             script_read_file,
             project_list,

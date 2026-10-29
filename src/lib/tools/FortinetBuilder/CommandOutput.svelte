@@ -3,6 +3,7 @@
   // every builder tab.
   import { invoke } from "@tauri-apps/api/core";
   import { save } from "@tauri-apps/plugin-dialog";
+  import { openTabs, sendTo, type SessionTab } from "$lib/ssh/sessions.svelte";
   import type { BuildError, FortinetCategory } from "$lib/tools/types";
 
   interface Props {
@@ -29,6 +30,44 @@
       message = `Copy failed: ${e}`;
     }
   }
+
+  // Open SSH sessions, active first. With more than one, Send asks which.
+  let targets = $derived(openTabs());
+  let picking = $state(false);
+  let pickerEl = $state<HTMLDivElement | null>(null);
+
+  function onSendClick() {
+    if (targets.length === 1) void send(targets[0]);
+    else picking = !picking;
+  }
+
+  async function send(t: SessionTab) {
+    picking = false;
+    try {
+      const ok = await sendTo(t.key, command);
+      message = ok ? `Sent to ${t.title}.` : "That session is closed.";
+      setTimeout(() => (message = ""), 2500);
+    } catch (e) {
+      message = `Send failed: ${e}`;
+    }
+  }
+
+  // Close the session list on an outside click or Escape.
+  $effect(() => {
+    if (!picking) return;
+    const onDown = (e: PointerEvent) => {
+      if (pickerEl && !e.composedPath().includes(pickerEl)) picking = false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") picking = false;
+    };
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  });
 
   async function saveFile() {
     try {
@@ -64,6 +103,29 @@
     <span class="outtitle">Command</span>
     <div class="btns">
       <button class="secondary" onclick={copy} disabled={!command || !!error}>{copied ? "Copied" : "Copy"}</button>
+      <div class="send" bind:this={pickerEl}>
+        <button
+          class="secondary"
+          onclick={onSendClick}
+          disabled={!command || !!error || targets.length === 0}
+          title={targets.length === 0
+            ? "Open an SSH session in the SSH tool first"
+            : targets.length === 1
+              ? `Type into SSH tab: ${targets[0].title}`
+              : "Choose an SSH session"}
+        >Send to SSH{targets.length > 1 ? " ..." : ""}</button>
+        {#if picking && targets.length > 1}
+          <div class="picker" role="menu">
+            <div class="picker-head">Send to</div>
+            {#each targets as t, i (t.key)}
+              <button class="pick" role="menuitem" onclick={() => send(t)}>
+                <span class="mono">{t.title}</span>
+                {#if i === 0}<span class="muted cur">active</span>{/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       <button class="secondary" onclick={saveFile} disabled={!command || !!error}>Save .txt</button>
       <button class="secondary" onclick={startSave} disabled={!command || !!error}>Save for later</button>
     </div>
@@ -115,6 +177,57 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .send {
+    position: relative;
+  }
+
+  .picker {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 20;
+    min-width: 14rem;
+    max-height: 18rem;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    padding: 0.25rem;
+  }
+
+  .picker-head {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0.3rem 0.5rem;
+  }
+
+  .pick {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: var(--fg);
+    font-size: 0.8rem;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+  }
+
+  .pick:hover {
+    background: var(--hover);
+  }
+
+  .cur {
+    font-size: 0.7rem;
   }
 
   .code {

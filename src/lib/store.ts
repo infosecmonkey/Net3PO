@@ -4,7 +4,13 @@
 import { invoke } from "@tauri-apps/api/core";
 
 /** Collections the app persists. Keep in sync with `store::core::COLLECTIONS`. */
-export type Collection = "fortinet_saved_commands" | "fortinet_interfaces" | "grep_saved_queries";
+export type Collection =
+  | "fortinet_saved_commands"
+  | "fortinet_interfaces"
+  | "grep_saved_queries"
+  | "ssh_groups"
+  | "ssh_connections"
+  | "ssh_known_hosts";
 
 export interface Loaded<T> {
   items: T[];

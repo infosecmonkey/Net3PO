@@ -14,6 +14,18 @@ use super::core::{self, Loaded};
 #[derive(Default)]
 pub struct StoreLock(Mutex<()>);
 
+impl StoreLock {
+    /// Hold the store lock, for other modules that read or write collections.
+    pub fn guard(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.0.lock().unwrap_or_else(|p| p.into_inner())
+    }
+}
+
+/// The OS app data dir where collections live.
+pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    data_dir(app)
+}
+
 fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
