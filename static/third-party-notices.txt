@@ -1,6 +1,6 @@
-OmniPacket third-party notices
+Net3PO third-party notices
 
-OmniPacket is licensed under the Apache License 2.0. It includes the
+Net3PO is licensed under the Apache License 2.0. It includes the
 following third-party software, each under the license shown.
 
 ==============================================================================

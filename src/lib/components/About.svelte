@@ -37,9 +37,9 @@
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" class:wide={notices !== null} role="dialog" aria-modal="true" aria-label="About OmniPacket">
+  <div class="dialog" class:wide={notices !== null} role="dialog" aria-modal="true" aria-label="About Net3PO">
     {#if notices === null}
-      <h2>OmniPacket</h2>
+      <h2>Net3PO</h2>
       <p class="muted">{version ? `Version ${version}` : ""}</p>
       <p>Network and security engineering toolkit.</p>
       <p>

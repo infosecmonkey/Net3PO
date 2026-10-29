@@ -25,6 +25,7 @@ use crate::store::commands::{StoreLock, app_data_dir};
 use crate::store::core as store;
 
 /// Keychain service name for SSH secrets.
+// Kept from the original product name so existing saved secrets still resolve.
 const KEYCHAIN_SERVICE: &str = "OmniPacket SSH";
 /// Most sessions open at once.
 const MAX_SESSIONS: usize = 16;
@@ -402,8 +403,7 @@ pub async fn ssh_connect(
         && let Err(e) = ssh_secret_set(id.clone(), s.clone())
     {
         let _ = on_event.send(SshEvent::Data {
-            b64: base64::engine::general_purpose::STANDARD
-                .encode(format!("\r\n[OmniPacket] {e}\r\n")),
+            b64: base64::engine::general_purpose::STANDARD.encode(format!("\r\n[Net3PO] {e}\r\n")),
         });
     }
 

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { toolGroups } from "$lib/tools/registry";
   import Icon from "./icons/Icon.svelte";
+  import logoLight from "$lib/assets/net3po-logo-light.png";
+  import logoDark from "$lib/assets/net3po-logo-dark.png";
   import About from "./About.svelte";
 
   interface Props {
@@ -15,8 +17,11 @@
 
 <nav class="sidebar">
   <div class="brand">
-    <span>OmniPacket</span>
-    <button class="about" title="About OmniPacket" aria-label="About OmniPacket" onclick={() => (aboutOpen = true)}>
+    <picture>
+      <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
+      <img src={logoLight} alt="Net3PO" width="153" height="52" />
+    </picture>
+    <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
       <Icon name="info" size={15} />
     </button>
   </div>
@@ -68,6 +73,11 @@
     top: 0;
     background: var(--sidebar-bg);
     border-bottom: 1px solid var(--border);
+  }
+
+  .brand picture,
+  .brand img {
+    display: block;
   }
 
   .brand {

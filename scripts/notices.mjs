@@ -61,8 +61,8 @@ const sorted = [...groups.values()].sort(
   (a, b) => a.id.localeCompare(b.id) || b.pkgs.size - a.pkgs.size,
 );
 let out =
-  "OmniPacket third-party notices\n\n" +
-  "OmniPacket is licensed under the Apache License 2.0. It includes the\n" +
+  "Net3PO third-party notices\n\n" +
+  "Net3PO is licensed under the Apache License 2.0. It includes the\n" +
   "following third-party software, each under the license shown.\n";
 for (const g of sorted) {
   out += `\n${RULE}\n${g.id}\nUsed by: ${[...g.pkgs].sort().join(", ")}\n${RULE}\n\n${g.body}\n`;
