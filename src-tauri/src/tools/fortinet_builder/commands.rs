@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::core::{BuildError, flow, ping, session, sniffer, traceroute, vpn};
+use super::core::{BuildError, flow, ha, ping, session, sniffer, traceroute, vpn};
 
 /// Which builder to run, with its form input.
 #[derive(Deserialize)]
@@ -15,6 +15,7 @@ pub enum BuildInput {
     Ping(ping::PingInput),
     Traceroute(traceroute::TracerouteInput),
     Vpn(vpn::VpnInput),
+    Ha(ha::HaInput),
 }
 
 /// Build FortiOS CLI text from a builder's form input.
@@ -27,6 +28,7 @@ pub fn fortinet_build(input: BuildInput) -> Result<String, BuildError> {
         BuildInput::Ping(i) => ping::build(&i),
         BuildInput::Traceroute(i) => traceroute::build(&i),
         BuildInput::Vpn(i) => vpn::build(&i),
+        BuildInput::Ha(i) => ha::build(&i),
     }
 }
 
@@ -150,6 +152,29 @@ mod tests {
              diagnose vpn ike log filter rem-addr4 203.0.113.10\n\
              diagnose debug application ike -1\n\
              diagnose debug enable"
+        );
+    }
+
+    #[test]
+    fn ha_payload_deserializes() {
+        let ha: BuildInput = serde_json::from_value(json!({
+            "kind": "ha", "getStatus": true, "diagStatus": false, "history": true, "stats": false,
+            "heartbeat": false, "mac": false, "syncStats": false, "hasyncStats": false,
+            "checksumCluster": false, "serials": "", "checksumShow": false, "checksumScope": "",
+            "showNonsync": false, "recalculate": false, "dumpBy": "", "debugHatalk": false,
+            "debugHasync": false, "resetFirst": true, "timestamps": true, "level": "-1",
+            "stopBlock": true, "resetUptime": "primaryOnly", "synchronize": "none", "manage": true,
+            "manageIndex": "0", "manageAdmin": "admin"
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(ha).unwrap(),
+            "get system ha status\n\
+             diagnose sys ha history\n\
+             \n\
+             # Changes cluster state: review before running\n\
+             diagnose sys ha reset-uptime-primary-only\n\
+             execute ha manage 0 admin"
         );
     }
 

@@ -5,6 +5,7 @@
 //! break the line or smuggle a second command.
 
 pub mod flow;
+pub mod ha;
 pub mod ping;
 pub mod session;
 pub mod sniffer;
