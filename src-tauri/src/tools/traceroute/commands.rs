@@ -10,7 +10,8 @@ use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use hickory_resolver::TokioAsyncResolver;
+use hickory_proto::rr::RData;
+use hickory_resolver::TokioResolver;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tauri::ipc::Channel;
@@ -186,7 +187,7 @@ async fn run_trace(
     let size = config.packet_size.clamp(28, MTU_MAX);
     let resolver = config
         .resolve_names
-        .then(|| TokioAsyncResolver::tokio_from_system_conf().ok())
+        .then(|| TokioResolver::builder_tokio().and_then(|b| b.build()).ok())
         .flatten();
     let mut names: HashMap<Ipv4Addr, Option<String>> = HashMap::new();
     let mut mtu_done = !config.measure_mtu;
@@ -266,7 +267,7 @@ async fn run_trace(
 /// Look up PTR names for routers not seen before, within a fixed budget, and
 /// attach every known name to the hops.
 async fn resolve_names(
-    resolver: &TokioAsyncResolver,
+    resolver: &TokioResolver,
     tracker: &mut PathTracker,
     names: &mut HashMap<Ipv4Addr, Option<String>>,
 ) {
@@ -286,7 +287,12 @@ async fn resolve_names(
                 .await
                 .ok()
                 .and_then(|res| res.ok())
-                .and_then(|lookup| lookup.iter().next().map(|ptr| ptr.to_utf8()))
+                .and_then(|lookup| {
+                    lookup.answers().iter().find_map(|r| match &r.data {
+                        RData::PTR(ptr) => Some(ptr.0.to_utf8()),
+                        _ => None,
+                    })
+                })
                 .map(|s| s.trim_end_matches('.').chars().take(MAX_HOSTNAME).collect());
             (ip, name)
         });
