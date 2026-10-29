@@ -312,3 +312,45 @@ export type PortMapEvent =
   | { type: "done"; map: PortMap }
   | { type: "error"; message: string }
   | { type: "cancelled" };
+
+// DHCP monitor.
+
+export interface NetInterface {
+  name: string;
+  ip: string;
+  prefix: number;
+}
+
+export interface DhcpOfferInfo {
+  messageType: string;
+  xid: string;
+  clientMac: string;
+  offeredIp: string | null;
+  serverId: string | null;
+  subnetMask: string | null;
+  routers: string[];
+  dns: string[];
+  domain: string | null;
+  leaseSecs: number | null;
+  relay: string | null;
+  nextServer: string | null;
+}
+
+export type DhcpServerStatus = "authorized" | "rogue" | "unverified";
+
+export interface DhcpServerRecord {
+  server: string;
+  source: string;
+  status: DhcpServerStatus;
+  replies: number;
+  firstSeenMs: number;
+  lastSeenMs: number;
+  last: DhcpOfferInfo;
+}
+
+export type DhcpEvent =
+  | { type: "started"; interface: string }
+  | { type: "probe"; n: number; xid: string; clientMac: string }
+  | { type: "reply"; record: DhcpServerRecord; source: string; ours: boolean }
+  | { type: "warning"; message: string }
+  | { type: "stopped"; probes: number; servers: number; error: string | null };

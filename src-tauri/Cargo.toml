@@ -31,6 +31,8 @@ hickory-client = "0.24"
 hickory-resolver = "0.24"
 snmp2 = { version = "0.5", features = ["crypto-rust"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync"] }
+if-addrs = "0.15.0"
+socket2 = { version = "0.6", features = ["all"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
