@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
   import type { SyslogSendEvent } from "$lib/tools/types";
+  import { selectOnFocus } from "$lib/actions/selectOnFocus";
 
   const KINDS = ["mixed", "ssh", "sudo", "kernel", "cron", "app", "fortigate"];
   const FACILITIES = [
@@ -10,7 +11,7 @@
   const SEVERITIES = ["emerg", "alert", "crit", "err", "warning", "notice", "info", "debug"];
   const MAX_ROWS = 2000;
 
-  let server = $state("127.0.0.1");
+  let server = $state("");
   let port = $state(514);
   let proto = $state("udp");
   let format = $state("3164");
@@ -87,7 +88,7 @@
   <div class="grid">
     <div class="field grow">
       <label for="server">Destination server</label>
-      <input id="server" class="mono" bind:value={server} disabled={sending} spellcheck="false" />
+      <input id="server" class="mono" bind:value={server} disabled={sending} spellcheck="false" placeholder="127.0.0.1" />
     </div>
     <div class="field">
       <label for="sport">Port</label>
@@ -148,7 +149,7 @@
     <div class="grid">
       <div class="field">
         <label for="app">App (with custom message)</label>
-        <input id="app" class="mono" bind:value={app} disabled={sending} spellcheck="false" />
+        <input id="app" class="mono" bind:value={app} disabled={sending} spellcheck="false" use:selectOnFocus />
       </div>
       <div class="field">
         <label for="fac">Facility (with custom message)</label>

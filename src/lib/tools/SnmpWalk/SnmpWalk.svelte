@@ -2,6 +2,7 @@
   import { invoke, Channel } from "@tauri-apps/api/core";
   import { open } from "@tauri-apps/plugin-dialog";
   import type { SnmpWalkEvent } from "$lib/tools/types";
+  import { selectOnFocus } from "$lib/actions/selectOnFocus";
 
   const MAX_ROWS = 50000;
   const AUTH_PROTOS = ["none", "md5", "sha1", "sha224", "sha256", "sha384", "sha512"];
@@ -167,7 +168,7 @@
     <div class="grid">
       <div class="field grow">
         <label for="comm">Community</label>
-        <input id="comm" class="mono" bind:value={community} disabled={walking} spellcheck="false" />
+        <input id="comm" class="mono" bind:value={community} disabled={walking} spellcheck="false" use:selectOnFocus />
       </div>
     </div>
   {/if}
@@ -175,7 +176,7 @@
   <div class="grid">
     <div class="field grow">
       <label for="oid">Start OID (name or dotted)</label>
-      <input id="oid" class="mono" bind:value={startOid} disabled={walking} spellcheck="false" />
+      <input id="oid" class="mono" bind:value={startOid} disabled={walking} spellcheck="false" use:selectOnFocus />
     </div>
   </div>
 

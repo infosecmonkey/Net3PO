@@ -3,6 +3,7 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { ScanEvent } from "$lib/tools/types";
   import { buildScanReport } from "./report";
+  import { selectOnFocus } from "$lib/actions/selectOnFocus";
 
   const PRESETS = ["polite", "normal", "aggressive"];
 
@@ -130,6 +131,7 @@
         bind:value={ports}
         onkeydown={onKeydown}
         spellcheck="false"
+        use:selectOnFocus
         placeholder="common, all, or 22,80,443,8000-8100"
       />
     </div>

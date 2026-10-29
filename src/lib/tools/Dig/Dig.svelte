@@ -4,7 +4,7 @@
 
   const TYPES = ["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "PTR", "SRV", "CAA"];
 
-  let name = $state("example.com");
+  let name = $state("");
   let server = $state("");
   let rtype = $state("A");
 

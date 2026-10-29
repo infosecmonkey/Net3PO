@@ -4,7 +4,7 @@
   import type { DnsAnalysis, Severity } from "$lib/tools/types";
   import { buildDnsReport } from "./report";
 
-  let domain = $state("example.com");
+  let domain = $state("");
   let server = $state("");
   let selectorsStr = $state("");
 
