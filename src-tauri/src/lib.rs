@@ -14,7 +14,7 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
-use tools::regex_builder::commands::{regex_replace, regex_test};
+use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
 use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
@@ -46,6 +46,7 @@ pub fn run() {
             subnet_split,
             regex_test,
             regex_replace,
+            regex_recipes,
             grep_build,
             grep_preview,
             mac_lookup,

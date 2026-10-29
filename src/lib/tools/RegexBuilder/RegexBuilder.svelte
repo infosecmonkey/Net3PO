@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { onMount, tick } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import type { RegexEngine, RegexFlags, RegexResult } from "$lib/tools/types";
+  import { openInGrep } from "$lib/nav.svelte";
+  import type { RegexEngine, RegexFlags, RegexRecipe, RegexResult } from "$lib/tools/types";
+  import { PALETTE, type PaletteToken } from "./palette";
+  import { SAMPLES } from "./samples";
 
   let pattern = $state(String.raw`(?<user>\w+)@(?<host>[\w.]+)`);
   let text = $state("Contact alice@example.com or bob@mail.test for access.");
@@ -27,6 +31,74 @@
         "Adds lookahead, lookbehind, and backreferences. Backtracks, so it runs under a backtrack limit and errors if the limit is hit.",
     },
   ];
+
+  // Recipe library, loaded once from the backend where it is tested.
+  let recipes = $state<RegexRecipe[]>([]);
+  let recipeFilter = $state("");
+  let lastRecipe = $state<RegexRecipe | null>(null);
+  let patternEl = $state<HTMLInputElement | null>(null);
+
+  onMount(async () => {
+    try {
+      recipes = await invoke<RegexRecipe[]>("regex_recipes");
+    } catch (e) {
+      error = String(e);
+    }
+  });
+
+  // Recipes grouped in library order, narrowed by the filter box.
+  let recipeGroups = $derived.by(() => {
+    const q = recipeFilter.trim().toLowerCase();
+    const groups: { name: string; items: RegexRecipe[] }[] = [];
+    for (const r of recipes) {
+      if (q && !`${r.label} ${r.help} ${r.group}`.toLowerCase().includes(q)) continue;
+      let g = groups.find((x) => x.name === r.group);
+      if (!g) {
+        g = { name: r.group, items: [] };
+        groups.push(g);
+      }
+      g.items.push(r);
+    }
+    return groups;
+  });
+
+  /** Insert `snippet` at the caret (replacing any selection), then place the
+      caret `caret` characters into it. */
+  async function insertAtCaret(snippet: string, caret?: number) {
+    const start = patternEl?.selectionStart ?? pattern.length;
+    const end = patternEl?.selectionEnd ?? pattern.length;
+    pattern = pattern.slice(0, start) + snippet + pattern.slice(end);
+    await tick();
+    const pos = start + (caret ?? snippet.length);
+    patternEl?.focus();
+    patternEl?.setSelectionRange(pos, pos);
+  }
+
+  /** Recipes replace the pattern; Shift-click inserts at the caret instead. */
+  function useRecipe(r: RegexRecipe, e: MouseEvent) {
+    lastRecipe = r;
+    if (e.shiftKey) {
+      void insertAtCaret(r.pattern);
+    } else {
+      pattern = r.pattern;
+    }
+  }
+
+  function useToken(t: PaletteToken) {
+    if (t.pcreOnly) engine = "pcre";
+    void insertAtCaret(t.insert, t.caret);
+  }
+
+  function loadSample(e: Event) {
+    const sel = e.currentTarget as HTMLSelectElement;
+    const doc = SAMPLES.find((s) => s.name === sel.value);
+    if (doc) text = doc.text;
+    sel.value = "";
+  }
+
+  function sendToGrep() {
+    openInGrep(pattern, engine === "pcre" ? "perl" : "extended");
+  }
 
   let replaceOn = $state(false);
   let replacement = $state("$1 [at] $2");
@@ -155,13 +227,77 @@
     <input
       id="pattern"
       class="mono"
+      bind:this={patternEl}
       bind:value={pattern}
       spellcheck="false"
       autocapitalize="off"
       autocomplete="off"
       placeholder="\d+"
     />
+    <div class="pattern-actions">
+      <button class="small" onclick={() => (pattern = "")} disabled={pattern.length === 0}>Clear</button>
+      <button class="small" onclick={sendToGrep} disabled={pattern.length === 0}>Open in Grep Builder</button>
+    </div>
   </div>
+
+  <details class="library" open>
+    <summary>Recipes <span class="muted">({recipes.length})</span></summary>
+    <div class="library-body">
+      <input
+        class="filter"
+        bind:value={recipeFilter}
+        placeholder="Filter: mask, mac, syslog..."
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+      />
+      <p class="hint">Click to replace the pattern. Shift-click to insert at the caret.</p>
+      {#each recipeGroups as g (g.name)}
+        <div class="chip-group">
+          <span class="group-name">{g.name}</span>
+          <div class="chips">
+            {#each g.items as r (r.id)}
+              <button
+                class="chip"
+                class:active={lastRecipe?.id === r.id && pattern === r.pattern}
+                title={`${r.help}\ne.g. ${r.examples[0]}`}
+                onclick={(e) => useRecipe(r, e)}
+              >
+                {r.label}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {:else}
+        <p class="hint">No recipes match.</p>
+      {/each}
+      {#if lastRecipe}
+        <p class="recipe-info">
+          <strong>{lastRecipe.label}:</strong>
+          {lastRecipe.help}. e.g. <code>{lastRecipe.examples.join("  ")}</code>
+        </p>
+      {/if}
+    </div>
+  </details>
+
+  <details class="library">
+    <summary>Tokens</summary>
+    <div class="library-body">
+      <p class="hint">Inserts at the caret. PCRE-only tokens switch the engine.</p>
+      {#each PALETTE as g (g.name)}
+        <div class="chip-group">
+          <span class="group-name">{g.name}</span>
+          <div class="chips">
+            {#each g.tokens as t (t.label)}
+              <button class="chip mono" class:pcre={t.pcreOnly} title={t.help} onclick={() => useToken(t)}>
+                {t.label}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/each}
+    </div>
+  </details>
 
   <div class="flags">
     <label><input type="checkbox" bind:checked={flags.caseInsensitive} /> ignore case (i)</label>
@@ -182,7 +318,15 @@
   {/if}
 
   <div class="field">
-    <label for="sample">Sample text</label>
+    <div class="sample-head">
+      <label for="sample">Sample text</label>
+      <select class="sample-select" onchange={loadSample} aria-label="Load sample">
+        <option value="">Load sample...</option>
+        {#each SAMPLES as doc (doc.name)}
+          <option value={doc.name}>{doc.name}</option>
+        {/each}
+      </select>
+    </div>
     <div class="editor">
       <pre class="highlight mono" aria-hidden="true" bind:this={highlightEl}>{#each segments as seg (seg)}{#if seg.match}<mark>{seg.text}</mark>{:else}{seg.text}{/if}{/each}<br /></pre>
       <textarea
@@ -459,6 +603,125 @@
 
   tr:last-child td {
     border-bottom: none;
+  }
+
+  .pattern-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+  }
+
+  button.small,
+  .sample-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 0.78rem;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+
+  button.small:hover:not(:disabled) {
+    background: var(--hover);
+  }
+
+  button.small:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .library {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 0.9rem;
+  }
+
+  .library summary {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    user-select: none;
+  }
+
+  .library-body {
+    padding: 0 0.75rem 0.75rem;
+  }
+
+  .library .filter {
+    max-width: 320px;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .hint {
+    margin: 0.4rem 0 0.6rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .chip-group {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+    align-items: baseline;
+  }
+
+  .group-name {
+    flex: 0 0 7.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .chip {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg);
+    font-size: 0.76rem;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+  }
+
+  .chip:hover {
+    background: var(--hover);
+  }
+
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+  }
+
+  .chip.pcre {
+    border-style: dashed;
+  }
+
+  .recipe-info {
+    margin: 0.6rem 0 0;
+    font-size: 0.78rem;
+  }
+
+  .recipe-info code {
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+
+  .sample-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 0.35rem;
+  }
+
+  .sample-head label {
+    margin: 0;
   }
 
   .replace-toggle {

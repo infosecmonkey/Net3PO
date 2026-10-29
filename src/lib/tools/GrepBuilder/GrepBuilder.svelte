@@ -1,10 +1,13 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import MatchHighlighter from "$lib/components/MatchHighlighter.svelte";
+  import { takePendingGrep } from "$lib/nav.svelte";
   import type { GrepMode, GrepOptions, RegexResult } from "$lib/tools/types";
 
-  let pattern = $state(String.raw`\berror\b`);
-  let mode = $state<GrepMode>("extended");
+  // A pattern sent from the Regex Builder replaces the default.
+  const handoff = takePendingGrep();
+  let pattern = $state(handoff?.pattern ?? String.raw`\berror\b`);
+  let mode = $state<GrepMode>(handoff?.mode ?? "extended");
   let pathsStr = $state("/var/log/app.log");
   let text = $state("INFO starting up\nerror: disk full\nWARN error-rate high\nerror: timeout");
 
