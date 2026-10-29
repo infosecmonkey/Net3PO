@@ -283,7 +283,7 @@
   .preset.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     font-weight: 600;
   }
 
@@ -298,7 +298,7 @@
     border: 1px solid var(--accent);
     border-radius: 6px;
     padding: 0.5rem 1.2rem;
-    color: #fff;
+    color: var(--accent-fg);
     font-weight: 600;
     font-size: 0.85rem;
     cursor: pointer;

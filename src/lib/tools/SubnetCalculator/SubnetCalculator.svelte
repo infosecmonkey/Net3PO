@@ -214,7 +214,7 @@
   button.primary {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     font-weight: 600;
   }
 

@@ -142,7 +142,7 @@
     margin-left: 0.35rem;
     font-size: 0.7rem;
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     border-radius: 0.6rem;
     padding: 0 0.35rem;
   }
@@ -263,7 +263,7 @@
     border: 1px solid var(--accent);
     border-radius: 6px;
     padding: 0.45rem 1.1rem;
-    color: #fff;
+    color: var(--accent-fg);
     font-weight: 600;
     font-size: 0.84rem;
     cursor: pointer;
