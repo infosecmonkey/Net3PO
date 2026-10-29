@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and general feedback
+    url: https://github.com/infosecmonkey/Net3PO/discussions
+    about: Ask how something works, share ideas or tell us how Net3PO is working for you.
+  - name: Report a security vulnerability
+    url: https://github.com/infosecmonkey/Net3PO/security/advisories/new
+    about: Please report security problems privately, not as a public issue.
