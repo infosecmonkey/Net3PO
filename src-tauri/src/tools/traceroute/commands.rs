@@ -64,7 +64,11 @@ impl Default for TraceConfig {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum TraceEvent {
     Started {
         target: String,

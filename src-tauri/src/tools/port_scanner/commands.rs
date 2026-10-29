@@ -26,7 +26,11 @@ pub struct ScanRegistry {
 
 /// Streamed scan events.
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ScanEvent {
     Open {
         host: String,
@@ -270,6 +274,24 @@ mod tests {
     use super::*;
     use std::net::Ipv4Addr;
     use tokio::net::TcpListener;
+
+    #[test]
+    fn done_event_fields_are_camel_case() {
+        let ev = ScanEvent::Done {
+            total: 1,
+            hosts: 1,
+            hosts_with_open: 1,
+            open: 1,
+            closed: 0,
+            filtered: 0,
+            elapsed_ms: 5,
+            cancelled: false,
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["type"], "done");
+        assert_eq!(v["hostsWithOpen"], 1);
+        assert_eq!(v["elapsedMs"], 5);
+    }
 
     #[tokio::test]
     async fn open_port_detected() {

@@ -35,6 +35,7 @@ if-addrs = "0.15.0"
 socket2 = { version = "0.6", features = ["all"] }
 libc = "0.2.191"
 similar = "3"
+pdf-writer = "0.15"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

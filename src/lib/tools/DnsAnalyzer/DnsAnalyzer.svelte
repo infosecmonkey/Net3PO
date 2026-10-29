@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { DnsAnalysis, Severity } from "$lib/tools/types";
+  import { buildDnsReport } from "./report";
 
   let domain = $state("example.com");
   let server = $state("");
@@ -100,7 +102,10 @@
   {/if}
 
   {#if report && !loading}
-    <p class="server-line muted">Resolved via {report.server}</p>
+    <div class="server-line">
+      <span class="muted">Resolved via {report.server}</span>
+      <ExportMenu build={() => (report ? buildDnsReport(report) : null)} name={`dns-${report.domain}`} />
+    </div>
     <div class="sections">
       {#each report.sections as section (section.name)}
         <div class="section">
@@ -219,6 +224,10 @@
   }
 
   .server-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     font-size: 0.78rem;
     margin: 0 0 0.75rem;
   }

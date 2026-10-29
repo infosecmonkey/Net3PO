@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { ScanEvent } from "$lib/tools/types";
+  import { buildScanReport } from "./report";
 
   const PRESETS = ["polite", "normal", "aggressive"];
 
@@ -195,6 +197,11 @@
       host{summary.hosts === 1 ? "" : "s"}
       ({summary.total.toLocaleString()} host-port checks in {(summary.elapsedMs / 1000).toFixed(1)}s).
     </p>
+    <ExportMenu
+      build={() => buildScanReport({ target, ports, preset, open: openPorts, summary })}
+      name={`scan-${target}`}
+      disabled={scanning}
+    />
   {/if}
 </div>
 

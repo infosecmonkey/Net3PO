@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { SnmpSweepEvent } from "$lib/tools/types";
+  import { buildSweepReport } from "./report";
 
   let targets = $state("");
   let port = $state(161);
@@ -118,6 +120,12 @@
       <button class="action" onclick={sweep}>Sweep</button>
     {/if}
     {#if summary}<span class="done muted">{summary}</span>{/if}
+    {#if summary && !sweeping}
+      <ExportMenu
+        build={() => buildSweepReport({ targets, port, version, summary, rows })}
+        name={`snmp-sweep-${targets}`}
+      />
+    {/if}
   </div>
 
   {#if error}

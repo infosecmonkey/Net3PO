@@ -50,7 +50,11 @@ impl Default for SweepConfig {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum SweepEvent {
     Responder {
         ip: String,
@@ -287,4 +291,24 @@ fn translate_oid(dotted: &str, mib: &crate::tools::snmp_walk::core::Mib) -> Stri
         }
     }
     trimmed.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn responder_fields_are_camel_case() {
+        let ev = SweepEvent::Responder {
+            ip: "10.0.0.1".to_string(),
+            sys_descr: "d".to_string(),
+            sys_name: "n".to_string(),
+            sys_object_id: "o".to_string(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["type"], "responder");
+        assert_eq!(v["sysDescr"], "d");
+        assert_eq!(v["sysName"], "n");
+        assert_eq!(v["sysObjectId"], "o");
+    }
 }
