@@ -3,6 +3,7 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { SnmpSweepEvent } from "$lib/tools/types";
   import { buildSweepReport } from "./report";
+  import { selectOnFocus } from "$lib/actions/selectOnFocus";
 
   let targets = $state("");
   let port = $state(161);
@@ -109,7 +110,7 @@
     </div>
     <div class="field grow">
       <label for="comm">Community</label>
-      <input id="comm" class="mono" bind:value={community} disabled={sweeping} spellcheck="false" />
+      <input id="comm" class="mono" bind:value={community} disabled={sweeping} spellcheck="false" use:selectOnFocus />
     </div>
   </div>
 

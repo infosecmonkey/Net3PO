@@ -25,14 +25,12 @@
 
   // A pattern sent from the Regex Builder replaces the default.
   const handoff = takePendingGrep();
-  let rows = $state<Row[]>([row(handoff?.pattern ?? String.raw`\berror\b`)]);
+  let rows = $state<Row[]>([row(handoff?.pattern ?? "")]);
   let combine = $state<GrepCombine>("all");
   let mode = $state<GrepMode>(handoff?.mode ?? "extended");
   let target = $state<GrepTarget>("gnu");
-  let pathsStr = $state("/var/log/app.log");
-  let text = $state(
-    "INFO starting up\nerror: disk full\nWARN error-rate high\nerror: timeout\nDEBUG error retry 3",
-  );
+  let pathsStr = $state("");
+  let text = $state("");
 
   let ignoreCase = $state(false);
   let word = $state(false);
@@ -279,7 +277,7 @@
     <button class="copy" onclick={copy}>{copied ? "Copied" : "Copy"}</button>
   </div>
 
-  {#if built.warnings.length > 0}
+  {#if hasPattern && built.warnings.length > 0}
     <ul class="warnings">
       {#each built.warnings as w (w)}
         <li>{w}</li>
@@ -303,7 +301,11 @@
     {#if error}
       <div class="error mono">{error}</div>
     {/if}
-    <MatchHighlighter bind:text matches={result?.matches ?? []} />
+    <MatchHighlighter
+      bind:text
+      matches={result?.matches ?? []}
+      placeholder="Paste sample lines to preview what the command keeps"
+    />
     {#if result && result.output.length > 0}
       <h3>Output</h3>
       <pre class="output mono">{#each result.output as l (l.number)}{#if lineNumber}<span class="ln">{l.number}:</span>{/if}{l.text}

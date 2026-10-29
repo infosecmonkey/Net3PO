@@ -6,8 +6,8 @@
   import { PALETTE, type PaletteToken } from "./palette";
   import { SAMPLES } from "./samples";
 
-  let pattern = $state(String.raw`(?<user>\w+)@(?<host>[\w.]+)`);
-  let text = $state("Contact alice@example.com or bob@mail.test for access.");
+  let pattern = $state("");
+  let text = $state("");
   let engine = $state<RegexEngine>("standard");
   let flags = $state<RegexFlags>({
     caseInsensitive: false,
@@ -101,7 +101,7 @@
   }
 
   let replaceOn = $state(false);
-  let replacement = $state("$1 [at] $2");
+  let replacement = $state("");
 
   let result = $state<RegexResult | null>(null);
   let replaced = $state("");
@@ -232,7 +232,7 @@
       spellcheck="false"
       autocapitalize="off"
       autocomplete="off"
-      placeholder="\d+"
+      placeholder="(?<user>\w+)@(?<host>[\w.]+), or pick a recipe below"
     />
     <div class="pattern-actions">
       <button class="small" onclick={() => (pattern = "")} disabled={pattern.length === 0}>Clear</button>
@@ -334,6 +334,7 @@
         class="mono"
         bind:value={text}
         onscroll={syncScroll}
+        placeholder="Paste sample text, or use Load sample"
         spellcheck="false"
         autocapitalize="off"
         autocomplete="off"
@@ -528,6 +529,12 @@
   }
 
   .highlight,
+  /* The textarea text is transparent over the highlight layer; keep the
+     placeholder visible. */
+  .editor textarea::placeholder {
+    color: var(--muted);
+  }
+
   .editor textarea {
     margin: 0;
     padding: 0.5rem 0.6rem;

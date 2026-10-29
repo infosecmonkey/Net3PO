@@ -2,7 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import type { SubnetReport, SplitResult } from "$lib/tools/types";
 
-  let input = $state("10.1.1.0/24");
+  let input = $state("");
   let splitPrefix = $state(28);
 
   let report = $state<SubnetReport | null>(null);

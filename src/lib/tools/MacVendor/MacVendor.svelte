@@ -2,7 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import type { MacDbInfo, MacInfo } from "$lib/tools/types";
 
-  let mac = $state("B8:27:EB:12:34:56");
+  let mac = $state("");
   let info = $state<MacInfo | null>(null);
   let error = $state("");
   let db = $state<MacDbInfo | null>(null);

@@ -2,6 +2,7 @@
   import { invoke, Channel } from "@tauri-apps/api/core";
   import { save } from "@tauri-apps/plugin-dialog";
   import type { MacRow, PortMap, PortMapEvent, PortRow } from "$lib/tools/types";
+  import { selectOnFocus } from "$lib/actions/selectOnFocus";
 
   const MAX_ROWS = 5000;
   const AUTH_PROTOS = ["none", "md5", "sha1", "sha224", "sha256", "sha384", "sha512"];
@@ -319,7 +320,7 @@
     <div class="grid">
       <div class="field grow">
         <label for="comm">Community</label>
-        <input id="comm" class="mono" bind:value={community} disabled={mapping} spellcheck="false" />
+        <input id="comm" class="mono" bind:value={community} disabled={mapping} spellcheck="false" use:selectOnFocus />
       </div>
     </div>
   {/if}

@@ -112,6 +112,12 @@
     box-sizing: border-box;
   }
 
+  /* The textarea text is transparent over the highlight layer; keep the
+     placeholder visible. */
+  .editor textarea::placeholder {
+    color: var(--muted);
+  }
+
   .editor textarea:focus {
     outline: none;
     border-color: var(--accent);
