@@ -3,6 +3,7 @@
   import Icon from "./icons/Icon.svelte";
   import logoLight from "$lib/assets/net3po-logo-light.png";
   import logoDark from "$lib/assets/net3po-logo-dark.png";
+  import About from "./About.svelte";
 
   interface Props {
     selected: string;
@@ -11,6 +12,7 @@
 
   let { selected, onselect }: Props = $props();
   const groups = toolGroups();
+  let aboutOpen = $state(false);
 </script>
 
 <nav class="sidebar">
@@ -19,6 +21,9 @@
       <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
       <img src={logoLight} alt="Net3PO" width="153" height="52" />
     </picture>
+    <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
+      <Icon name="info" size={15} />
+    </button>
   </div>
   {#each groups as group (group.category)}
     <div class="group">
@@ -44,6 +49,8 @@
     </div>
   {/each}
 </nav>
+
+{#if aboutOpen}<About onclose={() => (aboutOpen = false)} />{/if}
 
 <style>
   .sidebar {
@@ -71,6 +78,27 @@
   .brand picture,
   .brand img {
     display: block;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .about {
+    display: flex;
+    background: none;
+    border: none;
+    padding: 0.15rem;
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .about:hover {
+    color: var(--accent);
+    background: var(--hover);
   }
 
   .group {

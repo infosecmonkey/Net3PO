@@ -7,11 +7,19 @@ use std::net::Ipv4Addr;
 
 use serde::Serialize;
 
+// The raw ICMP wire helpers below drive the macOS and Linux probes. Windows
+// probes through IcmpSendEcho2, so there they are only used by tests.
+
+#[cfg_attr(windows, allow(dead_code))]
 pub const ECHO_REPLY: u8 = 0;
+#[cfg_attr(windows, allow(dead_code))]
 pub const DEST_UNREACHABLE: u8 = 3;
+#[cfg_attr(windows, allow(dead_code))]
 pub const ECHO_REQUEST: u8 = 8;
+#[cfg_attr(windows, allow(dead_code))]
 pub const TIME_EXCEEDED: u8 = 11;
 /// Destination unreachable code: fragmentation needed and DF set.
+#[cfg_attr(windows, allow(dead_code))]
 pub const CODE_FRAG_NEEDED: u8 = 4;
 
 /// IPv4 + ICMP header bytes added to an echo payload.
@@ -22,6 +30,7 @@ pub const HISTORY_LEN: usize = 300;
 const MAX_RESPONDERS: usize = 16;
 
 /// Internet checksum (RFC 1071).
+#[cfg_attr(windows, allow(dead_code))]
 pub fn checksum(data: &[u8]) -> u16 {
     let mut sum = 0u32;
     for chunk in data.chunks(2) {
@@ -35,6 +44,7 @@ pub fn checksum(data: &[u8]) -> u16 {
 }
 
 /// Build an ICMP echo request with `payload_len` bytes of payload.
+#[cfg_attr(windows, allow(dead_code))]
 pub fn build_echo(ident: u16, seq: u16, payload_len: usize) -> Vec<u8> {
     const PATTERN: &[u8] = b"Net3PO ";
     let mut p = Vec::with_capacity(8 + payload_len);
@@ -49,6 +59,7 @@ pub fn build_echo(ident: u16, seq: u16, payload_len: usize) -> Vec<u8> {
 
 /// Skip an IPv4 header using its IHL field. The total-length field is never
 /// used: BSD-derived stacks deliver it in host byte order.
+#[cfg_attr(windows, allow(dead_code))]
 pub fn strip_ipv4_header(buf: &[u8]) -> Option<&[u8]> {
     let first = *buf.first()?;
     if first >> 4 != 4 {
@@ -63,6 +74,7 @@ pub fn strip_ipv4_header(buf: &[u8]) -> Option<&[u8]> {
 
 /// What an ICMP message says about one of our probes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(windows, allow(dead_code))]
 pub enum ReplyKind {
     EchoReply,
     TimeExceeded,
@@ -75,6 +87,7 @@ pub enum ReplyKind {
 /// A parsed ICMP message, with the echo ident/seq it refers to (the quoted
 /// original probe for error messages).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(windows, allow(dead_code))]
 pub struct IcmpReply {
     pub kind: ReplyKind,
     pub ident: u16,
@@ -83,6 +96,7 @@ pub struct IcmpReply {
 
 /// Parse an ICMP message that starts at the ICMP header (no IP header).
 /// Error messages are matched through the quoted original echo request.
+#[cfg_attr(windows, allow(dead_code))]
 pub fn parse_icmp(buf: &[u8]) -> Option<IcmpReply> {
     if buf.len() < 8 {
         return None;
