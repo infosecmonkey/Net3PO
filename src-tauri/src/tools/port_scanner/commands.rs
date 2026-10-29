@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tauri::State;
 use tauri::ipc::Channel;
-use tokio::net::TcpStream;
+use tokio::net::TcpSocket;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
@@ -257,7 +257,17 @@ async fn resolve_targets(target: &str) -> Result<Vec<IpAddr>, String> {
 /// A single TCP connect attempt, classified as open/closed/filtered.
 async fn scan_one(ip: IpAddr, port: u16, timeout: Duration) -> PortState {
     let addr = SocketAddr::new(ip, port);
-    match tokio::time::timeout(timeout, TcpStream::connect(addr)).await {
+    let connect = async {
+        let socket = if ip.is_ipv4() {
+            TcpSocket::new_v4()?
+        } else {
+            TcpSocket::new_v6()?
+        };
+        #[cfg(windows)]
+        fast_refusal(&socket);
+        socket.connect(addr).await
+    };
+    match tokio::time::timeout(timeout, connect).await {
         Ok(Ok(_stream)) => PortState::Open,
         Ok(Err(e)) => match e.kind() {
             ErrorKind::TimedOut => PortState::Filtered,
@@ -266,6 +276,43 @@ async fn scan_one(ip: IpAddr, port: u16, timeout: Duration) -> PortState {
         },
         // Our own timeout elapsed: no response, so treat as filtered.
         Err(_) => PortState::Filtered,
+    }
+}
+
+/// Windows answers a refused connect (SYN, then RST) by retrying the SYN for
+/// about two seconds before reporting it, so closed ports read as filtered
+/// under short timeouts. Turning off SYN retransmissions for this socket makes
+/// refusals immediate, as on macOS and Linux. Best effort: on failure the
+/// default behavior stays.
+#[cfg(windows)]
+fn fast_refusal(socket: &TcpSocket) {
+    use std::os::windows::io::AsRawSocket;
+    use windows_sys::Win32::Networking::WinSock::{
+        SIO_TCP_INITIAL_RTO, SOCKET, TCP_INITIAL_RTO_DEFAULT_RTT,
+        TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS, TCP_INITIAL_RTO_PARAMETERS, WSAIoctl,
+    };
+
+    let params = TCP_INITIAL_RTO_PARAMETERS {
+        Rtt: TCP_INITIAL_RTO_DEFAULT_RTT as u16,
+        // The SDK value is (UCHAR)-2; windows-sys declares it as u16.
+        MaxSynRetransmissions: TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS as u8,
+    };
+    let mut returned = 0u32;
+    // SAFETY: the handle is a live socket owned by `socket`; the input buffer
+    // is a valid struct of the size given; there is no output buffer and no
+    // overlapped I/O, so the call completes synchronously.
+    unsafe {
+        WSAIoctl(
+            socket.as_raw_socket() as SOCKET,
+            SIO_TCP_INITIAL_RTO,
+            (&params as *const TCP_INITIAL_RTO_PARAMETERS).cast(),
+            std::mem::size_of::<TCP_INITIAL_RTO_PARAMETERS>() as u32,
+            std::ptr::null_mut(),
+            0,
+            &mut returned,
+            std::ptr::null_mut(),
+            None,
+        );
     }
 }
 
