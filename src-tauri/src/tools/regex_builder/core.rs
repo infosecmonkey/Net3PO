@@ -341,6 +341,47 @@ fn replace_pcre(
     Ok(out)
 }
 
+// --- Reusable compiled matcher -------------------------------------------
+
+/// A pattern compiled once for repeated searching, for callers (like the grep
+/// preview) that test many short inputs.
+pub enum Matcher {
+    Standard(regex::Regex),
+    Pcre(fancy_regex::Regex),
+}
+
+impl Matcher {
+    /// Compile `pattern` with the given flags and engine.
+    pub fn compile(pattern: &str, flags: &RegexFlags, engine: Engine) -> Result<Self, RegexError> {
+        if pattern.is_empty() {
+            return Err(RegexError::EmptyPattern);
+        }
+        Ok(match engine {
+            Engine::Standard => Self::Standard(build_standard(pattern, flags)?),
+            Engine::Pcre => Self::Pcre(build_pcre(pattern, flags)?),
+        })
+    }
+
+    /// Byte spans of every match in `hay`.
+    pub fn find_spans(&self, hay: &str) -> Result<Vec<(usize, usize)>, RegexError> {
+        match self {
+            Self::Standard(re) => Ok(re.find_iter(hay).map(|m| (m.start(), m.end())).collect()),
+            Self::Pcre(re) => re
+                .find_iter(hay)
+                .map(|m| m.map(|m| (m.start(), m.end())).map_err(map_fancy_runtime))
+                .collect(),
+        }
+    }
+
+    /// True when the pattern matches anywhere in `hay`.
+    pub fn is_match(&self, hay: &str) -> Result<bool, RegexError> {
+        match self {
+            Self::Standard(re) => Ok(re.is_match(hay)),
+            Self::Pcre(re) => re.is_match(hay).map_err(map_fancy_runtime),
+        }
+    }
+}
+
 // --- Shared offset conversion --------------------------------------------
 
 /// Turn raw byte-offset matches into char-offset matches and attach group
