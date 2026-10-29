@@ -143,18 +143,22 @@ pub fn save(dir: &Path, name: &str, items: Vec<Value>) -> Result<(), StoreError>
         return Err(StoreError::TooLarge(bytes.len()));
     }
 
-    fs::create_dir_all(dir)
-        .map_err(|e| StoreError::Io(format!("could not create {}: {e}", dir.display())))?;
-    let path = file_path(dir, name);
-    let tmp = dir.join(format!("{name}.json.tmp"));
-    let io =
-        |what: &str, e: std::io::Error| StoreError::Io(format!("{what} {}: {e}", tmp.display()));
+    write_atomic(dir, &format!("{name}.json"), &bytes).map_err(StoreError::Io)
+}
+
+/// Write `bytes` to `dir/file_name` atomically: create the directory, write a
+/// temp file, flush it to disk, then rename it over the old file. Shared with
+/// the projects store.
+pub fn write_atomic(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<(), String> {
+    fs::create_dir_all(dir).map_err(|e| format!("could not create {}: {e}", dir.display()))?;
+    let path = dir.join(file_name);
+    let tmp = dir.join(format!("{file_name}.tmp"));
+    let io = |what: &str, e: std::io::Error| format!("{what} {}: {e}", tmp.display());
     let mut f = fs::File::create(&tmp).map_err(|e| io("could not create", e))?;
-    f.write_all(&bytes).map_err(|e| io("could not write", e))?;
+    f.write_all(bytes).map_err(|e| io("could not write", e))?;
     f.sync_all().map_err(|e| io("could not flush", e))?;
     drop(f);
-    fs::rename(&tmp, &path)
-        .map_err(|e| StoreError::Io(format!("could not replace {}: {e}", path.display())))
+    fs::rename(&tmp, &path).map_err(|e| format!("could not replace {}: {e}", path.display()))
 }
 
 #[cfg(test)]
