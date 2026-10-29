@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::core::{BuildError, flow, ha, ping, session, sniffer, traceroute, vpn};
+use super::core::{BuildError, flow, ha, ping, routing, session, sniffer, traceroute, vpn};
 
 /// Which builder to run, with its form input.
 #[derive(Deserialize)]
@@ -16,6 +16,7 @@ pub enum BuildInput {
     Traceroute(traceroute::TracerouteInput),
     Vpn(vpn::VpnInput),
     Ha(ha::HaInput),
+    Routing(routing::RoutingInput),
 }
 
 /// Build FortiOS CLI text from a builder's form input.
@@ -29,6 +30,7 @@ pub fn fortinet_build(input: BuildInput) -> Result<String, BuildError> {
         BuildInput::Traceroute(i) => traceroute::build(&i),
         BuildInput::Vpn(i) => vpn::build(&i),
         BuildInput::Ha(i) => ha::build(&i),
+        BuildInput::Routing(i) => routing::build(&i),
     }
 }
 
@@ -175,6 +177,27 @@ mod tests {
              # Changes cluster state: review before running\n\
              diagnose sys ha reset-uptime-primary-only\n\
              execute ha manage 0 admin"
+        );
+    }
+
+    #[test]
+    fn routing_payload_deserializes() {
+        let r: BuildInput = serde_json::from_value(json!({
+            "kind": "routing", "mode": "bgp",
+            "ospfStatus": true, "ospfNeighbor": true, "ospfInterface": false, "ospfDatabase": false,
+            "ospfRoute": false, "ospfRib": false, "ospfBorderRouters": false, "ospfVirtualLinks": false,
+            "ospfDebug": false, "ospfAreas": [],
+            "bgpSummary": true, "bgpPeer": "10.0.0.2", "bgpRoutes": false, "bgpAdvertised": true,
+            "bgpReceived": false, "bgpNetwork": false, "bgpPrefix": "", "bgpDebug": false, "bgpAreas": [],
+            "tableViews": ["all"], "detailsIp": "", "prouteList": false, "proute6List": false,
+            "prouteStats": false, "resetFirst": true, "timestamps": true, "stopBlock": true
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(r).unwrap(),
+            "get router info bgp summary\n\
+             get router info bgp neighbors 10.0.0.2\n\
+             get router info bgp neighbors 10.0.0.2 advertised-routes"
         );
     }
 

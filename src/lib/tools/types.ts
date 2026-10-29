@@ -414,7 +414,7 @@ export type TraceEvent =
 
 // Fortinet command builder.
 
-export type FortinetCategory = "session" | "flow" | "sniffer" | "ping" | "traceroute" | "vpn" | "ha";
+export type FortinetCategory = "session" | "flow" | "sniffer" | "ping" | "traceroute" | "vpn" | "ha" | "routing";
 
 export interface BuildError {
   field: string;
