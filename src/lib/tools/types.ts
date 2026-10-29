@@ -269,3 +269,46 @@ export type SnmpSweepEvent =
   | { type: "responder"; ip: string; sysDescr: string; sysName: string; sysObjectId: string }
   | { type: "progress"; done: number; total: number; found: number }
   | { type: "done"; total: number; found: number; cancelled: boolean };
+
+// Switch port mapper.
+
+export interface PortRow {
+  ifIndex: number;
+  name: string;
+  descr: string;
+  alias: string;
+  adminStatus: string;
+  operStatus: string;
+  speed: string;
+  pvid: number | null;
+  vlans: number[];
+  macCount: number;
+  physical: boolean;
+  uplink: boolean;
+}
+
+export interface MacRow {
+  mac: string;
+  vendor: string | null;
+  vlan: number | null;
+  ifIndex: number | null;
+  port: string;
+  ips: string[];
+  onUplink: boolean;
+}
+
+export interface PortMap {
+  sysName: string;
+  sysDescr: string;
+  source: string;
+  ports: PortRow[];
+  macs: MacRow[];
+  warnings: string[];
+  truncated: boolean;
+}
+
+export type PortMapEvent =
+  | { type: "stage"; message: string }
+  | { type: "done"; map: PortMap }
+  | { type: "error"; message: string }
+  | { type: "cancelled" };

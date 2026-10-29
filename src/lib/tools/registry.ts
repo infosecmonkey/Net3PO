@@ -108,7 +108,13 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./SnmpSweep/SnmpSweep.svelte"),
   },
-  { id: "port-mapper", name: "Switch Port Mapper", category: "SNMP", enabled: false },
+  {
+    id: "port-mapper",
+    name: "Switch Port Mapper",
+    category: "SNMP",
+    enabled: true,
+    load: () => import("./PortMapper/PortMapper.svelte"),
+  },
 
   // Phase 4, advanced
   { id: "dhcp-monitor", name: "DHCP Monitor", category: "Advanced", enabled: false },
