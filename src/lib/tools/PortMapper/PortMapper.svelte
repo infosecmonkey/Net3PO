@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import { save } from "@tauri-apps/plugin-dialog";
   import type { MacRow, PortMap, PortMapEvent, PortRow } from "$lib/tools/types";
 
   const MAX_ROWS = 5000;
@@ -28,6 +29,7 @@
   let search = $state("");
   let hideUplinks = $state(true);
   let showAll = $state(false);
+  let showPortMacs = $state(false);
   let copied = $state(false);
 
   /** Split a name into text and number runs so Gi1/0/10 sorts after Gi1/0/9. */
@@ -64,6 +66,18 @@
   const sortedPorts = $derived(
     map ? [...map.ports].filter((p) => showAll || p.physical).sort((a, b) => natCmp(a.name, b.name)) : [],
   );
+
+  const macsByIf = $derived.by(() => {
+    const byIf = new Map<number, MacRow[]>();
+    for (const m of map?.macs ?? []) {
+      if (m.ifIndex === null) continue;
+      if (!byIf.has(m.ifIndex)) byIf.set(m.ifIndex, []);
+      byIf.get(m.ifIndex)!.push(m);
+    }
+    return byIf;
+  });
+
+  const aliasByIf = $derived(new Map((map?.ports ?? []).map((p) => [p.ifIndex, p.alias])));
 
   const selectedPort = $derived(map?.ports.find((p) => p.ifIndex === selectedIf) ?? null);
 
@@ -178,19 +192,70 @@
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }
 
-  async function copyCsv() {
-    const header = "mac,vendor,vlan,port,ips";
-    const lines = shownMacs.map((m: MacRow) =>
-      [m.mac, m.vendor ?? "", m.vlan?.toString() ?? "", m.port, m.ips.join(" ")].map(csvField).join(","),
+  function csvLine(fields: (string | number | null | undefined)[]): string {
+    return fields.map((f) => csvField(f == null ? "" : String(f))).join(",");
+  }
+
+  /** MACs view: one row per shown MAC. */
+  function macsCsv(): string {
+    const lines = shownMacs.map((m) =>
+      csvLine([
+        m.mac,
+        m.vendor,
+        m.vlan,
+        m.port,
+        m.ifIndex !== null ? aliasByIf.get(m.ifIndex) : "",
+        m.ips.join(" "),
+      ]),
     );
+    return ["mac,vendor,vlan,port,description,ips", ...lines].join("\n");
+  }
+
+  /** Ports view: one row per MAC with its port details; MAC-less ports get one row. */
+  function portsCsv(): string {
+    const lines: string[] = [];
+    for (const p of sortedPorts) {
+      const status = p.adminStatus === "down" ? "admin down" : p.operStatus;
+      const base = [p.name, p.alias, status, p.speed, p.pvid, p.vlans.join(" ")];
+      const macs = macsByIf.get(p.ifIndex) ?? [];
+      if (macs.length === 0) {
+        lines.push(csvLine([...base, "", "", "", ""]));
+      }
+      for (const m of macs) {
+        lines.push(csvLine([...base, m.mac, m.vendor, m.vlan, m.ips.join(" ")]));
+      }
+    }
+    return ["port,description,status,speed,pvid,vlans,mac,vendor,mac_vlan,ips", ...lines].join("\n");
+  }
+
+  function currentCsv(): string {
+    return view === "macs" ? macsCsv() : portsCsv();
+  }
+
+  async function copyCsv() {
     try {
-      await navigator.clipboard.writeText([header, ...lines].join("\n"));
+      await navigator.clipboard.writeText(currentCsv());
       copied = true;
       setTimeout(() => (copied = false), 1500);
     } catch (e) {
       error = `Copy failed: ${e}`;
     }
   }
+
+  async function saveCsv() {
+    try {
+      const device = (map?.sysName || host).split(".")[0].replace(/[^\w.-]/g, "_");
+      const path = await save({
+        defaultPath: `${device}-${view}.csv`,
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+      });
+      if (typeof path !== "string") return;
+      await invoke("port_map_save", { path, contents: currentCsv() + "\n" });
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
 </script>
 
 <div class="panel">
@@ -341,6 +406,7 @@
           <label class="check muted"><input type="checkbox" bind:checked={hideUplinks} /> hide MACs on uplinks</label>
         {/if}
         <button class="secondary" onclick={copyCsv} disabled={shownMacs.length === 0}>{copied ? "Copied" : "Copy CSV"}</button>
+        <button class="secondary" onclick={saveCsv} disabled={shownMacs.length === 0}>Save CSV</button>
       </div>
 
       {#if shownMacs.length > 0}
@@ -375,6 +441,12 @@
         </p>
       {/if}
     {:else}
+      <div class="row filters">
+        <label class="check muted"><input type="checkbox" bind:checked={showPortMacs} /> show MACs</label>
+        <span class="spacer"></span>
+        <button class="secondary" onclick={copyCsv}>{copied ? "Copied" : "Copy CSV"}</button>
+        <button class="secondary" onclick={saveCsv}>Save CSV</button>
+      </div>
       <div class="table-scroll">
         <table>
           <thead>
@@ -389,7 +461,16 @@
                 <td class="mono dim">{p.speed}</td>
                 <td class="mono dim">{p.pvid ?? ""}</td>
                 <td class="mono dim vl">{p.vlans.join(",")}</td>
-                <td class="mono">{p.macCount || ""}{#if p.uplink}<span class="tag">uplink</span>{/if}</td>
+                <td class="mono">
+                  {p.macCount || ""}{#if p.uplink}<span class="tag">uplink</span>{/if}
+                  {#if showPortMacs}
+                    {#each macsByIf.get(p.ifIndex) ?? [] as m (m.mac + m.vlan)}
+                      <div class="pmac">
+                        {m.mac}{#if m.vendor}<span class="muted"> {m.vendor}</span>{/if}{#if m.ips.length}<span class="muted"> {m.ips.join(", ")}</span>{/if}
+                      </div>
+                    {/each}
+                  {/if}
+                </td>
               </tr>
             {/each}
           </tbody>
@@ -727,6 +808,16 @@
   .tabs button.active {
     color: var(--fg);
     border-bottom-color: var(--accent);
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+
+  .pmac {
+    white-space: nowrap;
+    font-size: 0.76rem;
+    line-height: 1.5;
   }
 
   .filters .search {

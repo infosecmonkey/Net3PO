@@ -51,6 +51,12 @@ pub enum MapEvent {
     Cancelled,
 }
 
+/// Write exported CSV to a path chosen via the save dialog.
+#[tauri::command]
+pub fn port_map_save(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| format!("could not write {path}: {e}"))
+}
+
 /// Cancel a running map by id.
 #[tauri::command]
 pub fn port_map_cancel(registry: State<'_, PortMapRegistry>, map_id: u32) {
