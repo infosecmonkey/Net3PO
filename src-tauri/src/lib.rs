@@ -23,6 +23,7 @@ use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
+use tools::script_decoder::commands::{script_decode, script_read_file};
 use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
@@ -67,6 +68,8 @@ pub fn run() {
             diff_read_file,
             diff_save,
             report_export,
+            script_decode,
+            script_read_file,
             project_list,
             project_create,
             project_get,
