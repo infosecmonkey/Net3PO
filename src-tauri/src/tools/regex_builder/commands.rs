@@ -1,6 +1,7 @@
 //! Tauri commands for the regex builder. Thin wrappers over the pure core.
 
 use super::core::{self, Engine, RegexFlags, RegexResult};
+use super::recipes::{self, Recipe};
 
 /// Test a pattern against sample text, returning matches and capture groups.
 #[tauri::command]
@@ -23,4 +24,10 @@ pub fn regex_replace(
     engine: Engine,
 ) -> Result<String, String> {
     core::replace_all(&pattern, &text, &flags, &replacement, engine).map_err(|e| e.to_string())
+}
+
+/// The built-in recipe library for the picker.
+#[tauri::command]
+pub fn regex_recipes() -> &'static [Recipe] {
+    recipes::recipes()
 }

@@ -88,6 +88,15 @@ export interface RegexResult {
   groupNames: (string | null)[];
 }
 
+export interface RegexRecipe {
+  id: string;
+  group: string;
+  label: string;
+  pattern: string;
+  help: string;
+  examples: string[];
+}
+
 // Grep builder.
 
 export type GrepMode = "basic" | "extended" | "perl" | "fixed";
