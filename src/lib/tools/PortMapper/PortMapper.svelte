@@ -296,6 +296,7 @@
       {#each groups as g (g.prefix)}
         <div class="group">
           <div class="gname mono muted">{g.prefix || "ports"}</div>
+          <div class="ports-scroll">
           <div class="ports">
             {#each g.ports as p (p.ifIndex)}
               <button
@@ -309,6 +310,7 @@
                 {#if p.macCount > 0}<span class="cnt">{p.macCount}</span>{/if}
               </button>
             {/each}
+          </div>
           </div>
         </div>
       {:else}
@@ -551,12 +553,12 @@
     font-size: 0.88rem;
   }
 
+  /* Full sysDescr, keeping the device's line breaks. */
   .device .descr {
     font-size: 0.78rem;
-    margin-top: 0.2rem;
+    margin-top: 0.3rem;
     white-space: pre-wrap;
-    max-height: 3.2em;
-    overflow: hidden;
+    word-break: break-word;
   }
 
   .faceplate {
@@ -565,16 +567,25 @@
     background: var(--sidebar-bg);
     padding: 0.8rem 0.9rem 0.6rem;
     margin-bottom: 1rem;
+  }
+
+  /* Each port group scrolls sideways on its own, so a wide stack never pushes
+     a scrollbar over the legend. Padding leaves room for the count badges.
+     overflow-y must be hidden: overflow-x alone makes the box a vertical
+     scroller too, and on macOS it then latches the wheel so the page will
+     not scroll while the pointer is over the faceplate. */
+  .ports-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 0.5rem 0.4rem 0;
   }
 
   .group {
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.4rem;
   }
 
   .gname {
     font-size: 0.72rem;
-    margin-bottom: 0.3rem;
   }
 
   /* Two rows filled column first: odd ports on top, even below, like a faceplate. */
@@ -642,6 +653,8 @@
   }
 
   .legend {
+    border-top: 1px solid var(--border);
+    padding-top: 0.6rem;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
