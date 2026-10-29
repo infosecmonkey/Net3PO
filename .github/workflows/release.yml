@@ -77,4 +77,4 @@ jobs:
 
             A few tools need extra privileges on some systems (for example Syslog or TFTP on their standard ports on Linux); the tool explains what it needs.
 
-            Send feedback to Manny: what you tried, what you expected, what happened, and your OS.
+            Feedback: [report a bug](https://github.com/infosecmonkey/Net3PO/issues/new?template=bug_report.yml), [request a feature](https://github.com/infosecmonkey/Net3PO/issues/new?template=feature_request.yml), or ask in [Discussions](https://github.com/infosecmonkey/Net3PO/discussions). Please leave out passwords, keys and real customer data.

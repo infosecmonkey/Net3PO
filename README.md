@@ -40,6 +40,23 @@ pnpm check
 The MAC vendor database is built from the IEEE registry at compile time. Set
 `OUI_OFFLINE=1` to build offline with the bundled seed set.
 
+## Feedback and support
+
+No email needed; everything goes through GitHub (a free account is enough):
+
+- **Found a bug?** [Open a bug report](https://github.com/infosecmonkey/Net3PO/issues/new?template=bug_report.yml). The form asks for the tool, your OS and the version from About.
+- **Have an idea?** [Request a feature](https://github.com/infosecmonkey/Net3PO/issues/new?template=feature_request.yml).
+- **Questions or general feedback?** Start a thread in [Discussions](https://github.com/infosecmonkey/Net3PO/discussions).
+- **Security problem?** Report it [privately](https://github.com/infosecmonkey/Net3PO/security/advisories/new), never in a public issue.
+
+Please leave out passwords, keys and real customer data when you post.
+
+## Download
+
+Installers for macOS, Windows and Linux are on the
+[Releases page](https://github.com/infosecmonkey/Net3PO/releases/latest),
+with install notes and SHA-256 checksums.
+
 ## Contributing
 
 Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
