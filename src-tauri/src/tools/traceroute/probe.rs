@@ -21,7 +21,12 @@ use super::core::{IP_ICMP_OVERHEAD, Outcome, ProbeResult};
 pub struct ProbeSpec {
     pub dst: Ipv4Addr,
     pub ttl: u8,
+    /// Echo identifier. Only macOS sends it; Linux ping sockets and Windows
+    /// IcmpSendEcho2 pick their own.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub ident: u16,
+    /// Echo sequence, used to match replies on macOS and Linux.
+    #[cfg_attr(windows, allow(dead_code))]
     pub seq: u16,
     /// Total IP packet size in bytes.
     pub size: u16,
