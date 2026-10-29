@@ -5,8 +5,8 @@
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
-use hickory_client::proto::op::ResponseCode;
-use hickory_client::proto::rr::{Name, Record, RecordType};
+use hickory_proto::op::ResponseCode;
+use hickory_proto::rr::{Name, Record, RecordType};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -116,10 +116,10 @@ pub fn reverse_name(ip: IpAddr) -> String {
 /// which matches dig's zone-file style.
 pub fn to_record(r: &Record) -> DnsRecord {
     DnsRecord {
-        name: r.name().to_string(),
-        ttl: r.ttl(),
+        name: r.name.to_string(),
+        ttl: r.ttl,
         rtype: r.record_type().to_string(),
-        data: r.data().map(|d| d.to_string()).unwrap_or_default(),
+        data: r.data.to_string(),
     }
 }
 

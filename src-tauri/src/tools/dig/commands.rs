@@ -1,18 +1,16 @@
-//! Tauri command for DNS lookups, built on hickory-client. Queries a specific
+//! Tauri command for DNS lookups, built on hickory-net. Queries a specific
 //! server over UDP and retries over TCP if the answer is truncated. Every query
 //! is bounded by a timeout.
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant};
 
-use hickory_client::client::{AsyncClient, ClientHandle};
-use hickory_client::proto::iocompat::AsyncIoTokioAsStd;
-use hickory_client::proto::op::MessageType;
-use hickory_client::proto::rr::{DNSClass, Name, RecordType};
-use hickory_client::proto::xfer::DnsResponse;
-use hickory_client::tcp::TcpClientStream;
-use hickory_client::udp::UdpClientStream;
-use tokio::net::{TcpStream, UdpSocket};
+use hickory_net::client::{Client, ClientHandle};
+use hickory_net::runtime::TokioRuntimeProvider;
+use hickory_net::tcp::TcpClientStream;
+use hickory_net::udp::UdpClientStream;
+use hickory_proto::op::{DnsResponse, MessageType};
+use hickory_proto::rr::{DNSClass, Name, RecordType};
 
 use super::core::{self, DigResponse};
 
@@ -37,37 +35,33 @@ pub async fn dig_query(
         };
     let query_time_ms = start.elapsed().as_millis() as u64;
 
-    let header = resp.header();
+    let meta = &resp.metadata;
     let mut flags: Vec<String> = Vec::new();
-    if header.message_type() == MessageType::Response {
+    if meta.message_type == MessageType::Response {
         flags.push("qr".into());
     }
-    if header.authoritative() {
-        flags.push("aa".into());
-    }
-    if header.truncated() {
-        flags.push("tc".into());
-    }
-    if header.recursion_desired() {
-        flags.push("rd".into());
-    }
-    if header.recursion_available() {
-        flags.push("ra".into());
-    }
-    if header.authentic_data() {
-        flags.push("ad".into());
+    for (set, flag) in [
+        (meta.authoritative, "aa"),
+        (meta.truncation, "tc"),
+        (meta.recursion_desired, "rd"),
+        (meta.recursion_available, "ra"),
+        (meta.authentic_data, "ad"),
+    ] {
+        if set {
+            flags.push(flag.into());
+        }
     }
 
     Ok(DigResponse {
         server: addr.to_string(),
         protocol: protocol.to_string(),
-        rcode: core::rcode_str(resp.response_code()),
+        rcode: core::rcode_str(meta.response_code),
         flags,
         query_time_ms,
         question: format!("{qname} IN {rtype}"),
-        answers: resp.answers().iter().map(core::to_record).collect(),
-        authority: resp.name_servers().iter().map(core::to_record).collect(),
-        additional: resp.additionals().iter().map(core::to_record).collect(),
+        answers: resp.answers.iter().map(core::to_record).collect(),
+        authority: resp.authorities.iter().map(core::to_record).collect(),
+        additional: resp.additionals.iter().map(core::to_record).collect(),
     })
 }
 
@@ -81,7 +75,8 @@ fn resolve_server(server: &str) -> Result<SocketAddr, String> {
     if let Ok((cfg, _opts)) = hickory_resolver::system_conf::read_system_conf()
         && let Some(ns) = cfg.name_servers().first()
     {
-        return Ok(ns.socket_addr);
+        let port = ns.connections.first().map_or(core::DNS_PORT, |c| c.port);
+        return Ok(SocketAddr::new(ns.ip, port));
     }
     Ok(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)),
@@ -96,7 +91,7 @@ async fn run_query(
     rtype: RecordType,
 ) -> Result<(DnsResponse, &'static str), String> {
     let udp = query_udp(server, name.clone(), rtype).await?;
-    if udp.truncated() {
+    if udp.metadata.truncation {
         let tcp = query_tcp(server, name, rtype).await?;
         return Ok((tcp, "TCP"));
     }
@@ -108,10 +103,10 @@ async fn query_udp(
     name: Name,
     rtype: RecordType,
 ) -> Result<DnsResponse, String> {
-    let stream = UdpClientStream::<UdpSocket>::new(server);
-    let (mut client, bg) = AsyncClient::connect(stream)
-        .await
-        .map_err(|e| format!("connect {server} (UDP): {e}"))?;
+    let stream = UdpClientStream::builder(server, TokioRuntimeProvider::default())
+        .with_timeout(Some(QUERY_TIMEOUT))
+        .build();
+    let (mut client, bg) = Client::<TokioRuntimeProvider>::from_sender(stream);
     let handle = tokio::spawn(bg);
     let res = client
         .query(name, DNSClass::IN, rtype)
@@ -126,10 +121,16 @@ async fn query_tcp(
     name: Name,
     rtype: RecordType,
 ) -> Result<DnsResponse, String> {
-    let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TcpStream>>::new(server);
-    let (mut client, bg) = AsyncClient::new(stream, sender, None)
+    let (connect, sender) = TcpClientStream::new(
+        server,
+        None,
+        Some(QUERY_TIMEOUT),
+        TokioRuntimeProvider::default(),
+    );
+    let stream = connect
         .await
         .map_err(|e| format!("connect {server} (TCP): {e}"))?;
+    let (mut client, bg) = Client::<TokioRuntimeProvider>::new(stream, sender);
     let handle = tokio::spawn(bg);
     let res = client
         .query(name, DNSClass::IN, rtype)

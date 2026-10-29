@@ -6,10 +6,11 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
 
-use hickory_resolver::TokioAsyncResolver;
-use hickory_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use hickory_resolver::error::ResolveErrorKind;
-use hickory_resolver::proto::rr::{Name, RecordType};
+use hickory_net::runtime::TokioRuntimeProvider;
+use hickory_proto::rr::{Name, RData, RecordType};
+use hickory_resolver::TokioResolver;
+use hickory_resolver::config::{ConnectionConfig, NameServerConfig, ResolverConfig, ResolverOpts};
+use hickory_resolver::lookup::Lookup;
 use tokio::task::JoinSet;
 
 use super::core::{self, AnalysisReport, Finding, MxEntry, Section, Severity, Spf};
@@ -52,29 +53,41 @@ pub async fn dns_analyze(
 }
 
 /// Build a resolver from an override IP, or the system configuration.
-fn build_resolver(server: &str) -> Result<(TokioAsyncResolver, String), String> {
-    let mut opts = ResolverOpts::default();
-    opts.timeout = Duration::from_secs(5);
-    opts.attempts = 2;
-
+fn build_resolver(server: &str) -> Result<(TokioResolver, String), String> {
     if server.is_empty() {
-        let resolver = TokioAsyncResolver::tokio_from_system_conf()
+        let resolver = TokioResolver::builder_tokio()
+            .and_then(|b| b.build())
             .map_err(|e| format!("could not read system DNS config: {e}"))?;
         return Ok((resolver, "system resolver".to_string()));
     }
 
+    let mut opts = ResolverOpts::default();
+    opts.timeout = Duration::from_secs(5);
+    opts.attempts = 2;
+
     let addr = core_parse_server(server)?;
-    let mut config = ResolverConfig::new();
-    for protocol in [Protocol::Udp, Protocol::Tcp] {
-        config.add_name_server(NameServerConfig {
-            socket_addr: addr,
-            protocol,
-            tls_dns_name: None,
-            trust_negative_responses: true,
-            bind_addr: None,
-        });
-    }
-    Ok((TokioAsyncResolver::tokio(config, opts), addr.to_string()))
+    let connections = [ConnectionConfig::udp(), ConnectionConfig::tcp()]
+        .into_iter()
+        .map(|mut c| {
+            c.port = addr.port();
+            c
+        })
+        .collect();
+    let config = ResolverConfig::from_name_servers(vec![NameServerConfig::new(
+        addr.ip(),
+        true,
+        connections,
+    )]);
+    let resolver = TokioResolver::builder_with_config(config, TokioRuntimeProvider::default())
+        .with_options(opts)
+        .build()
+        .map_err(|e| format!("could not build resolver: {e}"))?;
+    Ok((resolver, addr.to_string()))
+}
+
+/// Record data of the answers in a lookup.
+fn rdata(lookup: &Lookup) -> impl Iterator<Item = &RData> {
+    lookup.answers().iter().map(|r| &r.data)
 }
 
 fn core_parse_server(s: &str) -> Result<SocketAddr, String> {
@@ -91,15 +104,18 @@ fn core_parse_server(s: &str) -> Result<SocketAddr, String> {
 
 /// Fetch TXT records for a name, returning the concatenated strings. Any lookup
 /// error (including no-such-record) yields an empty list.
-async fn txt_records(resolver: &TokioAsyncResolver, name: &str) -> Vec<String> {
+async fn txt_records(resolver: &TokioResolver, name: &str) -> Vec<String> {
     let Ok(n) = Name::from_str(name) else {
         return Vec::new();
     };
     match resolver.txt_lookup(n).await {
-        Ok(lookup) => lookup
-            .iter()
+        Ok(lookup) => rdata(&lookup)
+            .filter_map(|d| match d {
+                RData::TXT(txt) => Some(txt),
+                _ => None,
+            })
             .map(|txt| {
-                txt.txt_data()
+                txt.txt_data
                     .iter()
                     .map(|b| String::from_utf8_lossy(b))
                     .collect::<String>()
@@ -110,30 +126,31 @@ async fn txt_records(resolver: &TokioAsyncResolver, name: &str) -> Vec<String> {
 }
 
 /// A and AAAA addresses of a host, as strings, IPv4 first.
-async fn resolve_host(resolver: &TokioAsyncResolver, host: Name) -> Vec<String> {
+async fn resolve_host(resolver: &TokioResolver, host: Name) -> Vec<String> {
     let (v4, v6) = tokio::join!(
         resolver.ipv4_lookup(host.clone()),
         resolver.ipv6_lookup(host)
     );
     let mut out: Vec<String> = Vec::new();
-    if let Ok(l) = v4 {
-        out.extend(l.iter().map(|a| a.0.to_string()));
-    }
-    if let Ok(l) = v6 {
-        out.extend(l.iter().map(|a| a.0.to_string()));
+    for l in [v4, v6].into_iter().flatten() {
+        out.extend(rdata(&l).filter_map(|d| match d {
+            RData::A(a) => Some(a.0.to_string()),
+            RData::AAAA(a) => Some(a.0.to_string()),
+            _ => None,
+        }));
     }
     out
 }
 
 /// True if any record of `rtype` exists for `name`.
-async fn has_records(resolver: &TokioAsyncResolver, name: Name, rtype: RecordType) -> bool {
+async fn has_records(resolver: &TokioResolver, name: Name, rtype: RecordType) -> bool {
     match resolver.lookup(name, rtype).await {
-        Ok(lookup) => lookup.record_iter().next().is_some(),
+        Ok(lookup) => !lookup.answers().is_empty(),
         Err(_) => false,
     }
 }
 
-async fn analyze_spf(resolver: &TokioAsyncResolver, root: &Name) -> Section {
+async fn analyze_spf(resolver: &TokioResolver, root: &Name) -> Section {
     let records = txt_records(resolver, &root.to_string()).await;
     let mut findings = core::spf_record_findings(&records);
 
@@ -168,7 +185,7 @@ struct SpfWalk {
 
 /// Follow include/redirect targets to count the recursive SPF lookup total,
 /// void lookups, and `ptr` use.
-async fn spf_lookup_count(resolver: &TokioAsyncResolver, root: &Spf) -> SpfWalk {
+async fn spf_lookup_count(resolver: &TokioResolver, root: &Spf) -> SpfWalk {
     let mut total =
         root.direct_lookups + root.includes.len() as u32 + root.redirect.is_some() as u32;
     let mut voids = Vec::new();
@@ -217,7 +234,7 @@ async fn spf_lookup_count(resolver: &TokioAsyncResolver, root: &Spf) -> SpfWalk 
     }
 }
 
-async fn analyze_dmarc(resolver: &TokioAsyncResolver, domain: &str) -> Section {
+async fn analyze_dmarc(resolver: &TokioResolver, domain: &str) -> Section {
     let name = format!("_dmarc.{domain}");
     let records = txt_records(resolver, &name).await;
     let findings = core::dmarc_findings(&records);
@@ -226,7 +243,7 @@ async fn analyze_dmarc(resolver: &TokioAsyncResolver, domain: &str) -> Section {
 }
 
 async fn analyze_dkim(
-    resolver: &TokioAsyncResolver,
+    resolver: &TokioResolver,
     domain: &str,
     user_selectors: &[String],
 ) -> Section {
@@ -303,13 +320,15 @@ async fn analyze_dkim(
     Section::new("DKIM", findings, raw)
 }
 
-async fn analyze_mx(resolver: &TokioAsyncResolver, root: &Name) -> Section {
+async fn analyze_mx(resolver: &TokioResolver, root: &Name) -> Section {
     let records = match resolver.mx_lookup(root.clone()).await {
-        Ok(l) => l
-            .iter()
-            .map(|mx| (mx.preference(), mx.exchange().clone()))
+        Ok(l) => rdata(&l)
+            .filter_map(|d| match d {
+                RData::MX(mx) => Some((mx.preference, mx.exchange.clone())),
+                _ => None,
+            })
             .collect::<Vec<_>>(),
-        Err(e) if matches!(e.kind(), ResolveErrorKind::NoRecordsFound { .. }) => Vec::new(),
+        Err(e) if e.is_no_records_found() => Vec::new(),
         Err(e) => {
             return Section::new(
                 "MX",
@@ -359,7 +378,7 @@ async fn analyze_mx(resolver: &TokioAsyncResolver, root: &Name) -> Section {
     Section::new("MX", core::mx_findings(&entries, &apex), raw)
 }
 
-async fn analyze_dnssec(resolver: &TokioAsyncResolver, root: &Name) -> Section {
+async fn analyze_dnssec(resolver: &TokioResolver, root: &Name) -> Section {
     let has_ds = has_records(resolver, root.clone(), RecordType::DS).await;
     let has_dnskey = has_records(resolver, root.clone(), RecordType::DNSKEY).await;
     Section::new(
@@ -369,11 +388,13 @@ async fn analyze_dnssec(resolver: &TokioAsyncResolver, root: &Name) -> Section {
     )
 }
 
-async fn analyze_ns(resolver: &TokioAsyncResolver, root: &Name, domain: &str) -> Section {
+async fn analyze_ns(resolver: &TokioResolver, root: &Name, domain: &str) -> Section {
     let ns_names: Vec<Name> = match resolver.lookup(root.clone(), RecordType::NS).await {
-        Ok(lookup) => lookup
-            .record_iter()
-            .filter_map(|r| r.data().and_then(|d| d.as_ns()).map(|ns| ns.0.clone()))
+        Ok(lookup) => rdata(&lookup)
+            .filter_map(|d| match d {
+                RData::NS(ns) => Some(ns.0.clone()),
+                _ => None,
+            })
             .collect(),
         Err(_) => Vec::new(),
     };
@@ -428,19 +449,18 @@ async fn soa_serial_from_ns(addrs: &[String], zone: &Name) -> Option<u32> {
 
 /// Query a specific server for the SOA of `zone` and return its serial.
 async fn query_soa_serial(server: SocketAddr, zone: Name) -> Option<u32> {
-    use hickory_client::client::{AsyncClient, ClientHandle};
-    use hickory_client::proto::rr::DNSClass;
-    use hickory_client::udp::UdpClientStream;
-    use tokio::net::UdpSocket;
+    use hickory_net::client::{Client, ClientHandle};
+    use hickory_net::udp::UdpClientStream;
+    use hickory_proto::rr::DNSClass;
 
-    let stream = UdpClientStream::<UdpSocket>::new(server);
-    let (mut client, bg) = AsyncClient::connect(stream).await.ok()?;
+    let stream = UdpClientStream::builder(server, TokioRuntimeProvider::default()).build();
+    let (mut client, bg) = Client::<TokioRuntimeProvider>::from_sender(stream);
     let handle = tokio::spawn(bg);
     let resp = client.query(zone, DNSClass::IN, RecordType::SOA).await.ok();
     handle.abort();
 
-    resp?
-        .answers()
-        .iter()
-        .find_map(|r| r.data().and_then(|d| d.as_soa()).map(|soa| soa.serial()))
+    resp?.answers.iter().find_map(|r| match &r.data {
+        RData::SOA(soa) => Some(soa.serial),
+        _ => None,
+    })
 }
