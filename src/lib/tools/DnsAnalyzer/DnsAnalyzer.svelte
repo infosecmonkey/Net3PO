@@ -50,8 +50,8 @@
   <header>
     <h1>DNS Analyzer</h1>
     <p class="sub">
-      Audit a domain's mail and DNS posture: SPF, DMARC, DKIM, DNSSEC, and
-      nameserver consistency.
+      Audit a domain's mail and DNS posture: SPF, DMARC, DKIM, MX, DNSSEC, and
+      nameserver health.
     </p>
   </header>
 
