@@ -1,6 +1,7 @@
 <script lang="ts">
   import { toolGroups } from "$lib/tools/registry";
   import Icon from "./icons/Icon.svelte";
+  import About from "./About.svelte";
 
   interface Props {
     selected: string;
@@ -9,10 +10,16 @@
 
   let { selected, onselect }: Props = $props();
   const groups = toolGroups();
+  let aboutOpen = $state(false);
 </script>
 
 <nav class="sidebar">
-  <div class="brand">OmniPacket</div>
+  <div class="brand">
+    <span>OmniPacket</span>
+    <button class="about" title="About OmniPacket" aria-label="About OmniPacket" onclick={() => (aboutOpen = true)}>
+      <Icon name="info" size={15} />
+    </button>
+  </div>
   {#each groups as group (group.category)}
     <div class="group">
       <div class="group-label">{group.category}</div>
@@ -38,6 +45,8 @@
   {/each}
 </nav>
 
+{#if aboutOpen}<About onclose={() => (aboutOpen = false)} />{/if}
+
 <style>
   .sidebar {
     width: 240px;
@@ -59,6 +68,27 @@
     top: 0;
     background: var(--sidebar-bg);
     border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .about {
+    display: flex;
+    background: none;
+    border: none;
+    padding: 0.15rem;
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .about:hover {
+    color: var(--accent);
+    background: var(--hover);
   }
 
   .group {
