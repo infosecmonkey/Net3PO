@@ -17,6 +17,9 @@ pub const COLLECTIONS: &[&str] = &[
     "fortinet_saved_commands",
     "fortinet_interfaces",
     "grep_saved_queries",
+    "ssh_groups",
+    "ssh_connections",
+    "ssh_known_hosts",
 ];
 
 /// Largest collection file accepted, on load and on save.

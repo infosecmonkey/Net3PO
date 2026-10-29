@@ -178,6 +178,16 @@ const TOOLS: ToolDef[] = [
     load: () => import("./ScriptDecoder/ScriptDecoder.svelte"),
   },
 
+  // Remote access
+  {
+    id: "ssh",
+    icon: "terminal",
+    name: "SSH",
+    category: "Remote",
+    enabled: true,
+    load: () => import("./Ssh/Ssh.svelte"),
+  },
+
   // Workspace
   {
     id: "projects",

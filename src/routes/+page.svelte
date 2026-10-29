@@ -1,10 +1,19 @@
 <script lang="ts">
   import type { Component } from "svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
+  import SessionBar from "$lib/components/SessionBar.svelte";
+  import TerminalDrawer from "$lib/components/TerminalDrawer.svelte";
+  import { ssh } from "$lib/ssh/sessions.svelte";
   import { findTool } from "$lib/tools/registry";
   import { nav } from "$lib/nav.svelte";
   let ToolComponent = $state<Component | null>(null);
   let loading = $state(false);
+
+  // The SSH tool shows its own tabs and terminal; elsewhere, open sessions get
+  // a bar on top and an optional docked terminal.
+  const onSsh = $derived(nav.selected === "ssh");
+  const showBar = $derived(!onSsh && ssh.tabs.length > 0);
+  const showDrawer = $derived(showBar && ssh.drawer && ssh.active !== null);
 
   // Load the selected tool's panel whenever the selection changes.
   $effect(() => {
@@ -27,15 +36,19 @@
 
 <div class="app">
   <Sidebar selected={nav.selected} onselect={(id) => (nav.selected = id)} />
-  <main class="content">
-    {#if loading}
-      <div class="placeholder">Loading...</div>
-    {:else if ToolComponent}
-      <ToolComponent />
-    {:else}
-      <div class="placeholder">Select a tool.</div>
-    {/if}
-  </main>
+  <div class="main-col">
+    {#if showBar}<SessionBar />{/if}
+    <main class="content">
+      {#if loading}
+        <div class="placeholder">Loading...</div>
+      {:else if ToolComponent}
+        <ToolComponent />
+      {:else}
+        <div class="placeholder">Select a tool.</div>
+      {/if}
+    </main>
+    {#if showDrawer}<TerminalDrawer />{/if}
+  </div>
 </div>
 
 <style>
@@ -107,11 +120,18 @@
     overflow: hidden;
   }
 
-  .content {
+  .main-col {
     flex: 1 1 auto;
     min-width: 0;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     height: 100vh;
+  }
+
+  .content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .placeholder {
