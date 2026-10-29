@@ -100,12 +100,21 @@ export interface RegexRecipe {
 // Grep builder.
 
 export type GrepMode = "basic" | "extended" | "perl" | "fixed";
+export type GrepCombine = "all" | "any";
+export type GrepTarget = "gnu" | "bsd";
+export type FilenameDisplay = "auto" | "always" | "never";
+
+export interface GrepCondition {
+  pattern: string;
+  exclude: boolean;
+}
 
 export interface GrepOptions {
-  pattern: string;
+  conditions: GrepCondition[];
+  combine: GrepCombine;
   mode: GrepMode;
+  target: GrepTarget;
   ignoreCase: boolean;
-  invert: boolean;
   word: boolean;
   lineMatch: boolean;
   onlyMatching: boolean;
@@ -114,10 +123,29 @@ export interface GrepOptions {
   filesWithMatches: boolean;
   recursive: boolean;
   color: boolean;
+  skipBinary: boolean;
+  filename: FilenameDisplay;
   before: number;
   after: number;
   context: number;
+  include: string;
+  exclude: string;
+  excludeDir: string;
   paths: string[];
+}
+
+export interface BuiltCommand {
+  command: string;
+  stages: number;
+  warnings: string[];
+}
+
+export interface GrepPreview {
+  matches: { start: number; end: number }[];
+  linesTotal: number;
+  linesKept: number;
+  output: { number: number; text: string }[];
+  truncated: boolean;
 }
 
 // MAC vendor lookup.
