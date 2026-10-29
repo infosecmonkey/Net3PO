@@ -1,4 +1,4 @@
-# OmniPacket
+# Net3PO
 
 A free, open-source desktop toolkit for network and security engineers. One
 app, many tools, each in its own panel. Runs on macOS, Windows and Linux,

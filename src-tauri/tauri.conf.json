@@ -32,6 +32,16 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "InfoSecOps, Inc.",
+    "copyright": "Copyright 2026 InfoSecOps, Inc. Licensed under Apache-2.0.",
+    "license": "Apache-2.0",
+    "category": "DeveloperTool",
+    "shortDescription": "Network and security engineering toolkit",
+    "longDescription": "Desktop toolkit for network and security engineers: subnetting, regex and grep builders, DNS, port scanning, syslog and TFTP servers, SNMP, traceroute, DHCP monitoring, Fortinet commands, script decoding and SSH.",
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    }
   }
 }

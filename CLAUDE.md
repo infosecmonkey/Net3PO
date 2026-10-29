@@ -6,6 +6,9 @@ Project context for Claude Code. Read this at the start of every session.
 
 A free, open-source, cross-platform desktop toolkit for network and security
 engineers. One app, many tools, each in its own panel. Owner: Manny (InfoSecOps, Inc.).
+Product name: **Net3PO** (repo `infosecmonkey/Net3PO`). Internal names stay
+`omnipacket` (crate, bundle identifier `com.infosecops.omnipacket`, keychain
+service "OmniPacket SSH") so existing app data and saved secrets keep working.
 Licensed under Apache-2.0 (`LICENSE`, `NOTICE`). The source is public, so code
 quality, signed builds and clean dependency licensing matter.
 
