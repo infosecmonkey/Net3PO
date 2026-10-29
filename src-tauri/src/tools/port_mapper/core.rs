@@ -360,10 +360,21 @@ pub struct PortMap {
     pub truncated: bool,
 }
 
-/// ifType values treated as physical Ethernet ports.
-pub fn is_physical(if_type: i64) -> bool {
+/// Whether an interface is a front-panel Ethernet port: an Ethernet ifType,
+/// and not one of the virtual interfaces some switches report with that type
+/// (Cisco Null0 and the 3750/2960X stack ports).
+pub fn is_physical(if_type: i64, name: &str, descr: &str) -> bool {
     // ethernetCsmacd, fastEther, fastEtherFX, gigabitEthernet
-    matches!(if_type, 6 | 62 | 69 | 117)
+    matches!(if_type, 6 | 62 | 69 | 117) && !is_virtual_name(name) && !is_virtual_name(descr)
+}
+
+/// Names of virtual interfaces that report an Ethernet ifType.
+fn is_virtual_name(name: &str) -> bool {
+    let n = name.trim().to_ascii_lowercase();
+    let null_short = n
+        .strip_prefix("nu")
+        .is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_digit()));
+    null_short || n.starts_with("null") || n.starts_with("stackport") || n.starts_with("stacksub")
 }
 
 /// ifAdminStatus / ifOperStatus value names.
@@ -456,6 +467,10 @@ pub fn build_map(input: MapInput, vendor: impl Fn(&Mac) -> Option<String>) -> Po
                 .filter(|n| !n.is_empty())
                 .cloned()
                 .unwrap_or_else(|| descr.clone());
+            let physical = cols
+                .if_type
+                .get(&i)
+                .is_some_and(|t| is_physical(*t, &name, &descr));
             PortRow {
                 if_index: i,
                 name,
@@ -473,7 +488,7 @@ pub fn build_map(input: MapInput, vendor: impl Fn(&Mac) -> Option<String>) -> Po
                     .map(|s| s.iter().copied().collect())
                     .unwrap_or_default(),
                 mac_count,
-                physical: cols.if_type.get(&i).is_some_and(|t| is_physical(*t)),
+                physical,
                 uplink: mac_count >= UPLINK_MAC_THRESHOLD,
             }
         })
@@ -698,6 +713,19 @@ mod tests {
         assert_eq!(format_speed(None, Some(2500)), "2.5G");
         assert_eq!(format_speed(Some(0), Some(0)), "");
         assert_eq!(format_speed(None, None), "");
+    }
+
+    #[test]
+    fn physical_excludes_virtual_ethernet_types() {
+        assert!(is_physical(6, "Gi1/0/1", "GigabitEthernet1/0/1"));
+        assert!(is_physical(6, "Fa0", "FastEthernet0"));
+        assert!(is_physical(6, "port1", "port1"));
+        assert!(!is_physical(6, "Nu0", "Null0"));
+        assert!(!is_physical(6, "StackPort1", "StackPort1"));
+        assert!(!is_physical(6, "StackSub-St1-1", "StackSub-St1-1"));
+        // "nu" only matches when a digit follows, so real names survive.
+        assert!(is_physical(6, "number5", ""));
+        assert!(!is_physical(53, "Vlan10", "Vlan10"));
     }
 
     #[test]
