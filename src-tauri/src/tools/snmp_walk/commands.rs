@@ -34,7 +34,7 @@ pub struct SnmpRegistry {
 const MAX_VARBINDS: usize = 100_000;
 const GETBULK_REPETITIONS: u32 = 20;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct WalkConfig {
     pub host: String,
@@ -297,11 +297,26 @@ fn build_session(
     dest: (&str, u16),
     timeout: Option<Duration>,
 ) -> Result<SyncSession, String> {
+    build_session_in_context(config, dest, timeout, None)
+}
+
+/// Open a v1/v2c/v3 session from walk-style credentials. `v3_context` sets the
+/// SNMPv3 context name (e.g. Cisco's per-VLAN `vlan-10`); ignored for v1/v2c.
+/// v3 callers must still call `init()` for engine discovery.
+pub(crate) fn build_session_in_context(
+    config: &WalkConfig,
+    dest: (&str, u16),
+    timeout: Option<Duration>,
+    v3_context: Option<&str>,
+) -> Result<SyncSession, String> {
     match config.version.as_str() {
         "v1" => SyncSession::new_v1(dest, config.community.as_bytes(), timeout, 0)
             .map_err(|e| format!("connect failed: {e}")),
         "v3" => {
-            let security = build_v3_security(config);
+            let mut security = build_v3_security(config);
+            if let Some(ctx) = v3_context {
+                security = security.with_context_name(ctx);
+            }
             SyncSession::new_v3(dest, timeout, 0, security)
                 .map_err(|e| format!("connect failed: {e}"))
         }
@@ -346,7 +361,7 @@ fn build_v3_security(config: &WalkConfig) -> Security {
 }
 
 /// Turn an snmp2 error into an actionable message.
-fn humanize(e: &snmp2::Error) -> String {
+pub(crate) fn humanize(e: &snmp2::Error) -> String {
     match e {
         snmp2::Error::Receive => "no response from the agent within the timeout. For SNMPv3, \
             check that the username, auth protocol/password, and privacy protocol/password \
