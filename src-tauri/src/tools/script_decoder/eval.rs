@@ -33,6 +33,8 @@ pub enum V {
     Method(Box<V>, String),
     /// Bytes passed to `marshal.loads`.
     Marshal(Vec<u8>),
+    /// A JavaScript arrow function: parameter name and body token index.
+    Lambda(String, usize),
     Unknown,
 }
 
@@ -163,6 +165,54 @@ pub const SINKS: &[&str] = &[
     "builtins.compile",
 ];
 
+/// JavaScript calls that run code. `Function` takes its body last.
+pub const JS_SINKS: &[&str] = &[
+    "eval",
+    "Function",
+    "setTimeout",
+    "setInterval",
+    "execScript",
+    "document.write",
+    "document.writeln",
+    "window.eval",
+    "window.execScript",
+    "window.setTimeout",
+    "globalThis.eval",
+];
+
+/// JavaScript globals the evaluator understands.
+const JS_GLOBALS: &[&str] = &[
+    "atob",
+    "unescape",
+    "decodeURIComponent",
+    "decodeURI",
+    "eval",
+    "Function",
+    "setTimeout",
+    "setInterval",
+    "execScript",
+    "parseInt",
+];
+
+/// JavaScript objects whose attributes are functions (`String.fromCharCode`).
+const JS_OBJECTS: &[&str] = &[
+    "String",
+    "Buffer",
+    "document",
+    "window",
+    "globalThis",
+    "self",
+    "Array",
+    "Math",
+];
+
+/// Source language of the tokens being evaluated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lang {
+    Python,
+    Js,
+}
+
 /// A variable binding with the decode steps that produced it.
 #[derive(Debug, Clone)]
 pub struct Binding {
@@ -203,11 +253,18 @@ pub struct Eval<'a> {
     depth: usize,
     /// Payload of the most recent sink call, and its name.
     sink: Option<(String, V)>,
+    lang: Lang,
 }
 
 impl<'a> Eval<'a> {
+    #[cfg(test)]
     pub fn new(toks: &'a [Token], env: &'a Env) -> Self {
+        Self::with_lang(toks, env, Lang::Python)
+    }
+
+    pub fn with_lang(toks: &'a [Token], env: &'a Env, lang: Lang) -> Self {
         Self {
+            lang,
             toks,
             env,
             locals: Vec::new(),
@@ -418,6 +475,8 @@ impl<'a> Eval<'a> {
                 (v, j)
             }
             Some(Tok::Int(n)) => (V::Int(n), i + 1),
+            // `new Function(...)` and `new Buffer(...)` act like plain calls.
+            Some(Tok::Name(n)) if self.lang == Lang::Js && n == "new" => self.postfix(i + 1),
             Some(Tok::Name(n)) => (self.lookup(&n), i + 1),
             Some(Tok::Op("(")) => {
                 if self.is_op(i + 1, ")") {
@@ -453,6 +512,17 @@ impl<'a> Eval<'a> {
         if let Some(b) = self.env.vars.get(name) {
             self.steps.extend(b.steps.iter().cloned());
             return b.value.clone();
+        }
+        if self.lang == Lang::Js {
+            return if JS_GLOBALS.contains(&name) {
+                V::Func(name.to_string())
+            } else if JS_OBJECTS.contains(&name) {
+                V::Module(name.to_string())
+            } else if name == "this" {
+                V::Module("window".to_string())
+            } else {
+                V::Unknown
+            };
         }
         if let Some(path) = self.env.aliases.get(name) {
             let top = path.split('.').next().unwrap_or(path);
@@ -494,8 +564,31 @@ impl<'a> Eval<'a> {
                 i += 2;
             }
             // Star-args are not followed.
-            if self.is_op(i, "*") || self.is_op(i, "**") {
+            if self.is_op(i, "*") || self.is_op(i, "**") || self.is_op(i, "...") {
                 i += 1;
+            }
+            // JavaScript arrow function: `c => body` or `(c) => body`.
+            if self.lang == Lang::Js {
+                let arrow = match (self.tok(i).cloned(), self.tok(i + 1).cloned()) {
+                    (Some(Tok::Name(p)), Some(Tok::Op("=>"))) => Some((p, i + 2)),
+                    (Some(Tok::Op("(")), Some(Tok::Name(p)))
+                        if self.is_op(i + 2, ")") && self.is_op(i + 3, "=>") =>
+                    {
+                        Some((p, i + 4))
+                    }
+                    _ => None,
+                };
+                if let Some((param, body)) = arrow {
+                    let v = if self.is_op(body, "{") {
+                        V::Unknown
+                    } else {
+                        V::Lambda(param, body)
+                    };
+                    let j = self.skip_to_sep(body, close);
+                    args.push(v);
+                    i = if self.is_op(j, ",") { j + 1 } else { j };
+                    continue;
+                }
             }
             let start = i;
             let (mut v, mut j) = self.expr(i);
@@ -610,11 +703,272 @@ impl<'a> Eval<'a> {
                 .map(|(_, v)| v.clone())
         };
         match f {
+            V::Func(name) if self.lang == Lang::Js => self.call_js(&name, &args),
             V::Func(name) => {
                 let name = name.strip_prefix("builtins.").unwrap_or(&name).to_string();
                 self.call_func(&name, &args, arg, kw)
             }
+            V::Method(recv, m) if self.lang == Lang::Js => self.call_method_js(*recv, &m, &args),
             V::Method(recv, m) => self.call_method(*recv, &m, &args),
+            V::Lambda(param, body) => self.apply_lambda(&param, body, arg(0)),
+            _ => V::Unknown,
+        }
+    }
+
+    /// Evaluate an arrow function body with its parameter bound.
+    fn apply_lambda(&mut self, param: &str, body: usize, value: V) -> V {
+        self.locals.push((param.to_string(), value));
+        let (v, _) = self.expr(body);
+        self.locals.pop();
+        v
+    }
+
+    /// Apply a callable (function value or arrow) to each item.
+    fn map_items(&mut self, f: V, items: Vec<V>) -> V {
+        let mut out = Vec::with_capacity(items.len());
+        for it in items {
+            if !self.spend() {
+                return V::Unknown;
+            }
+            out.push(self.call(f.clone(), vec![it], Vec::new()));
+        }
+        V::List(out)
+    }
+
+    fn call_js(&mut self, name: &str, args: &[V]) -> V {
+        let arg = |k: usize| args.get(k).cloned().unwrap_or(V::Unknown);
+        let name = name
+            .strip_prefix("window.")
+            .or_else(|| name.strip_prefix("globalThis."))
+            .or_else(|| name.strip_prefix("self."))
+            .unwrap_or(name);
+        match name {
+            "eval" | "setTimeout" | "setInterval" | "execScript" | "document.write"
+            | "document.writeln" => {
+                let payload = arg(0);
+                match (&payload, self.sink.take()) {
+                    (V::Unknown, Some((_, inner))) => self.sink = Some((name.to_string(), inner)),
+                    _ => self.sink = Some((name.to_string(), payload)),
+                }
+                V::Unknown
+            }
+            "Function" => {
+                // The body is the last argument; earlier ones are parameter names.
+                self.sink = Some((
+                    "Function".to_string(),
+                    args.last().cloned().unwrap_or(V::Unknown),
+                ));
+                V::Unknown
+            }
+            "atob" => {
+                let out = arg(0)
+                    .as_str()
+                    .and_then(|s| codecs::b64(s.as_bytes(), false));
+                match out {
+                    Some(b) => {
+                        self.steps.push("base64".to_string());
+                        // atob returns a binary string: one char per byte.
+                        V::Str(b.iter().map(|&c| c as char).collect())
+                    }
+                    None => V::Unknown,
+                }
+            }
+            "unescape" => match arg(0) {
+                V::Str(s) => {
+                    self.transform("unescape");
+                    V::Str(js_unescape(&s))
+                }
+                _ => V::Unknown,
+            },
+            "decodeURIComponent" | "decodeURI" => match arg(0) {
+                V::Str(s) => {
+                    self.transform("uri");
+                    V::Str(percent_decode_utf8(&s))
+                }
+                _ => V::Unknown,
+            },
+            "String.fromCharCode" | "String.fromCodePoint" => {
+                self.transform("fromCharCode");
+                chars_from_codes(args)
+            }
+            "String.fromCharCode.apply" | "String.fromCodePoint.apply" => match arg(1) {
+                V::List(l) => {
+                    self.transform("fromCharCode");
+                    chars_from_codes(&l)
+                }
+                _ => V::Unknown,
+            },
+            "Buffer.from" => {
+                let enc = arg(1)
+                    .as_str()
+                    .map(|e| e.to_ascii_lowercase())
+                    .unwrap_or_default();
+                match (arg(0), enc.as_str()) {
+                    (V::Str(s), "base64") => {
+                        let out = codecs::b64(s.as_bytes(), false);
+                        self.step("base64", out)
+                    }
+                    (V::Str(s), "base64url") => {
+                        let out = codecs::b64(s.as_bytes(), true);
+                        self.step("base64url", out)
+                    }
+                    (V::Str(s), "hex") => {
+                        let out = codecs::hex(s.as_bytes());
+                        self.step("hex", out)
+                    }
+                    (V::Str(s), "latin1" | "binary") => V::Bytes(latin1_or_utf8(&s)),
+                    (V::Str(s), _) => V::Bytes(s.into_bytes()),
+                    (V::List(l), _) => l
+                        .iter()
+                        .map(|x| match x {
+                            V::Int(n) if (0..256).contains(n) => Some(*n as u8),
+                            _ => None,
+                        })
+                        .collect::<Option<Vec<u8>>>()
+                        .map(V::Bytes)
+                        .unwrap_or(V::Unknown),
+                    _ => V::Unknown,
+                }
+            }
+            "parseInt" => match (arg(0), args.get(1)) {
+                (V::Str(s), Some(V::Int(b))) if (2..=36).contains(b) => {
+                    i64::from_str_radix(s.trim(), *b as u32)
+                        .map(V::Int)
+                        .unwrap_or(V::Unknown)
+                }
+                (V::Str(s), None) => s.trim().parse().map(V::Int).unwrap_or(V::Unknown),
+                _ => V::Unknown,
+            },
+            _ => V::Unknown,
+        }
+    }
+
+    fn call_method_js(&mut self, recv: V, m: &str, args: &[V]) -> V {
+        let arg = |k: usize| args.get(k).cloned().unwrap_or(V::Unknown);
+        match (recv, m) {
+            (V::Str(s), "split") => match arg(0) {
+                V::Str(sep) if sep.is_empty() => {
+                    V::List(s.chars().map(|c| V::Str(c.to_string())).collect())
+                }
+                V::Str(sep) => V::List(
+                    s.split(sep.as_str())
+                        .map(|p| V::Str(p.to_string()))
+                        .collect(),
+                ),
+                _ => V::Unknown,
+            },
+            (V::List(mut l), "reverse") => {
+                l.reverse();
+                self.transform("reverse");
+                V::List(l)
+            }
+            (V::List(l), "join") => {
+                let sep = match args.first() {
+                    Some(V::Str(s)) => s.clone(),
+                    None => ",".to_string(),
+                    _ => return V::Unknown,
+                };
+                let mut out = String::new();
+                for (k, it) in l.iter().enumerate() {
+                    if k > 0 {
+                        out.push_str(&sep);
+                    }
+                    match it {
+                        V::Str(s) => out.push_str(s),
+                        V::Int(n) => out.push_str(&n.to_string()),
+                        _ => return V::Unknown,
+                    }
+                    if out.len() > codecs::MAX_OUTPUT {
+                        return V::Unknown;
+                    }
+                }
+                V::Str(out)
+            }
+            (V::List(l), "map") => {
+                let f = arg(0);
+                self.map_items(f, l)
+            }
+            (V::List(mut a), "concat") => {
+                for x in args {
+                    match x {
+                        V::List(b) => a.extend(b.iter().cloned()),
+                        other => a.push(other.clone()),
+                    }
+                }
+                V::List(a)
+            }
+            (V::Str(s), "replace") => match (arg(0), arg(1)) {
+                // A string pattern replaces only the first match in JS.
+                (V::Str(a), V::Str(b)) if !a.is_empty() => {
+                    self.transform("replace");
+                    V::Str(s.replacen(&a, &b, 1))
+                }
+                _ => V::Unknown,
+            },
+            (V::Str(s), "replaceAll") => match (arg(0), arg(1)) {
+                (V::Str(a), V::Str(b)) if !a.is_empty() => {
+                    self.transform("replace");
+                    V::Str(s.replace(&a, &b))
+                }
+                _ => V::Unknown,
+            },
+            (V::Str(s), "charCodeAt") => {
+                let i = match arg(0) {
+                    V::Int(i) => i,
+                    _ => 0,
+                };
+                s.encode_utf16()
+                    .nth(i.max(0) as usize)
+                    .map(|u| V::Int(u as i64))
+                    .unwrap_or(V::Unknown)
+            }
+            (V::Str(s), "slice" | "substring") => {
+                let chars: Vec<char> = s.chars().collect();
+                let a = match arg(0) {
+                    V::Int(i) => i,
+                    _ => 0,
+                };
+                let b = match arg(1) {
+                    V::Int(i) => Some(i),
+                    _ => None,
+                };
+                slice(V::Str(chars.iter().collect()), Some(a), b, None)
+            }
+            (V::Str(s), "concat") => {
+                let mut out = s;
+                for x in args {
+                    match x {
+                        V::Str(t) => out.push_str(t),
+                        _ => return V::Unknown,
+                    }
+                }
+                V::Str(out)
+            }
+            (V::Str(s), "toString" | "valueOf") => V::Str(s),
+            (V::Str(s), "trim") => V::Str(s.trim().to_string()),
+            (V::Str(s), "toLowerCase") => V::Str(s.to_lowercase()),
+            (V::Str(s), "toUpperCase") => V::Str(s.to_uppercase()),
+            (V::Bytes(b), "toString") => {
+                let enc = arg(0)
+                    .as_str()
+                    .map(|e| e.to_ascii_lowercase())
+                    .unwrap_or_else(|| "utf8".to_string());
+                match enc.as_str() {
+                    "hex" => V::Str(b.iter().map(|x| format!("{x:02x}")).collect()),
+                    "latin1" | "binary" | "ascii" => V::Str(b.iter().map(|&c| c as char).collect()),
+                    "utf16le" | "ucs2" | "utf-16le" => decode_bytes(&b, "utf_16_le")
+                        .map(V::Str)
+                        .unwrap_or(V::Unknown),
+                    _ => V::Str(String::from_utf8_lossy(&b).into_owned()),
+                }
+            }
+            (V::Func(f), "apply") if f.starts_with("String.fromC") => match arg(1) {
+                V::List(l) => {
+                    self.transform("fromCharCode");
+                    chars_from_codes(&l)
+                }
+                _ => V::Unknown,
+            },
             _ => V::Unknown,
         }
     }
@@ -988,6 +1342,7 @@ fn lit_value(l: Lit) -> V {
 
 fn attribute(v: V, attr: &str) -> V {
     match v {
+        V::Func(f) if attr == "apply" || attr == "call" => V::Func(format!("{f}.{attr}")),
         V::Module(m) => V::Func(format!("{m}.{attr}")),
         V::Func(f) => V::Func(format!("{f}.{attr}")),
         V::Str(_) | V::Bytes(_) | V::List(_) => V::Method(Box::new(v), attr.to_string()),
@@ -1070,6 +1425,79 @@ fn slice(v: V, start: Option<i64>, stop: Option<i64>, step: Option<i64>) -> V {
         V::List(l) => V::List(pick(&l, start, stop, step)),
         _ => V::Unknown,
     }
+}
+
+/// Characters from a list of UTF-16 code units or code points.
+fn chars_from_codes(codes: &[V]) -> V {
+    let mut units = Vec::with_capacity(codes.len());
+    for c in codes {
+        match c {
+            V::Int(n) if (0..=0x10ffff).contains(n) => {
+                let n = *n as u32;
+                if n > 0xffff {
+                    let mut buf = [0u16; 2];
+                    if let Some(ch) = char::from_u32(n) {
+                        units.extend_from_slice(ch.encode_utf16(&mut buf));
+                    }
+                } else {
+                    units.push(n as u16);
+                }
+            }
+            _ => return V::Unknown,
+        }
+    }
+    V::Str(String::from_utf16_lossy(&units))
+}
+
+/// JavaScript `unescape`: `%XX` as a Latin-1 char and `%uXXXX` as UTF-16.
+pub fn js_unescape(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut units: Vec<u16> = Vec::with_capacity(chars.len());
+    let hex = |from: usize, n: usize| -> Option<u16> {
+        let t: String = chars.get(from..from + n)?.iter().collect();
+        u16::from_str_radix(&t, 16).ok().filter(|_| t.len() == n)
+    };
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '%' {
+            if chars.get(i + 1) == Some(&'u') {
+                if let Some(v) = hex(i + 2, 4) {
+                    units.push(v);
+                    i += 6;
+                    continue;
+                }
+            } else if let Some(v) = hex(i + 1, 2) {
+                units.push(v);
+                i += 3;
+                continue;
+            }
+        }
+        let mut buf = [0u16; 2];
+        units.extend_from_slice(chars[i].encode_utf16(&mut buf));
+        i += 1;
+    }
+    String::from_utf16_lossy(&units)
+}
+
+/// `decodeURIComponent`: percent-decoding as UTF-8.
+pub fn percent_decode_utf8(s: &str) -> String {
+    let b = s.as_bytes();
+    let hexval = |c: u8| (c as char).to_digit(16);
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%'
+            && i + 2 < b.len()
+            && let (Some(h), Some(l)) = (hexval(b[i + 1]), hexval(b[i + 2]))
+        {
+            out.push((h * 16 + l) as u8);
+            i += 3;
+            continue;
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 fn replace_bytes(s: &[u8], a: &[u8], b: &[u8]) -> Vec<u8> {
@@ -1216,6 +1644,74 @@ mod tests {
         assert_eq!(o.value, V::Unknown);
         let toks = tokenize("foo(bar, baz=1).qux + 1, next");
         assert!(matches!(toks[o.end].tok, Tok::Op(",")));
+    }
+
+    fn js(src: &str) -> Outcome {
+        let toks = super::super::lexer::tokenize_js(src);
+        let env = Env::default();
+        Eval::with_lang(&toks, &env, Lang::Js).run(0)
+    }
+
+    #[test]
+    fn js_decoders() {
+        assert_eq!(js("atob('aGk=')").value, V::Str("hi".into()));
+        assert_eq!(
+            js("String.fromCharCode(104, 105)").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(
+            js("String.fromCharCode.apply(null, [104, 105])").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(js("unescape('%68%u0069')").value, V::Str("hi".into()));
+        assert_eq!(
+            js("decodeURIComponent('%E2%9C%93')").value,
+            V::Str("\u{2713}".into())
+        );
+        assert_eq!(
+            js("'olleh'.split('').reverse().join('')").value,
+            V::Str("hello".into())
+        );
+        assert_eq!(
+            js("Buffer.from('6869', 'hex').toString()").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(
+            js("Buffer.from('aGk=', 'base64').toString('utf8')").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(
+            js("[104,105].map(c => String.fromCharCode(c)).join('')").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(
+            js("[105,104].map((c) => String.fromCharCode(c ^ 1)).join('')").value,
+            V::Str("hi".into())
+        );
+        assert_eq!(js("'aXb'.replace('X', '')").value, V::Str("ab".into()));
+        assert_eq!(js("'aXbX'.replace('X', '')").value, V::Str("abX".into()));
+    }
+
+    #[test]
+    fn js_sinks() {
+        let o = js("eval(atob('YWxlcnQoMSk='))");
+        assert_eq!(o.sink.as_deref(), Some("eval"));
+        assert_eq!(o.value, V::Str("alert(1)".into()));
+        let f = js("new Function('a', atob('YWxlcnQoMSk='))()");
+        assert_eq!(f.sink.as_deref(), Some("Function"));
+        assert_eq!(f.value, V::Str("alert(1)".into()));
+        let d = js("document.write(unescape('%3Cscript%3E'))");
+        assert_eq!(d.sink.as_deref(), Some("document.write"));
+        assert_eq!(d.value, V::Str("<script>".into()));
+        let w = js("window.eval(atob('YWxlcnQoMSk='))");
+        assert_eq!(w.sink.as_deref(), Some("eval"));
+        // Non-ASCII after % must not panic.
+        let _ = js("decodeURIComponent('%\u{e9}9')");
+    }
+
+    #[test]
+    fn js_mode_ignores_python_names() {
+        assert_eq!(js("base64.b64decode('aGk=')").value, V::Unknown);
     }
 
     #[test]

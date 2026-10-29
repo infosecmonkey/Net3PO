@@ -536,6 +536,8 @@ export interface DecodedLayer {
   strings: string[];
   size: number;
   truncated: boolean;
+  /** python, bash, powershell, javascript or unknown; empty for binary. */
+  language: string;
 }
 
 export type IocKind = "url" | "domain" | "ipv4" | "email" | "md5" | "sha1" | "sha256" | "path";

@@ -14,11 +14,11 @@ use std::hash::{Hash, Hasher};
 use serde::Serialize;
 use thiserror::Error;
 
-use super::codecs;
-use super::eval::{Binding, Env, Eval, SINKS, V};
+use super::eval::{Binding, Env, Eval, JS_SINKS, Lang, SINKS, V};
 use super::flags::{self, Flag, Level};
 use super::ioc::{Collector, Ioc};
-use super::lexer::{Tok, Token, tokenize};
+use super::lexer::{Tok, Token, tokenize, tokenize_js};
+use super::{bash, codecs, powershell};
 
 /// Largest input accepted.
 pub const MAX_INPUT: usize = 2_000_000;
@@ -77,6 +77,9 @@ pub struct Layer {
     pub size: usize,
     /// True when `text` was shortened for display.
     pub truncated: bool,
+    /// Detected language of text layers: python, bash, powershell,
+    /// javascript or unknown. Empty for binary layers.
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -89,12 +92,110 @@ pub struct DecodeResult {
     pub notes: Vec<String>,
 }
 
-/// A payload found in one layer.
-struct Found {
-    line: usize,
-    sink: Option<String>,
-    steps: Vec<String>,
-    value: V,
+/// A payload found in one layer, by any of the language decoders.
+pub struct Found {
+    pub line: usize,
+    /// What runs it, such as `exec`, `IEX` or `bash`.
+    pub sink: Option<String>,
+    pub steps: Vec<String>,
+    pub value: V,
+}
+
+/// Best guess at a text layer's language, for labels and for deciding which
+/// decoder reports code it could not resolve.
+pub fn detect_language(text: &str) -> &'static str {
+    let head = text.lines().next().unwrap_or("").to_ascii_lowercase();
+    if head.starts_with("#!") {
+        if head.contains("python") {
+            return "python";
+        }
+        if head.contains("node") {
+            return "javascript";
+        }
+        if head.contains("pwsh") || head.contains("powershell") {
+            return "powershell";
+        }
+        if head.contains("sh") {
+            return "bash";
+        }
+    }
+    let sample: String = text.chars().take(20_000).collect();
+    let count = |pats: &[&str]| {
+        pats.iter()
+            .map(|p| sample.matches(p).count())
+            .sum::<usize>()
+    };
+    let scores = [
+        (
+            "python",
+            count(&[
+                "import ",
+                "def ",
+                "exec(",
+                "print(",
+                "self.",
+                "elif ",
+                "__name__",
+                "b64decode(",
+            ]),
+        ),
+        (
+            "javascript",
+            count(&[
+                "var ",
+                "let ",
+                "const ",
+                "function",
+                "=>",
+                "document.",
+                "window.",
+                "console.",
+                "atob(",
+                "require(",
+                "===",
+                "fromCharCode",
+            ]),
+        ),
+        (
+            "powershell",
+            count(&[
+                "$_",
+                "Write-",
+                "Invoke-",
+                "New-Object",
+                "-join",
+                "::FromBase64",
+                "Get-",
+                "Set-",
+                "[char]",
+                "IEX",
+                "iex ",
+                "-nop",
+            ]),
+        ),
+        (
+            "bash",
+            count(&[
+                "echo ",
+                "fi\n",
+                "then",
+                "done",
+                "$(",
+                "| bash",
+                "| sh",
+                "chmod ",
+                "export ",
+                "/bin/",
+                "base64 -d",
+                "curl ",
+                "wget ",
+            ]),
+        ),
+    ];
+    match scores.iter().max_by_key(|(_, n)| *n) {
+        Some((lang, n)) if *n > 0 => lang,
+        _ => "unknown",
+    }
 }
 
 /// Decoded content ready to become a layer.
@@ -322,6 +423,26 @@ fn imports(line: &[Token], env: &mut Env) {
     }
 }
 
+/// JavaScript names worth starting a candidate evaluation at.
+fn worth_js(name: &str) -> bool {
+    JS_SINKS.contains(&name)
+        || matches!(
+            name,
+            "atob"
+                | "unescape"
+                | "decodeURIComponent"
+                | "decodeURI"
+                | "String"
+                | "Buffer"
+                | "document"
+                | "window"
+                | "globalThis"
+                | "self"
+                | "new"
+                | "this"
+        )
+}
+
 /// Names worth starting a candidate evaluation at.
 fn worth(name: &str, env: &Env) -> bool {
     SINKS.contains(&name)
@@ -345,9 +466,13 @@ fn worth(name: &str, env: &Env) -> bool {
         )
 }
 
-/// Scan one layer of source for payloads.
-fn analyze(text: &str, notes: &mut Vec<String>) -> Vec<Found> {
-    let toks = tokenize(text);
+/// Scan one layer of source for payloads with the Python or JavaScript
+/// evaluator.
+fn analyze(text: &str, notes: &mut Vec<String>, lang: Lang) -> Vec<Found> {
+    let toks = match lang {
+        Lang::Python => tokenize(text),
+        Lang::Js => tokenize_js(text),
+    };
     let mut env = Env::default();
     let mut found = Vec::new();
     let mut i = 0;
@@ -356,14 +481,18 @@ fn analyze(text: &str, notes: &mut Vec<String>) -> Vec<Found> {
         while e < toks.len() && toks[e].tok != Tok::Newline {
             e += 1;
         }
-        imports(&toks[i..e], &mut env);
+        if lang == Lang::Python {
+            imports(&toks[i..e], &mut env);
+        }
 
         let mut k = i;
         while k < e {
-            let start_ok = matches!(&toks[k].tok, Tok::Name(n) if worth(n, &env))
-                && !(k > i && is_op(&toks[k - 1], "."));
+            let start_ok = matches!(&toks[k].tok, Tok::Name(n) if match lang {
+                Lang::Python => worth(n, &env),
+                Lang::Js => worth_js(n),
+            }) && !(k > i && is_op(&toks[k - 1], "."));
             if start_ok {
-                let o = Eval::new(&toks, &env).run_postfix(k);
+                let o = Eval::with_lang(&toks, &env, lang).run_postfix(k);
                 notes.extend(o.notes.iter().cloned());
                 let payload = matches!(o.value, V::Str(_) | V::Bytes(_) | V::Marshal(_));
                 if o.sink.is_some() || (payload && !o.steps.is_empty()) {
@@ -380,13 +509,22 @@ fn analyze(text: &str, notes: &mut Vec<String>) -> Vec<Found> {
             k += 1;
         }
 
-        // Simple assignments feed later lines: `x = ...` and `x += ...`.
-        if e >= i + 3
-            && let Tok::Name(name) = &toks[i].tok
+        // Simple assignments feed later lines: `x = ...` and `x += ...`,
+        // after `var`, `let` or `const` in JavaScript.
+        let a = if lang == Lang::Js
+            && matches!(&toks[i].tok, Tok::Name(n) if matches!(n.as_str(), "var" | "let" | "const"))
         {
+            i + 1
+        } else {
+            i
+        };
+        if e >= a + 3
+            && let Tok::Name(name) = &toks[a].tok
+        {
+            let i = a;
             let plus = is_op(&toks[i + 1], "+=");
             if is_op(&toks[i + 1], "=") || plus {
-                let o = Eval::new(&toks, &env).run(i + 2);
+                let o = Eval::with_lang(&toks, &env, lang).run(i + 2);
                 let mut binding = Binding {
                     value: o.value,
                     steps: o.steps,
@@ -436,8 +574,12 @@ impl Builder {
         let h = digest(content.bytes());
         if let Some(&idx) = self.seen.get(&h) {
             // The same payload found again, now with a sink: record it.
-            if sink.is_some() && self.layers[idx].sink.is_none() {
-                self.layers[idx].sink = sink;
+            if let Some(sk) = sink
+                && self.layers[idx].sink.is_none()
+            {
+                let layer = &mut self.layers[idx];
+                layer.method = format!("{sk}({})", layer.method);
+                layer.sink = Some(sk);
             }
             return Some((idx, false));
         }
@@ -472,8 +614,13 @@ impl Builder {
         } else {
             text
         };
+        let language = match &content {
+            Content::Text(t) => detect_language(t).to_string(),
+            _ => String::new(),
+        };
         let index = self.layers.len();
         self.layers.push(Layer {
+            language,
             index,
             parent,
             depth,
@@ -504,14 +651,31 @@ impl Builder {
         match &self.contents[idx] {
             Content::Text(text) => {
                 let text = text.clone();
+                let language = self.layers[idx].language.clone();
                 let mut notes = Vec::new();
-                let found = analyze(&text, &mut notes);
+                // Every decoder looks at every text layer: payloads nest
+                // across languages. Only the evaluator for the layer's own
+                // language reports code it could not resolve.
+                let mut found: Vec<(Found, bool)> = Vec::new();
+                let unknown = language == "unknown";
+                found.extend(
+                    analyze(&text, &mut notes, Lang::Python)
+                        .into_iter()
+                        .map(|f| (f, unknown || language == "python")),
+                );
+                found.extend(
+                    analyze(&text, &mut notes, Lang::Js)
+                        .into_iter()
+                        .map(|f| (f, language == "javascript")),
+                );
+                found.extend(bash::analyze(&text).into_iter().map(|f| (f, false)));
+                found.extend(powershell::analyze(&text).into_iter().map(|f| (f, false)));
                 for n in notes {
                     if !self.notes.contains(&n) {
                         self.notes.push(n);
                     }
                 }
-                for f in found {
+                for (f, report_unresolved) in found {
                     let src_line = text
                         .lines()
                         .nth(f.line.saturating_sub(1))
@@ -523,13 +687,20 @@ impl Builder {
                         f.steps.join(" > ")
                     };
                     let Some(content) = materialize(f.value) else {
-                        if let Some(sink) = &f.sink {
+                        if let Some(sink) = &f.sink
+                            && report_unresolved
+                            && !self.flags.iter().any(|x| {
+                                x.rule == "exec-unresolved"
+                                    && x.layer == idx
+                                    && x.line == Some(f.line)
+                            })
+                        {
                             self.flags.push(Flag {
                                 level: Level::Warn,
                                 rule: "exec-unresolved",
                                 title: "Executes code that could not be decoded",
                                 detail: format!(
-                                    "{sink}() at line {} runs an expression this decoder cannot evaluate statically. Review it by hand.",
+                                    "{sink} at line {} runs an expression this decoder cannot evaluate statically. Review it by hand.",
                                     f.line
                                 ),
                                 layer: idx,
@@ -710,6 +881,7 @@ mod tests {
         assert_eq!(texts(&r)[1], "print('hi from layer 1')");
         // Found on the assignment line first, then marked as executed.
         assert_eq!(r.layers[1].sink.as_deref(), Some("exec"));
+        assert_eq!(r.layers[1].method, "exec(base64 > zlib)");
         assert_eq!(r.layers.len(), 2);
     }
 
@@ -805,6 +977,84 @@ mod tests {
             "{:?}",
             r.layers.iter().map(|l| &l.method).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn languages_are_detected() {
+        assert_eq!(detect_language("#!/bin/bash\nid"), "bash");
+        assert_eq!(
+            detect_language("import os\ndef f():\n    print(1)"),
+            "python"
+        );
+        assert_eq!(
+            detect_language("const x = () => 1;\nconsole.log(x())"),
+            "javascript"
+        );
+        assert_eq!(
+            detect_language("$a = Get-Process; Write-Host $a"),
+            "powershell"
+        );
+        assert_eq!(detect_language("hello world"), "unknown");
+    }
+
+    #[test]
+    fn bash_to_python_to_powershell_chain() {
+        // bash runs python -c, which execs base64 that holds a PowerShell
+        // -EncodedCommand.
+        let ps: Vec<u8> = "Write-Host chained"
+            .encode_utf16()
+            .flat_map(|u| u.to_le_bytes())
+            .collect();
+        let py = format!("import os\nos.system('powershell -nop -enc {}')", b64(&ps));
+        let sh = format!(
+            "#!/bin/bash\npython3 -c \"import base64;exec(base64.b64decode('{}'))\"\n",
+            b64(py.as_bytes())
+        );
+        let r = decode(&sh).unwrap();
+        let langs: Vec<&str> = r.layers.iter().map(|l| l.language.as_str()).collect();
+        assert_eq!(r.layers[0].language, "bash");
+        assert!(
+            r.layers.iter().any(|l| l.text == "Write-Host chained"),
+            "{langs:?}"
+        );
+        assert!(
+            r.layers
+                .iter()
+                .any(|l| l.method.starts_with("powershell -EncodedCommand"))
+        );
+    }
+
+    #[test]
+    fn javascript_layers() {
+        let inner = "document.write('<iframe src=\"http://evil.example.com/x\" width=0>')";
+        let codes: Vec<String> = inner.encode_utf16().map(|u| u.to_string()).collect();
+        let src = format!(
+            "var p = String.fromCharCode({});\neval(p);",
+            codes.join(",")
+        );
+        let r = decode(&src).unwrap();
+        assert_eq!(r.layers[0].language, "javascript");
+        assert_eq!(r.layers[1].text, inner);
+        assert_eq!(r.layers[1].sink.as_deref(), Some("eval"));
+        assert_eq!(r.layers[1].method, "eval(fromCharCode)");
+        assert!(r.flags.iter().any(|f| f.rule == "js-injection"));
+        assert!(r.iocs.iter().any(|i| i.value == "evil.example.com"));
+    }
+
+    #[test]
+    fn unresolved_flags_only_for_the_layer_language() {
+        // JS eval of something unknown: one unresolved flag, not one per evaluator.
+        let r = decode("var x = fetchSomething();\neval(x);").unwrap();
+        assert_eq!(
+            r.flags
+                .iter()
+                .filter(|f| f.rule == "exec-unresolved")
+                .count(),
+            1
+        );
+        // A bash script mentioning eval in a string is not a Python sink.
+        let r = decode("#!/bin/sh\necho 'use eval(x) carefully'\n").unwrap();
+        assert!(r.flags.iter().all(|f| f.rule != "exec-unresolved"));
     }
 
     #[test]

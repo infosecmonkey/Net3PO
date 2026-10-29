@@ -178,7 +178,13 @@ impl Collector {
             if before == Some('@') || d.chars().all(|c| c.is_ascii_digit() || c == '.') {
                 continue;
             }
-            if domain_ok(d) {
+            // PascalCase labels are code (System.Net, Net.WebClient), not hosts.
+            let code_like = d.split('.').any(|l| {
+                let mut c = l.chars();
+                c.next().is_some_and(|f| f.is_ascii_uppercase())
+                    && c.any(|x| x.is_ascii_lowercase())
+            });
+            if domain_ok(d) && !code_like {
                 self.push(IocKind::Domain, d, layer);
             }
         }
@@ -249,6 +255,16 @@ mod tests {
         assert!(got.contains(&(IocKind::Path, "C:\\Users\\Public\\a.exe".into())));
         // The email's domain is not listed separately.
         assert!(!got.contains(&(IocKind::Domain, "example.org".into())));
+    }
+
+    #[test]
+    fn dotnet_names_are_not_domains() {
+        let got =
+            scan("using namespace System.Net; [System.Net.ServicePointManager]; Net.WebClient");
+        assert!(got.iter().all(|(k, _)| *k != IocKind::Domain), "{got:?}");
+        assert!(
+            scan("IEX evil.example.net").contains(&(IocKind::Domain, "evil.example.net".into()))
+        );
     }
 
     #[test]

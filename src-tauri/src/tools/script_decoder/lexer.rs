@@ -324,6 +324,270 @@ fn escape(chars: &[char], j: usize, bytes: bool, out: &mut Vec<u32>, lines: &mut
     j + 1
 }
 
+// --- JavaScript ------------------------------------------------------------
+
+const JS_OPS: &[&str] = &[
+    "===", "!==", "**=", "...", "=>", "==", "!=", "<=", ">=", "&&", "||", "??", "?.", "++", "--",
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>",
+];
+
+/// Tokenize JavaScript into the same token types. Strings support `\x`,
+/// `\u`, `\u{...}` and legacy octal escapes; template literals without
+/// `${}` become strings; regex literals are skipped as `Other` so they cannot
+/// derail the rest of the stream. Newlines and `;` at bracket depth zero end
+/// a statement.
+pub fn tokenize_js(src: &str) -> Vec<Token> {
+    let chars: Vec<char> = src.chars().collect();
+    let mut out: Vec<Token> = Vec::new();
+    let mut i = 0;
+    let mut line = 1;
+    let mut depth: i32 = 0;
+
+    let newline = |out: &mut Vec<Token>, line: usize| {
+        if !matches!(
+            out.last(),
+            Some(Token {
+                tok: Tok::Newline,
+                ..
+            }) | None
+        ) {
+            out.push(Token {
+                tok: Tok::Newline,
+                line,
+            });
+        }
+    };
+    // A `/` starts a regex when the previous token cannot end an operand.
+    let regex_allowed = |out: &[Token]| match out.last().map(|t| &t.tok) {
+        None | Some(Tok::Newline) => true,
+        Some(Tok::Op(o)) => !matches!(*o, ")" | "]" | "}"),
+        Some(Tok::Name(n)) => matches!(
+            n.as_str(),
+            "return" | "typeof" | "case" | "in" | "of" | "new" | "delete" | "void"
+        ),
+        _ => false,
+    };
+
+    while i < chars.len() {
+        let c = chars[i];
+        match c {
+            '\n' => {
+                if depth == 0 {
+                    newline(&mut out, line);
+                }
+                line += 1;
+                i += 1;
+            }
+            '/' if chars.get(i + 1) == Some(&'/') => {
+                while i < chars.len() && chars[i] != '\n' {
+                    i += 1;
+                }
+            }
+            '/' if chars.get(i + 1) == Some(&'*') => {
+                i += 2;
+                while i < chars.len() && !(chars[i] == '*' && chars.get(i + 1) == Some(&'/')) {
+                    if chars[i] == '\n' {
+                        line += 1;
+                    }
+                    i += 1;
+                }
+                i += 2;
+            }
+            '/' if regex_allowed(&out) => {
+                // Skip a regex literal: /.../flags, honoring escapes and classes.
+                i += 1;
+                let mut class = false;
+                while i < chars.len() && chars[i] != '\n' {
+                    match chars[i] {
+                        '\\' => i += 1,
+                        '[' => class = true,
+                        ']' => class = false,
+                        '/' if !class => break,
+                        _ => {}
+                    }
+                    i += 1;
+                }
+                i += 1;
+                while i < chars.len() && chars[i].is_ascii_alphabetic() {
+                    i += 1;
+                }
+                out.push(Token {
+                    tok: Tok::Other,
+                    line,
+                });
+            }
+            ';' => {
+                if depth == 0 {
+                    newline(&mut out, line);
+                }
+                i += 1;
+            }
+            c if c.is_whitespace() => i += 1,
+            c if c.is_alphabetic() || c == '_' || c == '$' => {
+                let start = i;
+                while i < chars.len()
+                    && (chars[i].is_alphanumeric() || chars[i] == '_' || chars[i] == '$')
+                {
+                    i += 1;
+                }
+                out.push(Token {
+                    tok: Tok::Name(chars[start..i].iter().collect()),
+                    line,
+                });
+            }
+            '\'' | '"' | '`' => {
+                let (lit, next, lines) = js_string(&chars, i);
+                out.push(Token { tok: lit, line });
+                line += lines;
+                i = next;
+            }
+            c if c.is_ascii_digit() => {
+                let (tok, next) = number(&chars, i);
+                out.push(Token { tok, line });
+                i = next;
+            }
+            _ => {
+                let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
+                if let Some(op) = JS_OPS.iter().copied().find(|o| rest.starts_with(o)) {
+                    out.push(Token {
+                        tok: Tok::Op(op),
+                        line,
+                    });
+                    i += op.chars().count();
+                } else if let Some(op) = op1(c) {
+                    match op {
+                        "(" | "[" | "{" => depth += 1,
+                        ")" | "]" | "}" => depth = (depth - 1).max(0),
+                        _ => {}
+                    }
+                    out.push(Token {
+                        tok: Tok::Op(op),
+                        line,
+                    });
+                    i += 1;
+                } else {
+                    out.push(Token {
+                        tok: Tok::Other,
+                        line,
+                    });
+                    i += 1;
+                }
+            }
+        }
+    }
+    newline(&mut out, line);
+    out
+}
+
+/// A JS string or template literal at `i`. Templates with `${` become
+/// `Other` (their value depends on runtime expressions).
+fn js_string(chars: &[char], i: usize) -> (Tok, usize, usize) {
+    let q = chars[i];
+    let mut j = i + 1;
+    let mut lines = 0;
+    let mut out: Vec<u32> = Vec::new();
+    let mut dynamic = false;
+    while j < chars.len() {
+        let c = chars[j];
+        if c == q {
+            j += 1;
+            break;
+        }
+        if c == '\n' {
+            if q != '`' {
+                break;
+            }
+            lines += 1;
+        }
+        if q == '`' && c == '$' && chars.get(j + 1) == Some(&'{') {
+            dynamic = true;
+        }
+        if c == '\\' && j + 1 < chars.len() {
+            let n = chars[j + 1];
+            let hex = |from: usize, len: usize| -> Option<u32> {
+                let s: String = chars.get(from..from + len)?.iter().collect();
+                (s.len() == len && s.chars().all(|c| c.is_ascii_hexdigit()))
+                    .then(|| u32::from_str_radix(&s, 16).ok())
+                    .flatten()
+            };
+            match n {
+                'x' if hex(j + 2, 2).is_some() => {
+                    out.push(hex(j + 2, 2).unwrap_or(0));
+                    j += 4;
+                    continue;
+                }
+                'u' if chars.get(j + 2) == Some(&'{') => {
+                    let close = chars[j + 3..]
+                        .iter()
+                        .position(|c| *c == '}')
+                        .map(|p| j + 3 + p);
+                    if let Some(end) = close {
+                        let s: String = chars[j + 3..end].iter().collect();
+                        if let Ok(v) = u32::from_str_radix(&s, 16) {
+                            out.push(v);
+                            j = end + 1;
+                            continue;
+                        }
+                    }
+                }
+                'u' if hex(j + 2, 4).is_some() => {
+                    out.push(hex(j + 2, 4).unwrap_or(0));
+                    j += 6;
+                    continue;
+                }
+                '0'..='7' => {
+                    let mut k = j + 1;
+                    let mut v = 0u32;
+                    while k < chars.len() && k < j + 4 && ('0'..='7').contains(&chars[k]) {
+                        v = v * 8 + chars[k].to_digit(8).unwrap_or(0);
+                        k += 1;
+                    }
+                    out.push(v);
+                    j = k;
+                    continue;
+                }
+                '\n' => {
+                    lines += 1;
+                    j += 2;
+                    continue;
+                }
+                _ => {}
+            }
+            let v = match n {
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                'b' => '\x08',
+                'f' => '\x0c',
+                'v' => '\x0b',
+                other => other,
+            };
+            out.push(v as u32);
+            j += 2;
+            continue;
+        }
+        out.push(c as u32);
+        j += 1;
+    }
+    // Lone surrogate pairs from \uD83D\uDE00 are combined.
+    let units: Vec<u16> = out
+        .iter()
+        .filter(|u| **u <= 0xffff)
+        .map(|u| *u as u16)
+        .collect();
+    let s = if out.iter().all(|u| *u <= 0xffff) {
+        String::from_utf16_lossy(&units)
+    } else {
+        out.iter().filter_map(|u| char::from_u32(*u)).collect()
+    };
+    let tok = if dynamic {
+        Tok::Other
+    } else {
+        Tok::Lit(Lit::Str(s))
+    };
+    (tok, j, lines)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -409,6 +673,50 @@ mod tests {
                 Tok::Other
             ]
         );
+    }
+
+    #[test]
+    fn js_strings_and_ops() {
+        let t: Vec<Tok> = tokenize_js(r#"var s = '\x41\u0042\u{43}' + "\101"; x => y === `t`"#)
+            .into_iter()
+            .map(|t| t.tok)
+            .collect();
+        assert_eq!(t[3], s("ABC"));
+        assert_eq!(t[5], s("A"));
+        assert!(t.contains(&Tok::Op("=>")));
+        assert!(t.contains(&Tok::Op("===")));
+        assert!(t.contains(&s("t")));
+    }
+
+    #[test]
+    fn js_regex_and_comments_are_skipped() {
+        let t: Vec<Tok> = tokenize_js("a = /it's\\/[/]x/g; // 'nope\n/* 'no' */ b = 4 / 2")
+            .into_iter()
+            .map(|t| t.tok)
+            .collect();
+        assert!(!t.iter().any(|x| matches!(x, Tok::Lit(_))), "{t:?}");
+        assert!(t.contains(&Tok::Op("/")));
+    }
+
+    #[test]
+    fn js_template_with_expression_is_dynamic() {
+        assert_eq!(tokenize_js("`a${b}c`")[0].tok, Tok::Other);
+    }
+
+    #[test]
+    fn js_hostile_input_does_not_panic() {
+        for s in [
+            "'",
+            "`",
+            "/",
+            "/*",
+            "'\\u{",
+            "'\\x4",
+            "a /[/",
+            "\"\\u{110000}\"",
+        ] {
+            let _ = tokenize_js(s);
+        }
     }
 
     #[test]

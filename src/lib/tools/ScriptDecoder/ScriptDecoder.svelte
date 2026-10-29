@@ -20,6 +20,13 @@
     binary: "binary",
     marshal: "marshal",
   };
+  const LANG: Record<string, string> = {
+    python: "Python",
+    bash: "Bash",
+    powershell: "PowerShell",
+    javascript: "JavaScript",
+    unknown: "text",
+  };
   const IOC_LABEL: Record<IocKind, string> = {
     url: "URL",
     domain: "Domain",
@@ -53,7 +60,7 @@
       const path = await open({
         multiple: false,
         filters: [
-          { name: "Python", extensions: ["py", "pyw", "txt"] },
+          { name: "Scripts", extensions: ["py", "pyw", "sh", "bash", "zsh", "ps1", "psm1", "psd1", "js", "mjs", "cjs", "jse", "hta", "txt"] },
           { name: "All files", extensions: ["*"] },
         ],
       });
@@ -109,14 +116,14 @@
   <header>
     <h1>Script Decoder</h1>
     <p class="sub">
-      Unwrap obfuscated Python layer by layer, pull out indicators, and flag suspicious
-      behavior. The script is parsed, never run.
+      Unwrap obfuscated Python, Bash, PowerShell and JavaScript layer by layer, pull out
+      indicators, and flag suspicious behavior. The script is parsed, never run.
     </p>
   </header>
 
   <div class="field">
     <div class="input-head">
-      <label for="src">Script <span class="muted">(Python)</span></label>
+      <label for="src">Script <span class="muted">(Python, Bash, PowerShell, JavaScript; detected per layer)</span></label>
       {#if sourceName}<span class="name mono">{sourceName}</span>{/if}
     </div>
     <textarea
@@ -128,7 +135,7 @@
       spellcheck="false"
       autocapitalize="off"
       autocomplete="off"
-      placeholder="Paste a script, e.g. exec(zlib.decompress(base64.b64decode('...')))"
+      placeholder="Paste a script, e.g. echo ... | base64 -d | bash, powershell -enc ..., eval(atob('...'))"
     ></textarea>
   </div>
 
@@ -215,7 +222,7 @@
         <details class="layer" open={l.index > 0 || result.layers.length === 1}>
           <summary>
             <span class="lnum">Layer {l.index}</span>
-            <span class="kind {l.kind}">{KIND[l.kind]}</span>
+            <span class="kind {l.kind}">{l.language ? LANG[l.language] ?? l.language : KIND[l.kind]}</span>
             <span class="method mono">{l.method}</span>
             {#if l.parent !== null}
               <span class="muted">from layer {l.parent}{l.line ? `, line ${l.line}` : ""}</span>

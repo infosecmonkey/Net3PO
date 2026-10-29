@@ -16,7 +16,7 @@ export function buildDecodeReport(r: DecodeResult, source: string): Report {
           type: "keyValues",
           items: [
             { key: "Source", value: source || "pasted script" },
-            { key: "Language", value: "Python" },
+            { key: "Language", value: r.layers[0]?.language || "unknown" },
             { key: "Decoded layers", value: String(decoded) },
             { key: "Indicators", value: String(r.iocs.length) },
             { key: "Flags", value: String(r.flags.length) },
@@ -67,7 +67,7 @@ export function buildDecodeReport(r: DecodeResult, source: string): Report {
       {
         type: "keyValues",
         items: [
-          { key: "Kind", value: l.kind },
+          { key: "Kind", value: l.language ? `${l.kind}, ${l.language}` : l.kind },
           { key: "Produced by", value: l.method },
           ...(l.parent !== null
             ? [{ key: "Found in", value: `layer ${l.parent}${l.line ? `, line ${l.line}` : ""}` }]
