@@ -11,6 +11,7 @@
   import SavedCommands from "./SavedCommands.svelte";
   import SessionForm from "./SessionForm.svelte";
   import SnifferForm from "./SnifferForm.svelte";
+  import SystemForm from "./SystemForm.svelte";
   import TracerouteForm from "./TracerouteForm.svelte";
   import VpnForm from "./VpnForm.svelte";
 
@@ -24,6 +25,7 @@
     { id: "vpn", label: "VPN" },
     { id: "ha", label: "HA" },
     { id: "routing", label: "Routing" },
+    { id: "system", label: "System" },
     { id: "saved", label: "Saved" },
   ];
 
@@ -90,6 +92,7 @@
   <div hidden={tab !== "vpn"}><VpnForm onsave={(t, n, c) => add("vpn", t, n, c)} /></div>
   <div hidden={tab !== "ha"}><HaForm onsave={(t, n, c) => add("ha", t, n, c)} /></div>
   <div hidden={tab !== "routing"}><RoutingForm onsave={(t, n, c) => add("routing", t, n, c)} /></div>
+  <div hidden={tab !== "system"}><SystemForm onsave={(t, n, c) => add("system", t, n, c)} /></div>
   <div hidden={tab !== "saved"}><SavedCommands items={saved} onchange={persist} /></div>
 </div>
 

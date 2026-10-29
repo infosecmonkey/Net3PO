@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::core::{BuildError, flow, ha, ping, routing, session, sniffer, traceroute, vpn};
+use super::core::{BuildError, flow, ha, ping, routing, session, sniffer, system, traceroute, vpn};
 
 /// Which builder to run, with its form input.
 #[derive(Deserialize)]
@@ -17,6 +17,7 @@ pub enum BuildInput {
     Vpn(vpn::VpnInput),
     Ha(ha::HaInput),
     Routing(routing::RoutingInput),
+    System(system::SystemInput),
 }
 
 /// Build FortiOS CLI text from a builder's form input.
@@ -31,6 +32,7 @@ pub fn fortinet_build(input: BuildInput) -> Result<String, BuildError> {
         BuildInput::Vpn(i) => vpn::build(&i),
         BuildInput::Ha(i) => ha::build(&i),
         BuildInput::Routing(i) => routing::build(&i),
+        BuildInput::System(i) => system::build(&i),
     }
 }
 
@@ -198,6 +200,23 @@ mod tests {
             "get router info bgp summary\n\
              get router info bgp neighbors 10.0.0.2\n\
              get router info bgp neighbors 10.0.0.2 advertised-routes"
+        );
+    }
+
+    #[test]
+    fn system_payload_deserializes() {
+        let y: BuildInput = serde_json::from_value(json!({
+            "kind": "system", "variant": "topMem", "delay": "", "lines": "", "iterations": "",
+            "count": "10", "perfStatus": false, "perfTop": false, "sysinfoMemory": true,
+            "sysinfoCpu": false, "sysinfoInterrupts": false, "sysinfoSlab": true, "sysinfoConserve": false
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(y).unwrap(),
+            "diagnose hardware sysinfo memory\n\
+             diagnose hardware sysinfo slab\n\
+             \n\
+             diagnose sys top-mem 10"
         );
     }
 
