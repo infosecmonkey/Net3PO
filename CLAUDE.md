@@ -4,9 +4,10 @@ Project context for Claude Code. Read this at the start of every session.
 
 ## Product
 
-A commercial, cross-platform desktop toolkit for network and security engineers.
-One app, many tools, each in its own panel. Owner: Manny (InfoSecOps, Inc.).
-It will be sold with paid licenses, so code quality, signing and licensing matter.
+A free, open-source, cross-platform desktop toolkit for network and security
+engineers. One app, many tools, each in its own panel. Owner: Manny (InfoSecOps, Inc.).
+Licensed under Apache-2.0 (`LICENSE`, `NOTICE`). The source is public, so code
+quality, signed builds and clean dependency licensing matter.
 
 Targets: macOS (Apple Silicon and Intel, universal build), Windows 10/11 (x64), Linux (Ubuntu, Debian, RHEL family).
 
@@ -16,7 +17,7 @@ Targets: macOS (Apple Silicon and Intel, universal build), Windows 10/11 (x64), 
 - Front end: Svelte + TypeScript, built with Vite, package manager pnpm
 - Backend: Rust stable, async with tokio
 - Packaging: Tauri bundler (.dmg, .msi/NSIS, .deb, .rpm, AppImage)
-- CI: GitHub Actions matrix (macOS, Windows, Ubuntu), private repo
+- CI: GitHub Actions matrix (macOS, Windows, Ubuntu)
 
 ## Commands
 
@@ -78,11 +79,11 @@ Phase 5:
 
 - Cross-platform: every tool must work on macOS, Windows and Linux, or clearly show why it can't on that OS.
 - Privileges: never require running the whole app as admin/root. Detect missing privileges and explain what is needed for that tool only.
-- No Npcap or libpcap dependency in phases 1 to 3. Npcap's free license forbids redistribution in a paid product. Prefer normal sockets wherever possible.
-- Licenses: MIT, Apache-2.0, BSD, ISC, Zlib, MPL-2.0 dependencies only. No GPL, LGPL or AGPL. Enforce with `cargo-deny`.
+- Never bundle Npcap: its license forbids redistribution, free or paid. Prefer normal sockets wherever possible; any capture feature must use a user-installed Npcap/libpcap and degrade cleanly without it.
+- Licenses: MIT, Apache-2.0, BSD, ISC, Zlib, MPL-2.0 dependencies only (plus the documented exceptions in `src-tauri/deny.toml`). No GPL, LGPL or AGPL. Enforce with `cargo-deny`.
+- Third-party notices: after adding or updating a dependency, run `pnpm notices` and commit `static/third-party-notices.txt` (shown in the About dialog).
 - Security: this is a security tool, so treat all network input as hostile. Bound buffer sizes, validate parsers, add timeouts on every socket.
-- Secrets: never commit keys, certificates, `.env` files or signing credentials. They live in GitHub Actions secrets only.
-- Licensing hooks: keep license checks isolated in `src-tauri/src/licensing/` so the provider (Keygen planned) can be swapped.
+- Secrets: never commit keys, certificates, `.env` files or signing credentials. They live in GitHub Actions secrets only. The repo is public: no customer names, device IPs or configs from real networks in code, tests or fixtures.
 
 ## Style
 

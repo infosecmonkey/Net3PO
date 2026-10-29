@@ -33,7 +33,7 @@ exceptions = [
 ]
 
 [licenses.private]
-# Our own crate is proprietary and unpublished.
+# Our own crate is unpublished; it is Apache-2.0 (see LICENSE).
 ignore = true
 
 [advisories]
@@ -46,9 +46,6 @@ ignore = [
   # own key and never decrypts with RSA, so remote timing is not observable at
   # scale. Recheck when rsa 0.10 final ships.
   { id = "RUSTSEC-2023-0071", reason = "no fix upstream; one signature per SSH login" },
-  # hickory-proto 0.24: O(n^2) name compression when encoding. We only encode
-  # our own single-question queries. Remove once hickory moves to >= 0.26.1.
-  { id = "RUSTSEC-2026-0119", reason = "only small self-built queries are encoded; upgrade tracked" },
 ]
 
 [bans]
