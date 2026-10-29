@@ -168,13 +168,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./FgtSniffer/FgtSniffer.svelte"),
   },
 
-  // Decoders (planned)
+  // Decoders
   {
     id: "script-decoder",
     icon: "file-code",
     name: "Script Decoder",
     category: "Decoders",
-    enabled: false,
+    enabled: true,
+    load: () => import("./ScriptDecoder/ScriptDecoder.svelte"),
   },
 
   // Workspace

@@ -12,6 +12,7 @@ pub mod mac_vendor;
 pub mod port_mapper;
 pub mod port_scanner;
 pub mod regex_builder;
+pub mod script_decoder;
 pub mod snmp_sweep;
 pub mod snmp_walk;
 pub mod subnet_calculator;

@@ -519,3 +519,48 @@ export interface DiffResult {
   stats: DiffStats;
   unified: string;
 }
+
+// Script decoder.
+
+export type LayerKind = "source" | "text" | "binary" | "marshal";
+
+export interface DecodedLayer {
+  index: number;
+  parent: number | null;
+  depth: number;
+  kind: LayerKind;
+  method: string;
+  sink: string | null;
+  line: number | null;
+  text: string;
+  strings: string[];
+  size: number;
+  truncated: boolean;
+}
+
+export type IocKind = "url" | "domain" | "ipv4" | "email" | "md5" | "sha1" | "sha256" | "path";
+
+export interface Ioc {
+  kind: IocKind;
+  value: string;
+  defanged: string;
+  layer: number;
+  private: boolean;
+}
+
+export interface DecodeFlag {
+  level: "info" | "warn" | "fail";
+  rule: string;
+  title: string;
+  detail: string;
+  layer: number;
+  line: number | null;
+  snippet: string;
+}
+
+export interface DecodeResult {
+  layers: DecodedLayer[];
+  iocs: Ioc[];
+  flags: DecodeFlag[];
+  notes: string[];
+}
