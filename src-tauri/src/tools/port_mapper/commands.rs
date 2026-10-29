@@ -30,6 +30,8 @@ const MAX_ROWS_PER_TABLE: usize = 100_000;
 /// Cisco VLANs queried for per-VLAN forwarding tables.
 const MAX_VLANS: usize = 1024;
 const GETBULK_REPETITIONS: u32 = 25;
+/// Stack for the mapper thread; see `port_map`.
+const MAPPER_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
@@ -72,12 +74,26 @@ pub async fn port_map(
     let reg = registry.inner.clone();
     reg.lock().unwrap().insert(map_id, cancel.clone());
 
+    // A dedicated thread with an explicit stack rather than spawn_blocking:
+    // snmp2 builds its ~128 KB session buffers on the stack, which leaves little
+    // headroom on the default 2 MB in debug builds.
     let flag = cancel.clone();
     let events = on_event.clone();
-    let outcome = tokio::task::spawn_blocking(move || run_map(&config, &events, &flag))
-        .await
-        .map_err(|e| Stop::Failed(format!("mapper task failed: {e}")))
-        .and_then(|r| r);
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let spawned = std::thread::Builder::new()
+        .name("port-mapper".to_string())
+        .stack_size(MAPPER_STACK_BYTES)
+        .spawn(move || {
+            let _ = tx.send(run_map(&config, &events, &flag));
+        });
+    let outcome = match spawned {
+        Ok(_) => rx.await.unwrap_or_else(|_| {
+            Err(Stop::Failed(
+                "mapper thread exited unexpectedly".to_string(),
+            ))
+        }),
+        Err(e) => Err(Stop::Failed(format!("could not start mapper thread: {e}"))),
+    };
 
     reg.lock().unwrap().remove(&map_id);
     let _ = on_event.send(match outcome {
@@ -252,9 +268,11 @@ fn merge_arp(
     }
 }
 
-/// A session plus the bits needed to walk a table with it.
+/// A session plus the bits needed to walk a table with it. The session is
+/// boxed: SyncSession carries ~128 KB of inline buffers, and holding several by
+/// value overflows a 2 MB thread stack in debug builds.
 struct Walker<'a> {
-    session: SyncSession,
+    session: Box<SyncSession>,
     bulk: bool,
     cancel: &'a AtomicBool,
 }
@@ -268,8 +286,9 @@ impl<'a> Walker<'a> {
     ) -> Result<Self, Stop> {
         let timeout = Some(Duration::from_millis(cfg.timeout_ms.clamp(200, 30_000)));
         let dest = (cfg.host.trim(), cfg.port);
-        let mut session =
-            build_session_in_context(cfg, dest, timeout, v3_context).map_err(Stop::Failed)?;
+        let mut session = Box::new(
+            build_session_in_context(cfg, dest, timeout, v3_context).map_err(Stop::Failed)?,
+        );
         if cfg.version == "v3"
             && let Err(e) = session.init()
         {
@@ -372,4 +391,31 @@ fn oid_to_vec(oid: &Oid) -> Vec<u32> {
         .split('.')
         .filter_map(|p| p.parse::<u32>().ok())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression: snmp2's SyncSession holds ~128 KB of inline buffers, and
+    /// keeping sessions by value overflowed a 2 MB tokio thread stack in debug
+    /// builds. Run a full map attempt against a closed port on a thread with
+    /// half the stack `port_map` uses; it must fail cleanly, not abort.
+    #[test]
+    fn run_map_fits_mapper_stack() {
+        let handle = std::thread::Builder::new()
+            .stack_size(MAPPER_STACK_BYTES / 2)
+            .spawn(|| {
+                let mut config = PortMapConfig::default();
+                config.snmp.host = "127.0.0.1".to_string();
+                config.snmp.port = 9;
+                config.snmp.timeout_ms = 200;
+                config.arp_host = "127.0.0.1".to_string();
+                let channel = Channel::new(|_| Ok(()));
+                let cancel = AtomicBool::new(false);
+                matches!(run_map(&config, &channel, &cancel), Err(Stop::Failed(_)))
+            })
+            .unwrap();
+        assert!(handle.join().unwrap());
+    }
 }
