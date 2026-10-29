@@ -55,6 +55,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./MacVendor/MacVendor.svelte"),
   },
+  {
+    id: "config-diff",
+    icon: "git-compare",
+    name: "Config Diff",
+    category: "Offline",
+    enabled: true,
+    load: () => import("./ConfigDiff/ConfigDiff.svelte"),
+  },
 
   // Phase 2, network tools
   {
