@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::core::{BuildError, flow, ping, session, sniffer, traceroute};
+use super::core::{BuildError, flow, ping, session, sniffer, traceroute, vpn};
 
 /// Which builder to run, with its form input.
 #[derive(Deserialize)]
@@ -14,6 +14,7 @@ pub enum BuildInput {
     Sniffer(sniffer::SnifferInput),
     Ping(ping::PingInput),
     Traceroute(traceroute::TracerouteInput),
+    Vpn(vpn::VpnInput),
 }
 
 /// Build FortiOS CLI text from a builder's form input.
@@ -25,6 +26,7 @@ pub fn fortinet_build(input: BuildInput) -> Result<String, BuildError> {
         BuildInput::Sniffer(i) => sniffer::build(&i),
         BuildInput::Ping(i) => ping::build(&i),
         BuildInput::Traceroute(i) => traceroute::build(&i),
+        BuildInput::Vpn(i) => vpn::build(&i),
     }
 }
 
@@ -128,6 +130,26 @@ mod tests {
         assert_eq!(
             fortinet_build(tr).unwrap(),
             "exec traceroute-options device wan1\nexec traceroute-options use-sdwan yes\nexec traceroute 1.1.1.1"
+        );
+    }
+
+    #[test]
+    fn vpn_payload_deserializes() {
+        let vpn: BuildInput = serde_json::from_value(json!({
+            "kind": "vpn", "showStatus": false, "gateway": "hub", "tunnelBy": "name", "tunnels": "",
+            "tunnelNumber": "", "resetFirst": false, "vdom": "", "remAddr4": "203.0.113.10",
+            "locAddr4": "", "remAddr6": "", "dstPort": "", "listFilter": false, "timestamps": false,
+            "level": "-1", "stopBlock": false
+        }))
+        .unwrap();
+        assert_eq!(
+            fortinet_build(vpn).unwrap(),
+            "# Live IKE debug:\n\
+             diagnose vpn ike log filter clear\n\
+             diagnose vpn ike log filter name hub\n\
+             diagnose vpn ike log filter rem-addr4 203.0.113.10\n\
+             diagnose debug application ike -1\n\
+             diagnose debug enable"
         );
     }
 

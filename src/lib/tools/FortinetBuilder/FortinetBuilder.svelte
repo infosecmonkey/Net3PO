@@ -10,6 +10,7 @@
   import SessionForm from "./SessionForm.svelte";
   import SnifferForm from "./SnifferForm.svelte";
   import TracerouteForm from "./TracerouteForm.svelte";
+  import VpnForm from "./VpnForm.svelte";
 
   type Tab = FortinetCategory | "saved";
   const TABS: { id: Tab; label: string }[] = [
@@ -18,6 +19,7 @@
     { id: "sniffer", label: "Sniffer" },
     { id: "ping", label: "Ping" },
     { id: "traceroute", label: "Traceroute" },
+    { id: "vpn", label: "VPN" },
     { id: "saved", label: "Saved" },
   ];
 
@@ -81,6 +83,7 @@
   <div hidden={tab !== "sniffer"}><SnifferForm onsave={(t, n, c) => add("sniffer", t, n, c)} /></div>
   <div hidden={tab !== "ping"}><PingForm onsave={(t, n, c) => add("ping", t, n, c)} /></div>
   <div hidden={tab !== "traceroute"}><TracerouteForm onsave={(t, n, c) => add("traceroute", t, n, c)} /></div>
+  <div hidden={tab !== "vpn"}><VpnForm onsave={(t, n, c) => add("vpn", t, n, c)} /></div>
   <div hidden={tab !== "saved"}><SavedCommands items={saved} onchange={persist} /></div>
 </div>
 

@@ -9,6 +9,7 @@ pub mod ping;
 pub mod session;
 pub mod sniffer;
 pub mod traceroute;
+pub mod vpn;
 
 use std::net::{IpAddr, Ipv4Addr};
 
@@ -142,13 +143,13 @@ pub fn interface_name(field: &str, s: &str) -> BuildResult<String> {
         return err(field, "enter an interface name or 'any'");
     }
     if t.len() > 35 {
-        return err(field, "interface names are at most 35 characters");
+        return err(field, "names are at most 35 characters");
     }
     if let Some(c) = t
         .chars()
         .find(|c| !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':')))
     {
-        return err(field, format!("'{c}' is not allowed in an interface name"));
+        return err(field, format!("'{c}' is not allowed in a name"));
     }
     Ok(t.to_string())
 }
