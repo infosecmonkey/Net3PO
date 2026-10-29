@@ -1,6 +1,8 @@
 <script lang="ts">
   import { toolGroups } from "$lib/tools/registry";
   import Icon from "./icons/Icon.svelte";
+  import logoLight from "$lib/assets/net3po-logo-light.png";
+  import logoDark from "$lib/assets/net3po-logo-dark.png";
 
   interface Props {
     selected: string;
@@ -12,7 +14,12 @@
 </script>
 
 <nav class="sidebar">
-  <div class="brand">OmniPacket</div>
+  <div class="brand">
+    <picture>
+      <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
+      <img src={logoLight} alt="Net3PO" width="153" height="52" />
+    </picture>
+  </div>
   {#each groups as group (group.category)}
     <div class="group">
       <div class="group-label">{group.category}</div>
@@ -59,6 +66,11 @@
     top: 0;
     background: var(--sidebar-bg);
     border-bottom: 1px solid var(--border);
+  }
+
+  .brand picture,
+  .brand img {
+    display: block;
   }
 
   .group {

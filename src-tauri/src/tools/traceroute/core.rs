@@ -36,7 +36,7 @@ pub fn checksum(data: &[u8]) -> u16 {
 
 /// Build an ICMP echo request with `payload_len` bytes of payload.
 pub fn build_echo(ident: u16, seq: u16, payload_len: usize) -> Vec<u8> {
-    const PATTERN: &[u8] = b"OmniPacket ";
+    const PATTERN: &[u8] = b"Net3PO ";
     let mut p = Vec::with_capacity(8 + payload_len);
     p.extend_from_slice(&[ECHO_REQUEST, 0, 0, 0]);
     p.extend_from_slice(&ident.to_be_bytes());
