@@ -3,12 +3,15 @@
 // roadmap. The component is lazy-loaded by the shell when a tool is selected.
 
 import type { Component } from "svelte";
+import type { IconName } from "$lib/components/icons/icons";
 
 export interface ToolDef {
   id: string;
   name: string;
   category: string;
   enabled: boolean;
+  /** Sidebar icon. */
+  icon: IconName;
   /** Loader for the tool's Svelte panel. Only required when enabled. */
   load?: () => Promise<{ default: Component }>;
 }
@@ -22,6 +25,7 @@ const TOOLS: ToolDef[] = [
   // Phase 1, offline tools
   {
     id: "subnet-calculator",
+    icon: "network",
     name: "Subnet Calculator",
     category: "Offline",
     enabled: true,
@@ -29,6 +33,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "regex-builder",
+    icon: "regex",
     name: "Regex Builder",
     category: "Offline",
     enabled: true,
@@ -36,6 +41,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "grep-builder",
+    icon: "text-search",
     name: "Grep Builder",
     category: "Offline",
     enabled: true,
@@ -43,6 +49,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "mac-vendor",
+    icon: "fingerprint",
     name: "MAC Vendor Lookup",
     category: "Offline",
     enabled: true,
@@ -50,6 +57,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "forti-sniffer",
+    icon: "file-down",
     name: "FortiGate Sniffer to PCAP",
     category: "Offline",
     enabled: true,
@@ -59,6 +67,7 @@ const TOOLS: ToolDef[] = [
   // Phase 2, network tools
   {
     id: "dig",
+    icon: "globe",
     name: "Dig",
     category: "Network",
     enabled: true,
@@ -66,6 +75,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "dns-analyzer",
+    icon: "shield-check",
     name: "DNS Analyzer",
     category: "Network",
     enabled: true,
@@ -73,6 +83,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "port-scanner",
+    icon: "radar",
     name: "Port Scanner",
     category: "Network",
     enabled: true,
@@ -80,6 +91,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "syslog-server",
+    icon: "scroll-text",
     name: "Syslog Server",
     category: "Network",
     enabled: true,
@@ -87,6 +99,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "tftp-server",
+    icon: "server",
     name: "TFTP Server",
     category: "Network",
     enabled: true,
@@ -96,6 +109,7 @@ const TOOLS: ToolDef[] = [
   // Phase 3, SNMP
   {
     id: "snmp-walk",
+    icon: "list-tree",
     name: "SNMP Walk",
     category: "SNMP",
     enabled: true,
@@ -103,6 +117,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "snmp-sweep",
+    icon: "scan-search",
     name: "SNMP Sweep",
     category: "SNMP",
     enabled: true,
@@ -110,6 +125,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "port-mapper",
+    icon: "ethernet-port",
     name: "Switch Port Mapper",
     category: "SNMP",
     enabled: true,
@@ -119,6 +135,7 @@ const TOOLS: ToolDef[] = [
   // Phase 4, advanced
   {
     id: "dhcp-monitor",
+    icon: "shield-alert",
     name: "DHCP Monitor",
     category: "Advanced",
     enabled: true,
@@ -126,6 +143,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "traceroute",
+    icon: "route",
     name: "Visual Traceroute",
     category: "Advanced",
     enabled: true,
@@ -133,7 +151,7 @@ const TOOLS: ToolDef[] = [
   },
 
   // Phase 5, builders
-  { id: "forti-builder", name: "Fortinet Command Builder", category: "Builders", enabled: false },
+  { id: "forti-builder", icon: "square-terminal", name: "Fortinet Command Builder", category: "Builders", enabled: false },
 ];
 
 /** Tools grouped by category, preserving definition order. */

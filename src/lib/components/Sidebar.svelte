@@ -1,5 +1,6 @@
 <script lang="ts">
   import { toolGroups } from "$lib/tools/registry";
+  import Icon from "./icons/Icon.svelte";
 
   interface Props {
     selected: string;
@@ -24,6 +25,7 @@
               disabled={!tool.enabled}
               onclick={() => tool.enabled && onselect(tool.id)}
             >
+              <span class="tool-icon"><Icon name={tool.icon} /></span>
               <span class="tool-name">{tool.name}</span>
               {#if !tool.enabled}
                 <span class="soon">soon</span>
@@ -81,8 +83,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.6rem;
     background: none;
     border: none;
     text-align: left;
@@ -106,6 +107,25 @@
   .tool:disabled {
     color: var(--muted);
     cursor: default;
+  }
+
+  .tool-icon {
+    color: var(--muted);
+    display: flex;
+  }
+
+  .tool:hover:not(:disabled) .tool-icon,
+  .tool.active .tool-icon {
+    color: var(--accent);
+  }
+
+  .tool:disabled .tool-icon {
+    opacity: 0.6;
+  }
+
+  .tool-name {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .soon {
