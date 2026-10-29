@@ -119,7 +119,7 @@
 
   mark {
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     border-radius: 2px;
   }
 </style>

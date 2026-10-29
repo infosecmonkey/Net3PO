@@ -304,7 +304,7 @@
 
   .engine-btn.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     font-weight: 600;
   }
 
@@ -417,7 +417,7 @@
 
   mark {
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-fg);
     border-radius: 2px;
   }
 

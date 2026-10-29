@@ -49,8 +49,10 @@
     --border: #e2e5e9;
     --sidebar-bg: #f6f7f9;
     --hover: #eceef1;
-    --active-bg: #e6edff;
-    --accent: #2563eb;
+    --active-bg: #ffedd5;
+    /* Orange accent. Light: deep orange, white text on fills (5.2:1). */
+    --accent: #c2410c;
+    --accent-fg: #ffffff;
     --input-bg: #ffffff;
     --btn-bg: #f3f4f6;
     --error-bg: #fef2f2;
@@ -66,8 +68,11 @@
       --border: #313540;
       --sidebar-bg: #16181c;
       --hover: #22252b;
-      --active-bg: #1e2a44;
-      --accent: #3b82f6;
+      --active-bg: #3a2414;
+      /* Dark: brighter orange for links on the dark surface (7.5:1); text on
+         orange fills is dark (7.5:1), since no orange passes with white here. */
+      --accent: #fb923c;
+      --accent-fg: #1b1d21;
       --input-bg: #212429;
       --btn-bg: #2a2e35;
       --error-bg: #2a1718;
