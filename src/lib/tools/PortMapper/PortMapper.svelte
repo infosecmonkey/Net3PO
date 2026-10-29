@@ -403,8 +403,9 @@
     --st-down: #6e7681;
     --st-off: #b35454;
     --st-warn: #c69026;
-    padding: 1.5rem 2rem;
-    max-width: 1100px;
+    padding: 1.5rem 2rem 2rem;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   header h1 {
@@ -734,11 +735,13 @@
     padding: 0 0.2rem;
   }
 
+  /* The table scrolls with the page (no nested scroll box), so the wheel always
+     reaches the bottom. clip keeps the rounded border without creating a scroll
+     container, so the sticky header pins to the top of the page. */
   .table-scroll {
     border: 1px solid var(--border);
     border-radius: 6px;
-    overflow: auto;
-    max-height: 55vh;
+    overflow: clip;
   }
 
   table {
@@ -755,6 +758,7 @@
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
+    z-index: 1;
     background: var(--sidebar-bg);
     white-space: nowrap;
   }

@@ -92,6 +92,7 @@
 
   .content {
     flex: 1 1 auto;
+    min-width: 0;
     overflow-y: auto;
     height: 100vh;
   }
