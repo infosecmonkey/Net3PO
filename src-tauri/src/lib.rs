@@ -1,6 +1,8 @@
+mod report;
 mod store;
 mod tools;
 
+use report::commands::report_export;
 use store::commands::{StoreLock, store_load, store_save};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
@@ -58,6 +60,7 @@ pub fn run() {
             diff_compare,
             diff_read_file,
             diff_save,
+            report_export,
             dig_query,
             dns_analyze,
             port_scan,

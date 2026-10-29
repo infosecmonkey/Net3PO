@@ -62,7 +62,11 @@ impl Default for DhcpConfig {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum DhcpEvent {
     Started {
         interface: String,
@@ -388,4 +392,21 @@ fn random_seed(counter: u32) -> u64 {
     );
     h.write_u32(counter);
     h.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn probe_fields_are_camel_case() {
+        let ev = DhcpEvent::Probe {
+            n: 1,
+            xid: "0x1".to_string(),
+            client_mac: "02:00:00:00:00:01".to_string(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["type"], "probe");
+        assert_eq!(v["clientMac"], "02:00:00:00:00:01");
+    }
 }

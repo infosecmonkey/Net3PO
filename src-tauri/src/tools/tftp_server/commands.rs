@@ -30,7 +30,11 @@ pub struct TftpRegistry {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum TftpEvent {
     Started {
         port: u16,

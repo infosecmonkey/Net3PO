@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { open, save } from "@tauri-apps/plugin-dialog";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildDiffReport } from "./report";
   import type {
     DiffAlgo,
     DiffOptions,
@@ -342,6 +344,10 @@ end`;
         <button class="small" onclick={copyUnified}>Copy unified</button>
         <button class="small" onclick={saveUnified}>Save .diff</button>
       {/if}
+      <ExportMenu
+        build={() => (result ? buildDiffReport(result, options) : null)}
+        name="config-diff"
+      />
     </div>
     {#if notice}
       <p class="hint">{notice}</p>

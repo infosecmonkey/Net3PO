@@ -23,7 +23,11 @@ pub struct SyslogRegistry {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum SyslogEvent {
     Started {
         port: u16,
@@ -188,7 +192,11 @@ async fn tcp_conn(
 // --- Sender ---------------------------------------------------------------
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum SendEvent {
     Sent {
         index: u32,

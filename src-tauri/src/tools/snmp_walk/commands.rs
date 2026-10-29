@@ -69,7 +69,11 @@ impl Default for WalkConfig {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum WalkEvent {
     Varbind {
         oid: String,
@@ -426,5 +430,23 @@ fn render_octets(bytes: &[u8]) -> String {
             .map(|b| format!("{b:02x}"))
             .collect::<Vec<_>>()
             .join(" ")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn varbind_fields_are_camel_case() {
+        let ev = WalkEvent::Varbind {
+            oid: "1.3.6.1".to_string(),
+            name: "sysDescr.0".to_string(),
+            value: "v".to_string(),
+            value_type: "OCTET STRING".to_string(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["type"], "varbind");
+        assert_eq!(v["valueType"], "OCTET STRING");
     }
 }
