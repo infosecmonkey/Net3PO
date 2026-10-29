@@ -1,9 +1,11 @@
 [package]
 name = "omnipacket"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Network and security engineering toolkit"
+authors = ["InfoSecOps, Inc."]
 edition = "2024"
+# Commercial, closed source. Never published to crates.io.
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

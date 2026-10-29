@@ -27,6 +27,8 @@ Targets: macOS (Apple Silicon and Intel, universal build), Windows 10/11 (x64), 
 - `cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings` lint
 - `cargo fmt --manifest-path src-tauri/Cargo.toml` format
 - `pnpm check` Svelte/TypeScript type check
+- `cargo deny check` (from `src-tauri`) Rust licenses, advisories, banned crates; policy in `src-tauri/deny.toml`
+- `pnpm licenses:check` npm license allowlist
 
 Run fmt, clippy, tests and `pnpm check` before calling a task done.
 
