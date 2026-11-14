@@ -1,7 +1,10 @@
 //! Tauri commands for the Email Header Analyzer. Analysis is local. The two
 //! online checks (who owns an IP, and blocklist status) run only when the
-//! user asks, use the system DNS resolver, and are bounded by timeouts.
+//! user asks and are bounded by timeouts. DNS queries use the system
+//! resolver; the RDAP registration lookup is one HTTPS request to the
+//! regional internet registry that holds the address.
 
+use std::io::Read;
 use std::net::IpAddr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -12,11 +15,16 @@ use serde::Serialize;
 use super::core::{self, EmailAnalysis};
 use super::domains::is_non_public;
 use super::lookup::{self, Blocklist, CymruOrigin, ListingStatus};
+use super::rdap::{self, RdapNetwork};
 
 /// Budget for each DNS query.
 const QUERY_TIMEOUT: Duration = Duration::from_secs(5);
 /// Most blocklists checked at once.
 const MAX_ZONES: usize = 12;
+/// Budget for the whole RDAP request, redirects included.
+const RDAP_TIMEOUT: Duration = Duration::from_secs(10);
+/// Largest RDAP answer read.
+const RDAP_MAX_BYTES: u64 = 1024 * 1024;
 
 /// Analyze pasted header text or a whole message.
 #[tauri::command]
@@ -113,13 +121,17 @@ pub struct IpOwner {
     pub ptr: Vec<String>,
     pub origin: Option<CymruOrigin>,
     pub as_name: String,
+    /// Registration record from RDAP, when the lookup worked.
+    pub rdap: Option<RdapNetwork>,
+    /// The RDAP URL that was queried.
+    pub rdap_url: String,
     pub source: String,
     pub looked_up_ms: u64,
     pub errors: Vec<String>,
 }
 
-/// Who announces an IP: ASN, prefix, registry and AS name from Team Cymru's
-/// DNS service, plus reverse DNS. Routing data, not registration records.
+/// Who announces an IP (ASN, prefix, AS name from Team Cymru's DNS service),
+/// reverse DNS, and who it is registered to with the abuse contact (RDAP).
 #[tauri::command]
 pub async fn email_ip_owner(ip: String) -> Result<IpOwner, String> {
     let ip = public_ip(&ip)?;
@@ -170,15 +182,71 @@ pub async fn email_ip_owner(ip: String) -> Result<IpOwner, String> {
             Err(e) => errors.push(format!("AS name: {e}")),
         }
     }
+    let registry = origin
+        .as_ref()
+        .map(|o| o.registry.clone())
+        .unwrap_or_default();
+    let rdap_url = rdap::query_url(&registry, ip);
+    let url = rdap_url.clone();
+    let rdap = match tokio::task::spawn_blocking(move || fetch_rdap(&url)).await {
+        Ok(Ok(n)) => Some(n),
+        Ok(Err(e)) => {
+            errors.push(format!("RDAP: {e}"));
+            None
+        }
+        Err(_) => {
+            errors.push("RDAP: lookup task failed".into());
+            None
+        }
+    };
     Ok(IpOwner {
         ip: ip.to_string(),
         ptr,
         origin,
         as_name,
-        source: "Team Cymru IP-to-ASN (DNS) and reverse DNS".into(),
+        rdap,
+        rdap_url,
+        source: "Team Cymru IP-to-ASN (DNS), reverse DNS and RDAP".into(),
         looked_up_ms: unix_ms(),
         errors,
     })
+}
+
+/// One RDAP request over HTTPS only, following registry redirects, with a
+/// total timeout and a size cap on the answer.
+fn fetch_rdap(url: &str) -> Result<RdapNetwork, String> {
+    let agent = ureq::AgentBuilder::new()
+        .https_only(true)
+        .redirects(5)
+        .timeout(RDAP_TIMEOUT)
+        .user_agent(concat!("Net3PO/", env!("CARGO_PKG_VERSION")))
+        .build();
+    let resp = match agent
+        .get(url)
+        .set("Accept", "application/rdap+json, application/json")
+        .call()
+    {
+        Ok(r) => r,
+        Err(ureq::Error::Status(404, _)) => {
+            return Err("the registry has no record for this address".into());
+        }
+        Err(ureq::Error::Status(429, _)) => {
+            return Err("the registry is rate limiting requests; try again later".into());
+        }
+        Err(ureq::Error::Status(code, _)) => return Err(format!("registry answered HTTP {code}")),
+        Err(e) => return Err(e.to_string()),
+    };
+    let mut body = Vec::new();
+    resp.into_reader()
+        .take(RDAP_MAX_BYTES + 1)
+        .read_to_end(&mut body)
+        .map_err(|e| format!("reading the answer: {e}"))?;
+    if body.len() as u64 > RDAP_MAX_BYTES {
+        return Err("answer larger than 1 MB; ignored".into());
+    }
+    let v: serde_json::Value =
+        serde_json::from_slice(&body).map_err(|e| format!("answer is not JSON: {e}"))?;
+    rdap::parse_network(&v)
 }
 
 #[derive(Serialize)]

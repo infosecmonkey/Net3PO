@@ -698,6 +698,27 @@ export interface EmailBlocklist {
   note: string;
 }
 
+export interface EmailRdapContact {
+  handle: string;
+  name: string;
+  roles: string[];
+  emails: string[];
+  phones: string[];
+}
+
+export interface EmailRdapNetwork {
+  handle: string;
+  name: string;
+  range: string;
+  cidrs: string[];
+  country: string;
+  netType: string;
+  owner: string;
+  abuse: EmailRdapContact[];
+  registered: string;
+  lastChanged: string;
+}
+
 export interface EmailIpOwner {
   ip: string;
   ptr: string[];
@@ -709,6 +730,8 @@ export interface EmailIpOwner {
     allocated: string;
   } | null;
   asName: string;
+  rdap: EmailRdapNetwork | null;
+  rdapUrl: string;
   source: string;
   lookedUpMs: number;
   errors: string[];

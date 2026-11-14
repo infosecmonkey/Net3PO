@@ -38,8 +38,27 @@ export function ownerLines(o: EmailIpOwner): { key: string; value: string }[] {
   } else {
     rows.push({ key: "ASN", value: "No routing data found" });
   }
+  rows.push({ key: "Reverse DNS", value: o.ptr.length ? o.ptr.join(", ") : "(none)" });
+  const r = o.rdap;
+  if (r) {
+    const day = (d: string) => d.slice(0, 10);
+    rows.push(
+      { key: "Registered to", value: r.owner || "(not listed)" },
+      { key: "Network", value: [r.name, r.handle && r.handle !== r.name ? `(${r.handle})` : ""].filter(Boolean).join(" ") },
+      { key: "Registered range", value: [r.range, r.cidrs.length ? `[${r.cidrs.join(", ")}]` : ""].filter(Boolean).join(" ") || "(not listed)" },
+    );
+    if (r.netType) rows.push({ key: "Allocation type", value: r.netType });
+    if (r.country) rows.push({ key: "Country (RDAP)", value: r.country });
+    if (r.registered || r.lastChanged)
+      rows.push({ key: "Record dates", value: [r.registered && `registered ${day(r.registered)}`, r.lastChanged && `changed ${day(r.lastChanged)}`].filter(Boolean).join(", ") });
+    rows.push({
+      key: "Abuse contact",
+      value: r.abuse.length
+        ? r.abuse.map((c) => [c.name, ...c.emails, ...c.phones].filter(Boolean).join(", ")).join("; ")
+        : "(none listed)",
+    });
+  }
   rows.push(
-    { key: "Reverse DNS", value: o.ptr.length ? o.ptr.join(", ") : "(none)" },
     { key: "Source", value: `${o.source}, ${new Date(o.lookedUpMs).toLocaleString()}` },
   );
   return rows;

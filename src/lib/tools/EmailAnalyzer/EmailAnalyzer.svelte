@@ -228,7 +228,7 @@
         <div class="checks">
           <div class="checks-head">
             <strong class="small">Online checks</strong>
-            <span class="muted small">Sends DNS queries from this computer when you click.</span>
+            <span class="muted small">Run only when you click. Owner lookups use DNS plus one HTTPS request to the regional internet registry (RDAP); blocklist checks use DNS.</span>
           </div>
           <div class="zones">
             {#each blocklists as b (b.zone)}
@@ -253,7 +253,7 @@
           {#if lookupError}<div class="error small">{lookupError}</div>{/if}
           {#each owners as o (o.ip)}
             <div class="result">
-              <div class="result-head">IP owner (routing data): <span class="mono">{o.ip}</span></div>
+              <div class="result-head">IP owner: <span class="mono">{o.ip}</span></div>
               <table class="kv small">
                 <tbody>
                   {#each ownerLines(o) as r (r.key)}<tr><th>{r.key}</th><td>{r.value}</td></tr>{/each}
@@ -261,8 +261,9 @@
               </table>
               {#if o.errors.length}<div class="small warnc">{o.errors.join("; ")}</div>{/if}
               <div class="small muted">
-                Shows who announces the address on the internet. Registration details and the
-                abuse contact (RDAP) are not available yet.
+                ASN and prefix show who routes the address today; RDAP shows who it is registered
+                to. They can differ (cloud, hosting and leased ranges). Report abuse to the RDAP
+                abuse contact.
               </div>
             </div>
           {/each}
