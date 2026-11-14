@@ -90,6 +90,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "tls-inspector",
+    icon: "lock",
+    name: "TLS Inspector",
+    category: "Network",
+    enabled: true,
+    load: () => import("./TlsInspector/TlsInspector.svelte"),
+  },
+  {
     id: "socket-tools",
     icon: "plug",
     name: "Socket Tools",
