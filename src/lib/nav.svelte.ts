@@ -11,6 +11,22 @@ export function openTool(id: string) {
   nav.selected = id;
 }
 
+/** A domain (and DKIM selectors) waiting for the DNS Analyzer to pick up. */
+let pendingDns: { domain: string; selectors: string[] } | null = null;
+
+/** Open the DNS Analyzer with a domain and selectors filled in and run it. */
+export function openInDnsAnalyzer(domain: string, selectors: string[]) {
+  pendingDns = { domain, selectors };
+  openTool("dns-analyzer");
+}
+
+/** Take the pending DNS Analyzer request, if any, clearing it. */
+export function takePendingDns(): { domain: string; selectors: string[] } | null {
+  const p = pendingDns;
+  pendingDns = null;
+  return p;
+}
+
 /** A pattern waiting to be picked up by the Grep Builder when it mounts. */
 let pendingGrep: { pattern: string; mode: GrepMode } | null = null;
 
