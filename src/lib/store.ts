@@ -10,7 +10,8 @@ export type Collection =
   | "grep_saved_queries"
   | "ssh_groups"
   | "ssh_connections"
-  | "ssh_known_hosts";
+  | "ssh_known_hosts"
+  | "report_redaction";
 
 export interface Loaded<T> {
   items: T[];

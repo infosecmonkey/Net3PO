@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openTool } from "$lib/nav.svelte";
 import { generatedNow } from "$lib/report/export";
+import type { RedactOptions, RedactPreview } from "$lib/report/redact";
 import type { Report, ReportFormat } from "$lib/report/types";
 
 export interface ProjectSummary {
@@ -62,8 +63,15 @@ export function addToProject(id: string, report: Report): Promise<ProjectSummary
   });
 }
 
-export const exportProject = (id: string, format: ReportFormat, path: string) =>
-  invoke<number>("project_export", { id, format, path, generated: generatedNow() });
+export const exportProject = (
+  id: string,
+  format: ReportFormat,
+  path: string,
+  redact: RedactOptions | null = null,
+) => invoke<number>("project_export", { id, format, path, generated: generatedNow(), redact });
+
+export const previewProjectRedaction = (id: string, opts: RedactOptions) =>
+  invoke<RedactPreview>("project_redact_preview", { id, generated: generatedNow(), opts });
 
 /** A project the Projects panel should select when it next mounts. */
 let pendingSelect: string | null = null;
