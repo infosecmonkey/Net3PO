@@ -301,10 +301,56 @@ where
         direction: "write".to_string(),
     });
 
-    let mut file = tokio::fs::File::create(&path)
+    // Receive into a new temporary file beside the target, then rename it into
+    // place. `create_new` never follows a link, and the rename replaces the
+    // directory entry itself, so a symlink or hard link planted in the root
+    // cannot redirect the write outside it. A failed upload leaves any
+    // existing file untouched.
+    let tmp = core::upload_temp_path(&path, id);
+    let mut file = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)
         .await
         .map_err(|_| TftpError::AccessViolation)?;
 
+    let result = receive_blocks(sock, &mut file, accepted, blksize, id, emit, &mut shutdown).await;
+    drop(file);
+    let received = match result {
+        Ok(n) => n,
+        Err(e) => {
+            let _ = tokio::fs::remove_file(&tmp).await;
+            return Err(e);
+        }
+    };
+    if tokio::fs::rename(&tmp, &path).await.is_err() {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(TftpError::AccessViolation);
+    }
+
+    emit(TftpEvent::TransferEnd {
+        id,
+        bytes: received,
+        ok: true,
+        message: "received".to_string(),
+    });
+    Ok(())
+}
+
+/// Receive DATA blocks into `file` until the final short block. Returns the
+/// byte count.
+async fn receive_blocks<F>(
+    sock: &UdpSocket,
+    file: &mut tokio::fs::File,
+    accepted: Vec<(String, String)>,
+    blksize: usize,
+    id: u32,
+    emit: &F,
+    shutdown: &mut watch::Receiver<bool>,
+) -> Result<u64, TftpError>
+where
+    F: Fn(TftpEvent),
+{
     // Acknowledge the request: OACK if options were accepted, else ACK(0).
     let opening = if accepted.is_empty() {
         core::build_ack(0)
@@ -318,8 +364,7 @@ where
     let mut last_reply = opening;
 
     loop {
-        let payload =
-            send_and_wait_data(sock, &last_reply, expected, &mut buf, &mut shutdown).await?;
+        let payload = send_and_wait_data(sock, &last_reply, expected, &mut buf, shutdown).await?;
         file.write_all(&payload)
             .await
             .map_err(|_| TftpError::AccessViolation)?;
@@ -339,15 +384,8 @@ where
         }
         expected = expected.wrapping_add(1);
     }
-
     file.flush().await.map_err(|_| TftpError::AccessViolation)?;
-    emit(TftpEvent::TransferEnd {
-        id,
-        bytes: received,
-        ok: true,
-        message: "received".to_string(),
-    });
-    Ok(())
+    Ok(received)
 }
 
 /// Send `packet` and wait for ACK(expect), retransmitting on timeout.
@@ -466,5 +504,102 @@ mod tests {
         assert_eq!(got, content);
 
         let _ = std::fs::remove_file(root.join("img.bin"));
+    }
+    /// A minimal classic-TFTP client that uploads `data`.
+    async fn tftp_put(server: SocketAddr, filename: &str, data: &[u8]) {
+        let client = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let mut wrq = core::OP_WRQ.to_be_bytes().to_vec();
+        wrq.extend_from_slice(filename.as_bytes());
+        wrq.push(0);
+        wrq.extend_from_slice(b"octet");
+        wrq.push(0);
+        client.send_to(&wrq, server).await.unwrap();
+
+        let mut buf = [0u8; 2048];
+        let (n, from) = client.recv_from(&mut buf).await.unwrap();
+        assert_eq!(core::parse_ack(&buf[..n]), Some(0), "expected ACK(0)");
+        let mut chunks: Vec<&[u8]> = data.chunks(core::DEFAULT_BLKSIZE).collect();
+        if data.len().is_multiple_of(core::DEFAULT_BLKSIZE) {
+            chunks.push(&[]);
+        }
+        for (i, chunk) in chunks.iter().enumerate() {
+            let block = (i + 1) as u16;
+            let mut pkt = core::OP_DATA.to_be_bytes().to_vec();
+            pkt.extend_from_slice(&block.to_be_bytes());
+            pkt.extend_from_slice(chunk);
+            client.send_to(&pkt, from).await.unwrap();
+            let (n, _) = client.recv_from(&mut buf).await.unwrap();
+            assert_eq!(core::parse_ack(&buf[..n]), Some(block));
+        }
+    }
+
+    #[tokio::test]
+    async fn wrq_replaces_an_existing_file_and_cleans_up() {
+        let root = std::env::temp_dir().join(format!("omnipacket_tftp_put_{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("backup.cfg"), b"old contents").unwrap();
+
+        let sock = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = sock.local_addr().unwrap();
+        let (_tx, rx) = watch::channel(false);
+        tokio::spawn(serve(sock, root.clone(), true, rx, |_| {}));
+
+        // Exactly two blocks, so the upload ends with an empty DATA block.
+        let content = vec![7u8; 1024];
+        tftp_put(addr, "backup.cfg", &content).await;
+        let mut done = false;
+        for _ in 0..50 {
+            if std::fs::read(root.join("backup.cfg")).unwrap() == content {
+                done = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(done, "file not replaced");
+        let names: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(names.len(), 1, "temporary file left behind: {names:?}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn wrq_replaces_a_symlink_instead_of_following_it() {
+        let base =
+            std::env::temp_dir().join(format!("omnipacket_tftp_link_{}", std::process::id()));
+        let root = base.join("root");
+        std::fs::create_dir_all(&root).unwrap();
+        let outside = base.join("outside.txt");
+        std::fs::write(&outside, b"untouched").unwrap();
+        std::os::unix::fs::symlink(&outside, root.join("sw1.cfg")).unwrap();
+
+        let sock = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = sock.local_addr().unwrap();
+        let (_tx, rx) = watch::channel(false);
+        tokio::spawn(serve(sock, root.clone(), true, rx, |_| {}));
+
+        let content: Vec<u8> = (0..1100u32).map(|i| (i % 97) as u8).collect();
+        tftp_put(addr, "sw1.cfg", &content).await;
+        // The server renames after its final ACK; give it a moment.
+        for _ in 0..50 {
+            if !std::fs::symlink_metadata(root.join("sw1.cfg"))
+                .unwrap()
+                .file_type()
+                .is_symlink()
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+
+        assert_eq!(std::fs::read(&outside).unwrap(), b"untouched");
+        let meta = std::fs::symlink_metadata(root.join("sw1.cfg")).unwrap();
+        assert!(meta.file_type().is_file());
+        assert_eq!(std::fs::read(root.join("sw1.cfg")).unwrap(), content);
+        let leftovers = std::fs::read_dir(&root).unwrap().count();
+        assert_eq!(leftovers, 1, "temporary file left behind");
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

@@ -9,9 +9,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use tauri::State;
 use tauri::ipc::Channel;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::sync::watch;
+use tokio::sync::{Semaphore, watch};
 
 use super::core::{self, SendConfig, SyslogMessage};
 
@@ -150,16 +150,30 @@ async fn udp_loop(sock: UdpSocket, mut rx: watch::Receiver<bool>, on_event: Chan
     }
 }
 
+/// Most TCP senders served at once; further connections are refused.
+const MAX_TCP_CONNECTIONS: usize = 64;
+/// A TCP connection idle this long is closed.
+const TCP_IDLE: Duration = Duration::from_secs(600);
+
 async fn tcp_loop(
     listener: TcpListener,
     mut rx: watch::Receiver<bool>,
     on_event: Channel<SyslogEvent>,
 ) {
+    let slots = Arc::new(Semaphore::new(MAX_TCP_CONNECTIONS));
     loop {
         tokio::select! {
             a = listener.accept() => {
                 if let Ok((stream, src)) = a {
-                    tokio::spawn(tcp_conn(stream, src, rx.clone(), on_event.clone()));
+                    // Over the cap: drop the stream, which closes it.
+                    let Ok(permit) = slots.clone().try_acquire_owned() else {
+                        continue;
+                    };
+                    let (rx, on_event) = (rx.clone(), on_event.clone());
+                    tokio::spawn(async move {
+                        tcp_conn(stream, src, rx, on_event).await;
+                        drop(permit);
+                    });
                 }
             }
             _ = rx.changed() => break,
@@ -167,26 +181,45 @@ async fn tcp_loop(
     }
 }
 
-/// Read newline-delimited messages from one TCP connection.
+/// Read messages from one TCP connection. Accepts both RFC 6587 framings
+/// (octet counting and newline-terminated), with bounded memory and an idle
+/// timeout.
 async fn tcp_conn(
-    stream: tokio::net::TcpStream,
+    mut stream: tokio::net::TcpStream,
     src: SocketAddr,
     mut rx: watch::Receiver<bool>,
     on_event: Channel<SyslogEvent>,
 ) {
-    let mut lines = BufReader::new(stream).lines();
+    let source = src.to_string();
+    let mut framer = core::TcpFramer::default();
+    let mut buf = [0u8; 8192];
     loop {
         tokio::select! {
-            line = lines.next_line() => {
-                match line {
-                    Ok(Some(text)) => emit_message(&on_event, &src.to_string(), "TCP", &text),
-                    // EOF or read error: the connection is done.
+            r = tokio::time::timeout(TCP_IDLE, stream.read(&mut buf)) => {
+                match r {
+                    Ok(Ok(n)) if n > 0 => {
+                        for msg in framer.push(&buf[..n]) {
+                            emit_one(&on_event, &source, &msg);
+                        }
+                    }
+                    // EOF, read error or idle timeout: the connection is done.
                     _ => break,
                 }
             }
-            _ = rx.changed() => break,
+            _ = rx.changed() => return,
         }
     }
+    if let Some(msg) = framer.finish() {
+        emit_one(&on_event, &source, &msg);
+    }
+}
+
+fn emit_one(on_event: &Channel<SyslogEvent>, source: &str, msg: &str) {
+    let _ = on_event.send(SyslogEvent::Message {
+        source: source.to_string(),
+        transport: "TCP".to_string(),
+        data: Box::new(core::parse(msg)),
+    });
 }
 
 // --- Sender ---------------------------------------------------------------
@@ -397,5 +430,28 @@ mod tests {
         let msg = core::parse(&String::from_utf8_lossy(&buf[..n]));
         assert_eq!(msg.message, "roundtrip test");
         assert_eq!(msg.facility_name.as_deref(), Some("local3"));
+    }
+    #[tokio::test]
+    async fn send_tcp_frames_split_back_into_messages() {
+        // The sender's octet-counted frames must come back as separate rows.
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let client = TcpStream::connect(addr).await.unwrap();
+        let (mut server, _) = listener.accept().await.unwrap();
+        let mut sink = Sink::Tcp(client);
+        send_line(&mut sink, "<13>Nov 14 10:00:00 h app: one")
+            .await
+            .unwrap();
+        send_line(&mut sink, "<13>Nov 14 10:00:01 h app: two")
+            .await
+            .unwrap();
+        drop(sink);
+
+        let mut raw = Vec::new();
+        server.read_to_end(&mut raw).await.unwrap();
+        let mut framer = core::TcpFramer::default();
+        let msgs: Vec<String> = framer.push(&raw);
+        let parsed: Vec<String> = msgs.iter().map(|m| core::parse(m).message).collect();
+        assert_eq!(parsed, vec!["one", "two"]);
     }
 }

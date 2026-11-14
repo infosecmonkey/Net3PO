@@ -127,7 +127,12 @@ fn parse_5424(s: &str, msg: &mut SyslogMessage) {
 /// RFC 3164 (BSD): `Mmm dd hh:mm:ss HOST TAG: MSG`. All fields are heuristic.
 fn parse_3164(s: &str, msg: &mut SyslogMessage) {
     // A 3164 timestamp is exactly 15 chars: "Mmm dd hh:mm:ss".
-    let has_ts = s.len() >= 16 && s.as_bytes()[15] == b' ' && MONTHS.contains(&&s[..3]);
+    // Checked with `get` so a multi-byte character near the start cannot
+    // split a slice (hostile input must never panic the receiver). Byte 15 is
+    // an ASCII space when `has_ts`, so slicing at 15 and 16 is then safe.
+    let has_ts = s.len() >= 16
+        && s.as_bytes()[15] == b' '
+        && s.get(..3).is_some_and(|m| MONTHS.contains(&m));
 
     let after_ts = if has_ts {
         msg.timestamp = Some(s[..15].to_string());
@@ -158,6 +163,138 @@ fn parse_3164(s: &str, msg: &mut SyslogMessage) {
         }
     }
     msg.message = body.to_string();
+}
+
+/// Largest single TCP syslog message kept. Longer frames are cut to this size.
+pub const MAX_TCP_MESSAGE: usize = 64 * 1024;
+
+/// Splits a TCP syslog byte stream into messages. Handles both RFC 6587
+/// framings: octet counting (`<len> <msg>`, recognized by a leading digit,
+/// since a syslog message itself starts with `<`) and non-transparent framing
+/// (messages ended by LF or NUL). Memory stays bounded by `MAX_TCP_MESSAGE`
+/// whatever the peer sends.
+#[derive(Debug, Default)]
+pub struct TcpFramer {
+    buf: Vec<u8>,
+    /// Bytes still to drop from an oversized octet-counted frame.
+    skip_bytes: usize,
+    /// Dropping the rest of an oversized line until its terminator.
+    skip_line: bool,
+}
+
+/// Most digits accepted in an octet count (999999 is far above the cap).
+const MAX_COUNT_DIGITS: usize = 6;
+
+fn text(bytes: &[u8]) -> Option<String> {
+    let s = String::from_utf8_lossy(bytes);
+    let s = s.trim_end_matches(['\r', '\n', '\0']);
+    (!s.is_empty()).then(|| s.to_string())
+}
+
+impl TcpFramer {
+    /// Feed received bytes; returns the complete messages they finish.
+    pub fn push(&mut self, data: &[u8]) -> Vec<String> {
+        let mut data = data;
+        if self.skip_bytes > 0 {
+            let n = self.skip_bytes.min(data.len());
+            self.skip_bytes -= n;
+            data = &data[n..];
+        }
+        self.buf.extend_from_slice(data);
+        let mut out = Vec::new();
+        loop {
+            if self.skip_line {
+                match self.buf.iter().position(|&b| b == b'\n' || b == 0) {
+                    Some(i) => {
+                        self.buf.drain(..=i);
+                        self.skip_line = false;
+                    }
+                    None => {
+                        self.buf.clear();
+                        break;
+                    }
+                }
+            }
+            if self.buf.is_empty() {
+                break;
+            }
+            match self.octet_count() {
+                Count::Frame(digits, len) => {
+                    let start = digits + 1;
+                    let total = start + len;
+                    if len > MAX_TCP_MESSAGE {
+                        // Keep the first MAX_TCP_MESSAGE bytes, drop the rest.
+                        if self.buf.len() < start + MAX_TCP_MESSAGE {
+                            break;
+                        }
+                        out.extend(text(&self.buf[start..start + MAX_TCP_MESSAGE]));
+                        let have = self.buf.len().min(total);
+                        self.skip_bytes = total - have;
+                        self.buf.drain(..have);
+                        continue;
+                    }
+                    if self.buf.len() < total {
+                        break;
+                    }
+                    out.extend(text(&self.buf[start..total]));
+                    self.buf.drain(..total);
+                }
+                Count::Partial => break,
+                Count::NotCounted => match self.buf.iter().position(|&b| b == b'\n' || b == 0) {
+                    Some(i) => {
+                        out.extend(text(&self.buf[..i.min(MAX_TCP_MESSAGE)]));
+                        self.buf.drain(..=i);
+                    }
+                    None if self.buf.len() > MAX_TCP_MESSAGE => {
+                        out.extend(text(&self.buf[..MAX_TCP_MESSAGE]));
+                        self.buf.clear();
+                        self.skip_line = true;
+                    }
+                    None => break,
+                },
+            }
+        }
+        out
+    }
+
+    /// The unterminated message left when the connection closes, if any.
+    pub fn finish(&mut self) -> Option<String> {
+        if self.skip_line || self.skip_bytes > 0 {
+            return None;
+        }
+        let rest = std::mem::take(&mut self.buf);
+        text(&rest[..rest.len().min(MAX_TCP_MESSAGE)])
+    }
+
+    fn octet_count(&self) -> Count {
+        if !matches!(self.buf[0], b'1'..=b'9') {
+            return Count::NotCounted;
+        }
+        let digits = self.buf.iter().take_while(|b| b.is_ascii_digit()).count();
+        if digits > MAX_COUNT_DIGITS {
+            return Count::NotCounted;
+        }
+        match self.buf.get(digits) {
+            None => Count::Partial,
+            Some(b' ') => {
+                // At most six ASCII digits, so this parse cannot fail.
+                let len = std::str::from_utf8(&self.buf[..digits])
+                    .ok()
+                    .and_then(|d| d.parse().ok())
+                    .unwrap_or(0);
+                Count::Frame(digits, len)
+            }
+            Some(_) => Count::NotCounted,
+        }
+    }
+}
+
+enum Count {
+    /// (number of digits, message length)
+    Frame(usize, usize),
+    /// Only digits so far; wait for more bytes.
+    Partial,
+    NotCounted,
 }
 
 // --- Sender ---------------------------------------------------------------
@@ -620,5 +757,71 @@ mod tests {
         let mut rng = Rng::new(7);
         let (_, sev) = build_line(&c, &mut rng, 0, 0);
         assert_eq!(sev, 0);
+    }
+    #[test]
+    fn non_ascii_start_does_not_panic() {
+        // A multi-byte character across byte 3 used to panic the slice.
+        for raw in [
+            "<13>Ma\u{e9}y 14 10:00:00 h t: m",
+            "<13>\u{e9}\u{e9}\u{e9}\u{e9}\u{e9}\u{e9}\u{e9}\u{e9} x",
+            "<13>\u{1F600}",
+        ] {
+            let m = parse(raw);
+            assert_eq!(m.raw, raw);
+        }
+    }
+
+    #[test]
+    fn framer_octet_counting_and_newlines() {
+        let mut f = TcpFramer::default();
+        let a = "<13>Nov 14 10:00:00 h app: one";
+        let b = "<13>Nov 14 10:00:01 h app: two";
+        let stream = format!("{} {a}{} {b}", a.len(), b.len());
+        // Fed one byte at a time, as a slow peer might send it.
+        let mut got = Vec::new();
+        for byte in stream.as_bytes() {
+            got.extend(f.push(std::slice::from_ref(byte)));
+        }
+        assert_eq!(got, vec![a, b]);
+        assert_eq!(f.finish(), None);
+
+        let mut f = TcpFramer::default();
+        assert_eq!(
+            f.push(b"<13>one\r\n<13>two\n<13>thr"),
+            vec!["<13>one", "<13>two"]
+        );
+        assert_eq!(f.push(b"ee\0"), vec!["<13>three"]);
+        assert_eq!(f.push(b"<13>tail"), Vec::<String>::new());
+        assert_eq!(f.finish().as_deref(), Some("<13>tail"));
+    }
+
+    #[test]
+    fn framer_bounds_oversized_input() {
+        // Non-transparent line with no terminator: cut, then resync on LF.
+        let mut f = TcpFramer::default();
+        let big = vec![b'a'; MAX_TCP_MESSAGE + 10];
+        let got = f.push(&big);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].len(), MAX_TCP_MESSAGE);
+        assert!(f.push(&[b'a'; 5000]).is_empty());
+        assert_eq!(f.push(b"rest\n<13>next\n"), vec!["<13>next"]);
+
+        // Octet count larger than the cap: first part kept, rest skipped.
+        let mut f = TcpFramer::default();
+        let len = MAX_TCP_MESSAGE + 100;
+        let mut frame = format!("{len} ").into_bytes();
+        frame.extend(std::iter::repeat_n(b'x', len));
+        frame.extend(b"5 <13>z");
+        let mut got = Vec::new();
+        for chunk in frame.chunks(4096) {
+            got.extend(f.push(chunk));
+        }
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].len(), MAX_TCP_MESSAGE);
+        assert_eq!(got[1], "<13>z");
+
+        // Seven digits is not an octet count; treated as a plain line.
+        let mut f = TcpFramer::default();
+        assert_eq!(f.push(b"1234567 hello\n"), vec!["1234567 hello"]);
     }
 }

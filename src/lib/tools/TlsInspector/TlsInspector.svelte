@@ -45,6 +45,16 @@
     { id: "ftp", label: "FTP" },
   ];
 
+  // A port typed in the host ("host:8443", a URL) wins over the Port field,
+  // as the backend applies it; show it there so the field never misleads.
+  const typedPort = $derived.by(() => {
+    let s = target.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+    s = s.split(/[/?#]/)[0].replace(/^.*@/, "");
+    const m = s.match(/^\[[^\]]*\]:(\d+)$/) ?? (s.split(":").length === 2 ? s.match(/:(\d+)$/) : null);
+    const n = m ? Number(m[1]) : NaN;
+    return n >= 1 && n <= 65535 ? n : null;
+  });
+
   function setMode(m: StartTls) {
     starttls = m;
     if (!portTouched) port = STARTTLS_PORTS[m];
@@ -140,7 +150,11 @@
       </div>
       <div class="field small">
         <label for="port">Port</label>
-        <input id="port" class="mono" type="number" min="1" max="65535" bind:value={port} oninput={() => (portTouched = true)} onkeydown={onKey} use:selectOnFocus />
+        {#if typedPort !== null}
+          <input id="port" class="mono" type="number" value={typedPort} disabled title="Port taken from the Host field" />
+        {:else}
+          <input id="port" class="mono" type="number" min="1" max="65535" bind:value={port} oninput={() => (portTouched = true)} onkeydown={onKey} use:selectOnFocus />
+        {/if}
       </div>
       <div class="field">
         <label for="stls">STARTTLS</label>
