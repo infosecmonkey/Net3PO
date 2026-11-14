@@ -113,6 +113,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./TftpServer/TftpServer.svelte"),
   },
+  {
+    id: "wake-on-lan",
+    icon: "power",
+    name: "Wake-on-LAN",
+    category: "Network",
+    enabled: true,
+    load: () => import("./WakeOnLan/WakeOnLan.svelte"),
+  },
 
   // Phase 3, SNMP
   {
