@@ -2,6 +2,7 @@
 //! `commands.rs`, registered in `lib.rs`.
 
 pub mod config_diff;
+pub mod conn_monitor;
 pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;

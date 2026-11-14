@@ -10,6 +10,7 @@ use projects::commands::{
 use report::commands::{report_export, report_redact_preview};
 use store::commands::{StoreLock, store_load, store_save};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
+use tools::conn_monitor::commands::{MonitorRegistry, mon_save, mon_start, mon_stop};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
@@ -58,6 +59,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(MonitorRegistry::default())
         .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
         .manage(TftpRegistry::default())
@@ -133,6 +135,9 @@ pub fn run() {
             dhcp_monitor,
             dhcp_stop,
             http_send,
+            mon_start,
+            mon_stop,
+            mon_save,
             tls_decode,
             tls_decode_file,
             tls_inspect,
