@@ -27,7 +27,7 @@ const TOOLS: ToolDef[] = [
     id: "subnet-calculator",
     icon: "network",
     name: "Subnet Calculator",
-    category: "Offline",
+    category: "Utilities",
     enabled: true,
     load: () => import("./SubnetCalculator/SubnetCalculator.svelte"),
   },
@@ -35,7 +35,7 @@ const TOOLS: ToolDef[] = [
     id: "regex-builder",
     icon: "regex",
     name: "Regex Builder",
-    category: "Offline",
+    category: "Utilities",
     enabled: true,
     load: () => import("./RegexBuilder/RegexBuilder.svelte"),
   },
@@ -43,7 +43,7 @@ const TOOLS: ToolDef[] = [
     id: "grep-builder",
     icon: "text-search",
     name: "Grep Builder",
-    category: "Offline",
+    category: "Utilities",
     enabled: true,
     load: () => import("./GrepBuilder/GrepBuilder.svelte"),
   },
@@ -51,7 +51,7 @@ const TOOLS: ToolDef[] = [
     id: "mac-vendor",
     icon: "fingerprint",
     name: "MAC Vendor Lookup",
-    category: "Offline",
+    category: "Utilities",
     enabled: true,
     load: () => import("./MacVendor/MacVendor.svelte"),
   },
@@ -59,7 +59,7 @@ const TOOLS: ToolDef[] = [
     id: "config-diff",
     icon: "git-compare",
     name: "Config Diff",
-    category: "Offline",
+    category: "Analysis",
     enabled: true,
     load: () => import("./ConfigDiff/ConfigDiff.svelte"),
   },
@@ -67,7 +67,7 @@ const TOOLS: ToolDef[] = [
     id: "event-log",
     icon: "logs",
     name: "Windows Event Log",
-    category: "Offline",
+    category: "Analysis",
     enabled: true,
     load: () => import("./EventLog/EventLog.svelte"),
   },
@@ -77,7 +77,7 @@ const TOOLS: ToolDef[] = [
     id: "dig",
     icon: "globe",
     name: "Dig",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./Dig/Dig.svelte"),
   },
@@ -85,7 +85,7 @@ const TOOLS: ToolDef[] = [
     id: "dns-analyzer",
     icon: "shield-check",
     name: "DNS Analyzer",
-    category: "Network",
+    category: "Analysis",
     enabled: true,
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
@@ -93,7 +93,7 @@ const TOOLS: ToolDef[] = [
     id: "tls-inspector",
     icon: "lock",
     name: "TLS Inspector",
-    category: "Network",
+    category: "Analysis",
     enabled: true,
     load: () => import("./TlsInspector/TlsInspector.svelte"),
   },
@@ -101,7 +101,7 @@ const TOOLS: ToolDef[] = [
     id: "http-troubleshooter",
     icon: "send",
     name: "HTTP Troubleshooter",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./HttpTroubleshooter/HttpTroubleshooter.svelte"),
   },
@@ -109,7 +109,7 @@ const TOOLS: ToolDef[] = [
     id: "conn-monitor",
     icon: "activity",
     name: "Connectivity Monitor",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./ConnMonitor/ConnMonitor.svelte"),
   },
@@ -117,7 +117,7 @@ const TOOLS: ToolDef[] = [
     id: "socket-tools",
     icon: "plug",
     name: "Socket Tools",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./SocketTools/SocketTools.svelte"),
   },
@@ -125,7 +125,7 @@ const TOOLS: ToolDef[] = [
     id: "email-analyzer",
     icon: "mail-search",
     name: "Email Header Analyzer",
-    category: "Network",
+    category: "Analysis",
     enabled: true,
     load: () => import("./EmailAnalyzer/EmailAnalyzer.svelte"),
   },
@@ -133,7 +133,7 @@ const TOOLS: ToolDef[] = [
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./PortScanner/PortScanner.svelte"),
   },
@@ -141,7 +141,7 @@ const TOOLS: ToolDef[] = [
     id: "syslog-server",
     icon: "scroll-text",
     name: "Syslog Server",
-    category: "Network",
+    category: "Servers",
     enabled: true,
     load: () => import("./SyslogServer/SyslogServer.svelte"),
   },
@@ -149,7 +149,7 @@ const TOOLS: ToolDef[] = [
     id: "tftp-server",
     icon: "server",
     name: "TFTP Server",
-    category: "Network",
+    category: "Servers",
     enabled: true,
     load: () => import("./TftpServer/TftpServer.svelte"),
   },
@@ -157,7 +157,7 @@ const TOOLS: ToolDef[] = [
     id: "wake-on-lan",
     icon: "power",
     name: "Wake-on-LAN",
-    category: "Network",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./WakeOnLan/WakeOnLan.svelte"),
   },
@@ -167,7 +167,7 @@ const TOOLS: ToolDef[] = [
     id: "snmp-walk",
     icon: "list-tree",
     name: "SNMP Walk",
-    category: "SNMP",
+    category: "Discovery and SNMP",
     enabled: true,
     load: () => import("./SnmpWalk/SnmpWalk.svelte"),
   },
@@ -175,7 +175,7 @@ const TOOLS: ToolDef[] = [
     id: "snmp-sweep",
     icon: "scan-search",
     name: "SNMP Sweep",
-    category: "SNMP",
+    category: "Discovery and SNMP",
     enabled: true,
     load: () => import("./SnmpSweep/SnmpSweep.svelte"),
   },
@@ -183,7 +183,7 @@ const TOOLS: ToolDef[] = [
     id: "port-mapper",
     icon: "ethernet-port",
     name: "Switch Port Mapper",
-    category: "SNMP",
+    category: "Discovery and SNMP",
     enabled: true,
     load: () => import("./PortMapper/PortMapper.svelte"),
   },
@@ -193,7 +193,7 @@ const TOOLS: ToolDef[] = [
     id: "dhcp-monitor",
     icon: "shield-alert",
     name: "DHCP Monitor",
-    category: "Advanced",
+    category: "Discovery and SNMP",
     enabled: true,
     load: () => import("./DhcpMonitor/DhcpMonitor.svelte"),
   },
@@ -201,7 +201,7 @@ const TOOLS: ToolDef[] = [
     id: "traceroute",
     icon: "route",
     name: "Visual Traceroute",
-    category: "Advanced",
+    category: "Troubleshooting",
     enabled: true,
     load: () => import("./Traceroute/Traceroute.svelte"),
   },
@@ -229,7 +229,7 @@ const TOOLS: ToolDef[] = [
     id: "script-decoder",
     icon: "file-code",
     name: "Script Decoder",
-    category: "Decoders",
+    category: "Analysis",
     enabled: true,
     load: () => import("./ScriptDecoder/ScriptDecoder.svelte"),
   },
@@ -255,9 +255,30 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
-/** Tools grouped by category, preserving definition order. */
+/**
+ * Sidebar order: groups by job, top to bottom, and tools within each group.
+ * Each tool's `category` must match the group it is listed under here; a
+ * tool missing from this list still shows, at the end of its group.
+ */
+const LAYOUT: { category: string; tools: string[] }[] = [
+  { category: "Workspace", tools: ["projects"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "config-diff", "script-decoder"] },
+  { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
+  { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
+  { category: "Servers", tools: ["syslog-server", "tftp-server"] },
+  { category: "Remote", tools: ["ssh"] },
+  { category: "Utilities", tools: ["subnet-calculator", "regex-builder", "grep-builder", "mac-vendor"] },
+  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
+];
+
+/** Tools grouped for the sidebar, in LAYOUT order. */
 export function toolGroups(): ToolGroup[] {
-  const groups: ToolGroup[] = [];
+  const groups: ToolGroup[] = LAYOUT.map((g) => ({ category: g.category, tools: [] }));
+  const rank = (t: ToolDef) => {
+    const g = LAYOUT.find((l) => l.category === t.category);
+    const i = g ? g.tools.indexOf(t.id) : -1;
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
   for (const tool of TOOLS) {
     let group = groups.find((g) => g.category === tool.category);
     if (!group) {
@@ -266,7 +287,8 @@ export function toolGroups(): ToolGroup[] {
     }
     group.tools.push(tool);
   }
-  return groups;
+  for (const g of groups) g.tools.sort((a, b) => rank(a) - rank(b));
+  return groups.filter((g) => g.tools.length > 0);
 }
 
 export function findTool(id: string): ToolDef | undefined {
