@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { confirm as ask } from "@tauri-apps/plugin-dialog";
   import { invoke, Channel } from "@tauri-apps/api/core";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import { selectOnFocus } from "$lib/actions/selectOnFocus";
@@ -135,7 +136,7 @@
   }
 
   async function deleteDevice(d: WolDevice) {
-    if (!confirm(`Delete ${d.name}?`)) return;
+    if (!(await ask(`Delete ${d.name}?`, { title: "Delete device", kind: "warning" }))) return;
     try {
       await persist(devices.filter((x) => x.id !== d.id));
       if (editingId === d.id) clearForm();

@@ -45,11 +45,14 @@ use tools::ssh::commands::{
     SshRegistry, ssh_close, ssh_connect, ssh_forget_host, ssh_resize, ssh_secret_delete,
     ssh_secret_has, ssh_secret_set, ssh_write,
 };
-use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
+use tools::subnet_calculator::commands::{
+    cidr_aggregate, cidr_compare, subnet_calculate, subnet_split,
+};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
 };
 use tools::tftp_server::commands::{TftpRegistry, tftp_start, tftp_stop};
+use tools::timestamp::commands::{ts_convert, ts_now};
 use tools::tls_inspector::commands::{tls_decode, tls_decode_file, tls_inspect, tls_test_suites};
 use tools::traceroute::commands::{TraceRegistry, trace_method, trace_run, trace_stop};
 use tools::wake_on_lan::commands::{WolRegistry, wol_check, wol_interfaces, wol_send, wol_stop};
@@ -77,6 +80,8 @@ pub fn run() {
         .manage(SshRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
+            cidr_aggregate,
+            cidr_compare,
             subnet_calculate,
             subnet_split,
             regex_test,
@@ -144,6 +149,8 @@ pub fn run() {
             mon_start,
             mon_stop,
             mon_save,
+            ts_convert,
+            ts_now,
             tls_decode,
             tls_decode_file,
             tls_inspect,

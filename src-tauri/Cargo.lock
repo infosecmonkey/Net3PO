@@ -3586,6 +3586,7 @@ dependencies = [
  "hickory-resolver",
  "idna",
  "if-addrs",
+ "jiff",
  "keyring",
  "libc",
  "lzma-rs",

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildPortMapReport } from "./report";
   import { save } from "@tauri-apps/plugin-dialog";
   import type { MacRow, PortMap, PortMapEvent, PortRow } from "$lib/tools/types";
   import { selectOnFocus } from "$lib/actions/selectOnFocus";
@@ -353,6 +355,9 @@
       </div>
       {#if map.sysDescr}<div class="descr muted">{map.sysDescr}</div>{/if}
     </div>
+    <div class="export-row">
+      <ExportMenu build={() => (map ? buildPortMapReport(host, map) : null)} name={`portmap-${(map.sysName || host).trim()}`} />
+    </div>
 
     {#each map.warnings as w (w)}
       <div class="warn">{w}</div>
@@ -482,6 +487,12 @@
 </div>
 
 <style>
+  .export-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.4rem 0;
+  }
+
   .panel {
     --st-up: #2ea043;
     --st-down: #6e7681;

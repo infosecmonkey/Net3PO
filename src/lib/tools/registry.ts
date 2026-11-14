@@ -40,6 +40,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./HashCalculator/HashCalculator.svelte"),
   },
   {
+    id: "timestamp-converter",
+    icon: "clock",
+    name: "Timestamp Converter",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./TimestampConverter/TimestampConverter.svelte"),
+  },
+  {
     id: "regex-builder",
     icon: "regex",
     name: "Regex Builder",
@@ -275,7 +283,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
-  { category: "Utilities", tools: ["subnet-calculator", "hash-calculator", "regex-builder", "grep-builder", "mac-vendor"] },
+  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "regex-builder", "grep-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
 ];
 
