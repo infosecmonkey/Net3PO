@@ -29,6 +29,7 @@ use tools::fortinet_builder::commands::{
 use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
+use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
@@ -146,6 +147,8 @@ pub fn run() {
             hash_stop,
             hash_compare,
             http_send,
+            ioc_extract,
+            ioc_transform,
             mon_start,
             mon_stop,
             mon_save,

@@ -13,6 +13,7 @@ pub mod fortinet_builder;
 pub mod grep_builder;
 pub mod hashes;
 pub mod http_client;
+pub mod ioc;
 pub mod mac_vendor;
 pub mod port_mapper;
 pub mod port_scanner;
