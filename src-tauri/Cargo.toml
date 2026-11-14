@@ -57,6 +57,8 @@ ring = "0.17"
 x509-parser = { version = "0.18", features = ["verify"] }
 evtx = { version = "0.15", default-features = false }
 quick-xml = "0.42"
+# Timestamp converter; already in the tree via evtx (tzdb bundled on Windows).
+jiff = "0.2"
 mail-parser = "1"
 idna = "1"
 
