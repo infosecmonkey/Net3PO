@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 use tauri::ipc::Channel;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream, UdpSocket, lookup_host};
+use tokio::net::{TcpListener, TcpSocket, TcpStream, UdpSocket, lookup_host};
 use tokio::sync::watch;
 
 use super::core::{self, Chunk, Outcome, PayloadKind, Stats};
@@ -109,6 +109,20 @@ fn bind_error(proto: &str, addr: &SocketAddr, e: std::io::Error) -> String {
     }
 }
 
+/// TCP connect that reports a refusal at once on every OS. Windows would
+/// otherwise retry the SYN for about two seconds after a RST, turning a
+/// refused port into a timeout.
+async fn connect(addr: SocketAddr) -> std::io::Result<TcpStream> {
+    let socket = if addr.is_ipv4() {
+        TcpSocket::new_v4()?
+    } else {
+        TcpSocket::new_v6()?
+    };
+    #[cfg(windows)]
+    crate::tools::port_scanner::commands::fast_refusal(&socket);
+    socket.connect(addr).await
+}
+
 // ------------------------------------------------------------------ sender
 
 #[derive(Debug, Clone, Deserialize)]
@@ -185,7 +199,7 @@ async fn send_tcp(
 ) -> Result<(), String> {
     let timeout = Duration::from_millis(req.connect_timeout_ms.clamp(100, 60_000));
     let t0 = Instant::now();
-    let mut s = match tokio::time::timeout(timeout, TcpStream::connect(addr)).await {
+    let mut s = match tokio::time::timeout(timeout, connect(addr)).await {
         Ok(Ok(s)) => s,
         Ok(Err(e)) => return Err(format!("connect to {addr}: {}", core::classify(&e).1)),
         Err(_) => {
@@ -561,7 +575,7 @@ pub async fn sock_timing(
         let t = Instant::now();
         let (outcome, detail) = tokio::select! {
             _ = stop.changed() => { stopped = true; break; }
-            r = tokio::time::timeout(timeout, TcpStream::connect(addr)) => match r {
+            r = tokio::time::timeout(timeout, connect(addr)) => match r {
                 Ok(Ok(s)) => {
                     drop(s);
                     (Outcome::Connected, String::new())
@@ -732,7 +746,7 @@ mod tests {
         let (tx, mut rx) = watch::channel(false);
         let task =
             tokio::spawn(async move { listen_tcp(l, false, Vec::new(), &mut rx, &ch).await });
-        let mut c = TcpStream::connect(addr).await.unwrap();
+        let mut c = connect(addr).await.unwrap();
         c.write_all(b"hello").await.unwrap();
         drop(c);
         tokio::time::sleep(Duration::from_millis(200)).await;
