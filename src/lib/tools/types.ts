@@ -567,6 +567,93 @@ export interface DecodeResult {
   notes: string[];
 }
 
+// Windows Event Log Reader
+
+export interface EvtLoadSummary {
+  datasetId: number;
+  name: string;
+  format: "evtx" | "xml" | "csv";
+  records: number;
+  errorCount: number;
+  errors: string[];
+  warnings: string[];
+  truncated: boolean;
+  cancelled: boolean;
+  firstMs: number | null;
+  lastMs: number | null;
+  zoneUnknown: boolean;
+}
+
+export interface EvtFilter {
+  providers: string[];
+  channels: string[];
+  ids: string;
+  levels: number[];
+  outcome: "" | "success" | "failure";
+  computers: string[];
+  fromMs: number | null;
+  toMs: number | null;
+  text: string;
+  field: string;
+  newestFirst: boolean;
+}
+
+export interface EvtRow {
+  index: number;
+  timeRaw: string;
+  timeUtcMs: number | null;
+  zoneUnknown: boolean;
+  eventId: number;
+  provider: string;
+  channel: string;
+  level: string;
+  outcome: string;
+  computer: string;
+  title: string;
+  summary: string;
+}
+
+export interface EvtCount {
+  value: string;
+  count: number;
+  label: string;
+}
+
+export interface EvtQueryResult {
+  total: number;
+  matched: number;
+  offset: number;
+  rows: EvtRow[];
+  facets: { providers: EvtCount[]; channels: EvtCount[]; ids: EvtCount[]; levels: EvtCount[]; computers: EvtCount[] };
+  timeline: { startMs: number; bucketMs: number; counts: number[] };
+}
+
+export interface EvtRecord {
+  index: number;
+  recordId: number | null;
+  timeRaw: string;
+  timeUtcMs: number | null;
+  zoneUnknown: boolean;
+  sortMs: number;
+  provider: string;
+  channel: string;
+  eventId: number;
+  level: number;
+  outcome: string;
+  computer: string;
+  userSid: string;
+  fields: [string, string][];
+  message: string;
+  raw: string;
+}
+
+export interface EvtRecordDetail {
+  record: EvtRecord;
+  levelName: string;
+  explanation: { title: string; meaning: string; lookAt: string[]; caution: string } | null;
+  decoded: [string, string][];
+}
+
 // Email Header Analyzer
 
 export type EmailSev = "pass" | "info" | "warn" | "fail";

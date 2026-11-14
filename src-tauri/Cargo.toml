@@ -49,6 +49,8 @@ data-encoding = "2"
 lzma-rs = "0.3"
 russh = { version = "0.65", default-features = false, features = ["ring", "rsa", "flate2"] }
 keyring = "4"
+evtx = { version = "0.15", default-features = false }
+quick-xml = "0.42"
 mail-parser = "1"
 idna = "1"
 

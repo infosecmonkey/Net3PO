@@ -16,6 +16,10 @@ use tools::dns_analyzer::commands::dns_analyze;
 use tools::email_analyzer::commands::{
     email_analyze, email_blocklist_check, email_blocklists, email_ip_owner, email_open,
 };
+use tools::event_log::commands::{
+    EventLogRegistry, evtlog_cancel, evtlog_close, evtlog_export_rows, evtlog_load, evtlog_query,
+    evtlog_record,
+};
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
 use tools::fortinet_builder::commands::{
     fortinet_bpf_add, fortinet_bpf_preset, fortinet_build, fortinet_offload_snippet,
@@ -56,6 +60,7 @@ pub fn run() {
         .manage(SweepRegistry::default())
         .manage(PortMapRegistry::default())
         .manage(DhcpRegistry::default())
+        .manage(EventLogRegistry::default())
         .manage(WolRegistry::default())
         .manage(TraceRegistry::default())
         .manage(StoreLock::default())
@@ -119,6 +124,12 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            evtlog_load,
+            evtlog_cancel,
+            evtlog_query,
+            evtlog_record,
+            evtlog_export_rows,
+            evtlog_close,
             email_analyze,
             email_open,
             email_blocklists,
