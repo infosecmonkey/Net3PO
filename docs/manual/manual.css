@@ -1,0 +1,68 @@
+/* Net3PO manual pages. Builds on style.css (same tokens, no external assets). */
+.manual .m-top { display: flex; align-items: center; gap: 24px; }
+.manual .m-top a { color: var(--muted); font-size: 15px; font-weight: 500; }
+.manual .m-top a:hover { color: var(--text); text-decoration: none; }
+.manual .m-top .btn-ghost { color: var(--text); }
+
+.m-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding-top: 32px; padding-bottom: 64px; align-items: start; }
+
+.m-side {
+  position: sticky; top: 80px; max-height: calc(100vh - 96px); overflow-y: auto;
+  font-size: 14px; padding-right: 8px; border-right: 1px solid var(--border);
+}
+.m-side ul { list-style: none; margin: 0 0 6px; padding: 0; }
+.m-side a { display: block; padding: 4px 10px; border-radius: 6px; color: #c9cdd5; }
+.m-side a:hover { background: var(--panel); text-decoration: none; }
+.m-side a[aria-current="page"] { background: var(--orange-soft); color: var(--orange); font-weight: 600; box-shadow: inset 2px 0 0 var(--orange); }
+.m-group {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--dim); padding: 14px 10px 4px;
+}
+
+.m-jump { display: none; }
+.m-doc { min-width: 0; max-width: 820px; font-size: 16px; }
+.m-doc h1 { font-size: clamp(32px, 4vw, 44px); margin: 0 0 18px; }
+.m-doc h2 { font-size: 26px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+.m-doc h3 { font-size: 19px; margin: 28px 0 8px; }
+.m-doc h4 { font-size: 16px; margin: 22px 0 6px; }
+.m-doc .anchor { color: inherit; }
+.m-doc .anchor:hover { text-decoration: none; color: var(--orange); }
+.m-doc p, .m-doc li { color: #d3d7de; }
+.m-doc ul, .m-doc ol { padding-left: 24px; }
+.m-doc li { margin: 4px 0; }
+.m-doc strong { color: var(--text); }
+.m-doc blockquote {
+  margin: 0 0 24px; padding: 12px 18px; border-left: 3px solid var(--orange);
+  background: var(--panel); border-radius: 0 8px 8px 0; color: var(--muted);
+}
+.m-doc blockquote p { margin: 0; color: var(--muted); }
+.m-doc code {
+  font-family: var(--mono); font-size: 0.88em; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px;
+}
+.m-doc pre {
+  background: #0d0f13; border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; line-height: 1.5;
+}
+.m-doc pre code { background: none; border: 0; padding: 0; font-size: 13.5px; }
+.m-doc .table-wrap { overflow-x: auto; margin: 16px 0 24px; }
+.m-doc table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+.m-doc th, .m-doc td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.m-doc th { color: var(--muted); font-weight: 600; background: var(--panel); }
+.m-doc hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
+
+@media (max-width: 900px) {
+  .m-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 16px; }
+  .m-side, .m-doc { min-width: 0; }
+  .m-side { order: 2; position: static; max-height: none; border-right: 0; border-top: 1px solid var(--border); padding-top: 12px; columns: 2; }
+  .m-doc { order: 1; }
+  .m-jump { display: inline-block; margin-bottom: 12px; font-family: var(--mono); font-size: 13px; }
+  .m-side ul, .m-group { break-inside: avoid; }
+}
+@media (max-width: 720px) {
+  .wrap { padding: 0 16px; }
+  .manual .m-top { gap: 14px; }
+  .manual .m-top a:not(.btn) { font-size: 14px; }
+  .manual .m-top .btn { display: none; }
+  .m-side { columns: 1; }
+}
