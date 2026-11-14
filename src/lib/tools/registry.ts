@@ -40,6 +40,22 @@ const TOOLS: ToolDef[] = [
     load: () => import("./MtuCalculator/MtuCalculator.svelte"),
   },
   {
+    id: "hash-calculator",
+    icon: "hash",
+    name: "Hash Calculator",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./HashCalculator/HashCalculator.svelte"),
+  },
+  {
+    id: "timestamp-converter",
+    icon: "clock",
+    name: "Timestamp Converter",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./TimestampConverter/TimestampConverter.svelte"),
+  },
+  {
     id: "regex-builder",
     icon: "regex",
     name: "Regex Builder",
@@ -54,6 +70,14 @@ const TOOLS: ToolDef[] = [
     category: "Utilities",
     enabled: true,
     load: () => import("./GrepBuilder/GrepBuilder.svelte"),
+  },
+  {
+    id: "filter-builder",
+    icon: "filter",
+    name: "Filter Builder",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./FilterBuilder/FilterBuilder.svelte"),
   },
   {
     id: "mac-vendor",
@@ -96,6 +120,14 @@ const TOOLS: ToolDef[] = [
     category: "Analysis",
     enabled: true,
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
+  },
+  {
+    id: "ioc-extractor",
+    icon: "scan-search",
+    name: "IOC Extractor",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./IocExtractor/IocExtractor.svelte"),
   },
   {
     id: "tls-inspector",
@@ -241,6 +273,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./ScriptDecoder/ScriptDecoder.svelte"),
   },
+  {
+    id: "encoder-workbench",
+    icon: "binary",
+    name: "Encoder Workbench",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./EncoderWorkbench/EncoderWorkbench.svelte"),
+  },
 
   // Remote access
   {
@@ -270,12 +310,12 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "config-diff", "script-decoder"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
-  { category: "Utilities", tools: ["subnet-calculator", "mtu-calculator", "regex-builder", "grep-builder", "mac-vendor"] },
+  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
 ];
 
