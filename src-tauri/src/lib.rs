@@ -35,6 +35,9 @@ use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
+use tools::pcap_inspector::commands::{
+    PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
+};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
@@ -68,6 +71,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(PcapRegistry::default())
         .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
         .manage(SocketRegistry::default())
@@ -96,6 +100,12 @@ pub fn run() {
             grep_preview,
             mac_lookup,
             mtu_calculate,
+            pcap_open,
+            pcap_cancel,
+            pcap_close,
+            pcap_query,
+            pcap_packet,
+            pcap_open_external,
             mac_db_info,
             fgt_parse,
             filter_build,
