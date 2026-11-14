@@ -1,5 +1,7 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildWalkReport } from "./report";
   import { open } from "@tauri-apps/plugin-dialog";
   import type { SnmpWalkEvent } from "$lib/tools/types";
   import { selectOnFocus } from "$lib/actions/selectOnFocus";
@@ -188,6 +190,10 @@
       <button class="action" onclick={walk}>Walk</button>
     {/if}
     {#if doneMsg}<span class="done muted">{doneMsg}</span>{/if}
+    {#if rows.length > 0 && !walking}
+      <span class="push"></span>
+      <ExportMenu build={() => buildWalkReport(host, port, version, startOid, rows, doneMsg)} name={`snmpwalk-${host.trim()}`} />
+    {/if}
   </div>
 
   {#if error}
@@ -219,6 +225,10 @@
 </div>
 
 <style>
+  .push {
+    flex: 1;
+  }
+
   .panel {
     padding: 1.5rem 2rem;
     max-width: 1000px;

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildTraceReport } from "./report";
   import { tick } from "svelte";
   import type { HopView, MtuResult, PathSummary, TraceEvent, TraceFinding } from "$lib/tools/types";
   import LatencyChart from "./LatencyChart.svelte";
@@ -191,6 +193,12 @@
 
   {#if error}
     <div class="error mono">{error}</div>
+  {/if}
+
+  {#if hops.length && !running}
+    <div class="export-row">
+      <ExportMenu build={() => buildTraceReport(target, resolved, method, hops, summary, mtu)} name={`traceroute-${target.trim()}`} />
+    </div>
   {/if}
 
   {#if summary}
@@ -419,6 +427,12 @@
 </div>
 
 <style>
+  .export-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.4rem 0;
+  }
+
   .panel {
     /* Chart series and status colors, validated against the app surfaces. */
     --viz-series: #2a78d6;

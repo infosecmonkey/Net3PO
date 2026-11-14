@@ -1,5 +1,7 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildDhcpReport } from "./report";
   import type { DhcpEvent, DhcpServerRecord, NetInterface } from "$lib/tools/types";
 
   const MAX_LOG = 300;
@@ -199,7 +201,10 @@
   {/if}
 
   {#if servers.length > 0}
-    <h2>Servers</h2>
+    <div class="export-row">
+      <h2>Servers</h2>
+      <ExportMenu build={() => buildDhcpReport(iface, authorized, probes, servers, warnings)} name="dhcp-servers" />
+    </div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -260,6 +265,12 @@
 </div>
 
 <style>
+  .export-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .panel {
     --st-ok: #2ea043;
     --st-bad: #d1453b;
