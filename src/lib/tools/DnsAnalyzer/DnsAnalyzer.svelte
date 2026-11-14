@@ -3,6 +3,8 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { DnsAnalysis, Severity } from "$lib/tools/types";
   import { buildDnsReport } from "./report";
+  import { takePendingDns } from "$lib/nav.svelte";
+  import { onMount } from "svelte";
 
   let domain = $state("");
   let server = $state("");
@@ -33,6 +35,17 @@
       loading = false;
     }
   }
+
+  // Opened from another tool (for example the Email Header Analyzer's DKIM
+  // check): fill in the request and run it.
+  onMount(() => {
+    const p = takePendingDns();
+    if (p) {
+      domain = p.domain;
+      selectorsStr = p.selectors.join(", ");
+      void analyze();
+    }
+  });
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Enter") analyze();

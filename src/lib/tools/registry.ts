@@ -82,6 +82,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "email-analyzer",
+    icon: "mail-search",
+    name: "Email Header Analyzer",
+    category: "Network",
+    enabled: true,
+    load: () => import("./EmailAnalyzer/EmailAnalyzer.svelte"),
+  },
+  {
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",

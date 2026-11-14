@@ -566,3 +566,158 @@ export interface DecodeResult {
   flags: DecodeFlag[];
   notes: string[];
 }
+
+// Email Header Analyzer
+
+export type EmailSev = "pass" | "info" | "warn" | "fail";
+
+export interface EmailFinding {
+  severity: EmailSev;
+  category: string;
+  title: string;
+  detail: string;
+}
+
+export interface EmailAddressRow {
+  role: string;
+  name: string;
+  address: string;
+  domain: string;
+}
+
+export interface EmailHop {
+  index: number;
+  fromHost: string;
+  helo: string;
+  fromIp: string;
+  fromRdns: string;
+  byHost: string;
+  protocol: string;
+  tls: string;
+  id: string;
+  forAddr: string;
+  timestamp: number | null;
+  date: string;
+  delaySecs: number | null;
+  nonPublicIp: boolean;
+  parsed: boolean;
+  raw: string;
+}
+
+export interface EmailOrigin {
+  ip: string;
+  host: string;
+  hop: number;
+  basis: "handoff" | "earliest";
+  explanation: string;
+}
+
+export interface EmailAuthMethod {
+  method: string;
+  result: string;
+  props: [string, string][];
+}
+
+export interface EmailAuthResults {
+  header: string;
+  authservId: string;
+  instance: number | null;
+  methods: EmailAuthMethod[];
+}
+
+export interface EmailDkim {
+  domain: string;
+  selector: string;
+  algorithm: string;
+  canonicalization: string;
+  identity: string;
+  signedHeaders: string[];
+  timestamp: number | null;
+  expires: number | null;
+  bodyLength: number | null;
+  alignment: "strict" | "relaxed" | "none";
+  keyName: string;
+  notes: string[];
+}
+
+export interface EmailLookalike {
+  domain: string;
+  resembles: string;
+  against: "message" | "known" | "brand";
+  reason: string;
+}
+
+export interface EmailAttachment {
+  name: string;
+  contentType: string;
+  size: number;
+  risky: boolean;
+}
+
+export interface EmailDomainRow {
+  domain: string;
+  unicode: string;
+  roles: string[];
+}
+
+export interface EmailIoc {
+  kind: string;
+  value: string;
+  defanged: string;
+  layer: number;
+  private: boolean;
+}
+
+export interface EmailAnalysis {
+  inputKind: "headers" | "message";
+  subject: string;
+  date: string;
+  dateTs: number | null;
+  messageId: string;
+  addresses: EmailAddressRow[];
+  domains: EmailDomainRow[];
+  hops: EmailHop[];
+  origin: EmailOrigin[];
+  authResults: EmailAuthResults[];
+  receivedSpf: string[];
+  dkim: EmailDkim[];
+  arcSets: number;
+  lookalikes: EmailLookalike[];
+  attachments: EmailAttachment[];
+  textParts: number;
+  htmlParts: number;
+  iocs: EmailIoc[];
+  notableHeaders: [string, string][];
+  headers: [string, string][];
+  findings: EmailFinding[];
+}
+
+export interface EmailBlocklist {
+  zone: string;
+  name: string;
+  note: string;
+}
+
+export interface EmailIpOwner {
+  ip: string;
+  ptr: string[];
+  origin: {
+    asns: number[];
+    prefix: string;
+    country: string;
+    registry: string;
+    allocated: string;
+  } | null;
+  asName: string;
+  source: string;
+  lookedUpMs: number;
+  errors: string[];
+}
+
+export type EmailListingStatus = "listed" | "notListed" | "refused" | "error";
+
+export interface EmailBlocklistReport {
+  ip: string;
+  results: { zone: string; status: EmailListingStatus; detail: string; reason: string }[];
+  lookedUpMs: number;
+}
