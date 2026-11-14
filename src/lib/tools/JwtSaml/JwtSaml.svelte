@@ -3,6 +3,7 @@
   // shown separately. Keys and tokens stay in memory only; nothing here is
   // saved, logged or fetched.
   import { invoke } from "@tauri-apps/api/core";
+  import { open } from "@tauri-apps/plugin-dialog";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import { selectOnFocus } from "$lib/actions/selectOnFocus";
   import { buildJwtReport, buildSamlReport, samlFields, SIG_LABEL, type Check, type JwtResult, type SamlResult } from "./model";
@@ -25,6 +26,19 @@
   let sSkew = $state(60);
   let saml = $state<SamlResult | null>(null);
   let sErr = $state("");
+  let found = $state<{ message: string; source: string; line: number }[]>([]);
+  let pick = $state(0);
+
+  async function openCapture() {
+    const p = await open({ multiple: false, filters: [{ name: "Captures", extensions: ["json", "har", "txt", "log", "xml", "html"] }, { name: "All files", extensions: ["*"] }] });
+    if (typeof p !== "string") return;
+    try {
+      pick = 0;
+      samlIn = await invoke<string>("saml_read_file", { path: p });
+    } catch (e) {
+      sErr = String(e);
+    }
+  }
 
   let jt: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
@@ -48,17 +62,20 @@
 
   let st: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
-    const args = { input: samlIn, expect: { issuer: sIssuer, audience: sAudience, recipient: sRecipient, skewSecs: Number(sSkew) || 0 } };
+    const args = { input: samlIn, expect: { issuer: sIssuer, audience: sAudience, recipient: sRecipient, skewSecs: Number(sSkew) || 0 }, pick };
     clearTimeout(st);
     st = setTimeout(async () => {
       if (!samlIn.trim()) {
         saml = null;
         sErr = "";
+        found = [];
         return;
       }
       try {
-        saml = await invoke<SamlResult>("saml_inspect", args);
-        sErr = "";
+        const r = await invoke<{ found: { message: string; source: string; line: number }[]; selected: number; result: SamlResult | null; error: string | null }>("saml_scan", args);
+        found = r.found;
+        saml = r.result;
+        sErr = r.error ?? "";
       } catch (e) {
         saml = null;
         sErr = String(e);
@@ -139,7 +156,21 @@
       </div>
     {/if}
   {:else}
-    <textarea class="mono" rows="5" bind:value={samlIn} spellcheck="false" placeholder="paste a SAMLResponse (Base64), a Redirect URL with SAMLRequest=, or raw SAML XML"></textarea>
+    <textarea class="mono" rows="5" bind:value={samlIn} oninput={() => (pick = 0)} spellcheck="false" placeholder="paste a SAML-tracer export, HAR, FortiGate samld debug output, a URL with SAMLRequest=, a SAMLResponse value, or the XML"></textarea>
+    <div class="caprow">
+      <button class="second" onclick={openCapture}>Open capture...</button>
+      <span class="muted small">SAML-tracer JSON, browser HAR, FortiGate <span class="mono">diagnose debug application samld -1</span> output, or saved XML</span>
+    </div>
+    {#if found.length > 1}
+      <div class="found">
+        <span class="muted small">{found.length} SAML messages found:</span>
+        {#each found as f, i (i)}
+          <button class="fchip" class:on={pick === i} onclick={() => (pick = i)} title="{f.source}, line {f.line}">{i + 1}. {f.message}</button>
+        {/each}
+      </div>
+    {:else if found.length === 1}
+      <div class="muted small">Found a {found[0].message} ({found[0].source}, line {found[0].line}).</div>
+    {/if}
     <details class="exp" open>
       <summary>Expectations (optional)</summary>
       <div class="grid2">
@@ -254,6 +285,41 @@
 
   .exp {
     margin: 0.6rem 0;
+  }
+
+  .caprow,
+  .found {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.5rem 0;
+  }
+
+  .second {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.8rem;
+    color: var(--fg);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .fchip {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.12rem 0.6rem;
+    color: var(--fg);
+    font-size: 0.76rem;
+    cursor: pointer;
+  }
+
+  .fchip.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
   }
 
   summary {

@@ -33,7 +33,7 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
-use tools::jwt_saml::commands::{jwt_inspect, saml_inspect};
+use tools::jwt_saml::commands::{jwt_inspect, saml_inspect, saml_read_file, saml_scan};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
 use tools::ntp_check::commands::ntp_check;
@@ -171,6 +171,8 @@ pub fn run() {
             ioc_extract,
             jwt_inspect,
             saml_inspect,
+            saml_scan,
+            saml_read_file,
             ioc_transform,
             mon_start,
             mon_stop,

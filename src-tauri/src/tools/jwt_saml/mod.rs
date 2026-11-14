@@ -2,6 +2,7 @@
 //! signatures only with keys the user supplies, and check times, issuer,
 //! audience and recipient against expectations. Offline.
 
+pub mod capture;
 pub mod commands;
 pub mod jwt;
 pub mod saml;
