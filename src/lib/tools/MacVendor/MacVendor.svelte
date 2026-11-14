@@ -1,5 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { buildMacReport } from "./report";
   import type { MacDbInfo, MacInfo } from "$lib/tools/types";
 
   let mac = $state("");
@@ -73,6 +75,9 @@
   {/if}
 
   {#if info}
+    <div class="export-row">
+      <ExportMenu build={() => (info ? buildMacReport(info, db) : null)} name={`mac-${info.normalized.replace(/[:.-]/g, "")}`} />
+    </div>
     <div class="result">
       <div class="vendor">
         {#if info.vendor}
@@ -111,6 +116,12 @@
 </div>
 
 <style>
+  .export-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.4rem 0;
+  }
+
   .panel {
     padding: 1.5rem 2rem;
     max-width: 760px;
