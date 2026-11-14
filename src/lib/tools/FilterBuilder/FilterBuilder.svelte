@@ -23,6 +23,26 @@
   let iface = $state("any");
   let result = $state<Filters | null>(null);
   let copied = $state("");
+  type Target = "tcpdump" | "wireshark" | "fortigate";
+  let target = $state<Target>("wireshark");
+  const TARGETS: { id: Target; label: string }[] = [
+    { id: "tcpdump", label: "tcpdump" },
+    { id: "wireshark", label: "Wireshark" },
+    { id: "fortigate", label: "FortiGate" },
+  ];
+
+  /** The capture filter as a tcpdump command line. */
+  function tcpdumpCmd(o: Output): Output {
+    if (o.error) return o;
+    return {
+      text: `tcpdump -nn '${o.text}'`,
+      error: null,
+      notes: [
+        "Add -i <interface> to pick an interface (tcpdump -D lists them), and -w file.pcap to save for Wireshark.",
+        ...o.notes,
+      ],
+    };
+  }
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   function schedule() {
@@ -101,7 +121,7 @@
         {#each SCENARIOS as s (s.name)}<option value={s.name}>{s.name}</option>{/each}
       </select>
     </label>
-    <label class="inline">FortiGate interface <input class="mono iface" bind:value={iface} use:selectOnFocus spellcheck="false" /></label>
+    <label class="inline" title="Used in the FortiGate command">FortiGate interface <input class="mono iface" bind:value={iface} use:selectOnFocus spellcheck="false" /></label>
   </div>
 
   {#each groups as g, gi (g.id)}
@@ -160,9 +180,19 @@
         <div class="explain">{result.explanation}</div>
         <ExportMenu build={() => (result ? buildFilterReport(result) : null)} name="filters" />
       </div>
-      {@render outCard("bpf", "Capture filter", "BPF: tcpdump, Wireshark capture options, libpcap", result.bpf)}
-      {@render outCard("ws", "Display filter", "Wireshark display filter bar", result.wireshark)}
-      {@render outCard("fgt", "FortiGate sniffer", "diagnose sniffer packet", result.fortigate)}
+      <div class="targets" role="tablist">
+        {#each TARGETS as t (t.id)}
+          <button role="tab" aria-selected={target === t.id} class:on={target === t.id} onclick={() => (target = t.id)}>{t.label}</button>
+        {/each}
+      </div>
+      {#if target === "tcpdump"}
+        {@render outCard("tcpdump", "tcpdump command", "capture filter (BPF)", tcpdumpCmd(result.bpf))}
+      {:else if target === "wireshark"}
+        {@render outCard("ws", "Display filter", "paste into Wireshark's display filter bar", result.wireshark)}
+        {@render outCard("bpf", "Capture filter", "Capture > Options, before starting a capture (same language as tcpdump)", result.bpf)}
+      {:else}
+        {@render outCard("fgt", "FortiGate sniffer", "diagnose sniffer packet (same filter language as tcpdump)", result.fortigate)}
+      {/if}
     {/if}
   {/if}
 </div>
@@ -323,6 +353,32 @@
 
   .explain {
     font-size: 0.86rem;
+  }
+
+  .targets {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
+  }
+
+  .targets button {
+    background: var(--input-bg);
+    border: none;
+    color: var(--muted);
+    padding: 0.38rem 1rem;
+    font-size: 0.84rem;
+    cursor: pointer;
+  }
+
+  .targets button + button {
+    border-left: 1px solid var(--border);
+  }
+
+  .targets button.on {
+    background: var(--accent);
+    color: var(--accent-fg);
   }
 
   .out {

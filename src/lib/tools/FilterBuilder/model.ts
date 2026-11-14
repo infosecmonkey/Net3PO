@@ -140,7 +140,7 @@ export function buildFilterReport(f: Filters): Report {
     subtitle: f.explanation,
     tool: "Filter Builder",
     sections: [
-      out("Capture filter (BPF: tcpdump, Wireshark capture, libpcap)", f.bpf),
+      out("tcpdump / Wireshark capture filter (BPF)", f.bpf),
       out("Wireshark display filter", f.wireshark),
       out("FortiGate sniffer command", f.fortigate),
     ],
