@@ -567,6 +567,270 @@ export interface DecodeResult {
   notes: string[];
 }
 
+// Windows Event Log Reader
+
+export interface EvtLoadSummary {
+  datasetId: number;
+  name: string;
+  format: "evtx" | "xml" | "csv";
+  records: number;
+  errorCount: number;
+  errors: string[];
+  warnings: string[];
+  truncated: boolean;
+  cancelled: boolean;
+  firstMs: number | null;
+  lastMs: number | null;
+  zoneUnknown: boolean;
+}
+
+export interface EvtFilter {
+  providers: string[];
+  channels: string[];
+  ids: string;
+  levels: number[];
+  outcome: "" | "success" | "failure";
+  computers: string[];
+  fromMs: number | null;
+  toMs: number | null;
+  text: string;
+  field: string;
+  newestFirst: boolean;
+}
+
+export interface EvtRow {
+  index: number;
+  timeRaw: string;
+  timeUtcMs: number | null;
+  zoneUnknown: boolean;
+  eventId: number;
+  provider: string;
+  channel: string;
+  level: string;
+  outcome: string;
+  computer: string;
+  title: string;
+  summary: string;
+}
+
+export interface EvtCount {
+  value: string;
+  count: number;
+  label: string;
+}
+
+export interface EvtQueryResult {
+  total: number;
+  matched: number;
+  offset: number;
+  rows: EvtRow[];
+  facets: { providers: EvtCount[]; channels: EvtCount[]; ids: EvtCount[]; levels: EvtCount[]; computers: EvtCount[] };
+  timeline: { startMs: number; bucketMs: number; counts: number[] };
+}
+
+export interface EvtRecord {
+  index: number;
+  recordId: number | null;
+  timeRaw: string;
+  timeUtcMs: number | null;
+  zoneUnknown: boolean;
+  sortMs: number;
+  provider: string;
+  channel: string;
+  eventId: number;
+  level: number;
+  outcome: string;
+  computer: string;
+  userSid: string;
+  fields: [string, string][];
+  message: string;
+  raw: string;
+}
+
+export interface EvtRecordDetail {
+  record: EvtRecord;
+  levelName: string;
+  explanation: { title: string; meaning: string; lookAt: string[]; caution: string } | null;
+  decoded: [string, string][];
+}
+
+// Email Header Analyzer
+
+export type EmailSev = "pass" | "info" | "warn" | "fail";
+
+export interface EmailFinding {
+  severity: EmailSev;
+  category: string;
+  title: string;
+  detail: string;
+}
+
+export interface EmailAddressRow {
+  role: string;
+  name: string;
+  address: string;
+  domain: string;
+}
+
+export interface EmailHop {
+  index: number;
+  fromHost: string;
+  helo: string;
+  fromIp: string;
+  fromRdns: string;
+  byHost: string;
+  protocol: string;
+  tls: string;
+  id: string;
+  forAddr: string;
+  timestamp: number | null;
+  date: string;
+  delaySecs: number | null;
+  nonPublicIp: boolean;
+  parsed: boolean;
+  raw: string;
+}
+
+export interface EmailOrigin {
+  ip: string;
+  host: string;
+  hop: number;
+  basis: "handoff" | "earliest";
+  explanation: string;
+}
+
+export interface EmailAuthMethod {
+  method: string;
+  result: string;
+  props: [string, string][];
+}
+
+export interface EmailAuthResults {
+  header: string;
+  authservId: string;
+  instance: number | null;
+  methods: EmailAuthMethod[];
+}
+
+export interface EmailDkim {
+  domain: string;
+  selector: string;
+  algorithm: string;
+  canonicalization: string;
+  identity: string;
+  signedHeaders: string[];
+  timestamp: number | null;
+  expires: number | null;
+  bodyLength: number | null;
+  alignment: "strict" | "relaxed" | "none";
+  keyName: string;
+  notes: string[];
+}
+
+export interface EmailLookalike {
+  domain: string;
+  resembles: string;
+  against: "message" | "known" | "brand";
+  reason: string;
+}
+
+export interface EmailAttachment {
+  name: string;
+  contentType: string;
+  size: number;
+  risky: boolean;
+}
+
+export interface EmailDomainRow {
+  domain: string;
+  unicode: string;
+  roles: string[];
+}
+
+export interface EmailIoc {
+  kind: string;
+  value: string;
+  defanged: string;
+  layer: number;
+  private: boolean;
+}
+
+export interface EmailAnalysis {
+  inputKind: "headers" | "message";
+  subject: string;
+  date: string;
+  dateTs: number | null;
+  messageId: string;
+  addresses: EmailAddressRow[];
+  domains: EmailDomainRow[];
+  hops: EmailHop[];
+  origin: EmailOrigin[];
+  authResults: EmailAuthResults[];
+  receivedSpf: string[];
+  dkim: EmailDkim[];
+  arcSets: number;
+  lookalikes: EmailLookalike[];
+  attachments: EmailAttachment[];
+  textParts: number;
+  htmlParts: number;
+  iocs: EmailIoc[];
+  notableHeaders: [string, string][];
+  headers: [string, string][];
+  findings: EmailFinding[];
+}
+
+export interface EmailBlocklist {
+  zone: string;
+  name: string;
+  note: string;
+}
+
+export interface EmailRdapContact {
+  handle: string;
+  name: string;
+  roles: string[];
+  emails: string[];
+  phones: string[];
+}
+
+export interface EmailRdapNetwork {
+  handle: string;
+  name: string;
+  range: string;
+  cidrs: string[];
+  country: string;
+  netType: string;
+  owner: string;
+  abuse: EmailRdapContact[];
+  registered: string;
+  lastChanged: string;
+}
+
+export interface EmailIpOwner {
+  ip: string;
+  ptr: string[];
+  origin: {
+    asns: number[];
+    prefix: string;
+    country: string;
+    registry: string;
+    allocated: string;
+  } | null;
+  asName: string;
+  rdap: EmailRdapNetwork | null;
+  rdapUrl: string;
+  source: string;
+  lookedUpMs: number;
+  errors: string[];
+}
+
+export type EmailListingStatus = "listed" | "notListed" | "refused" | "error";
+
+export interface EmailBlocklistReport {
+  ip: string;
+  results: { zone: string; status: EmailListingStatus; detail: string; reason: string }[];
+  lookedUpMs: number;
+}
 // Wake-on-LAN
 
 export type WolDelivery = "limitedBroadcast" | "localBroadcast" | "remoteBroadcast" | "unicast";

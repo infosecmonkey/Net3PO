@@ -7,8 +7,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager, State};
 
-use super::core::{self, ItemEdit, ProjectStore, ProjectSummary, ProjectView};
-use crate::report::core::{self as report, Format, Report};
+use super::core::{self, ItemEdit, NoteInput, ProjectStore, ProjectSummary, ProjectView, ToolNote};
+use crate::report::commands::{self as report_cmd, RedactPreview};
+use crate::report::core::{Format, Report};
+use crate::report::redact::RedactOptions;
 
 /// Serializes project reads and writes.
 #[derive(Default)]
@@ -108,8 +110,54 @@ pub fn project_add(
         .map_err(|e| e.to_string())
 }
 
+fn combined(
+    app: &AppHandle,
+    lock: &State<'_, ProjectsLock>,
+    id: &str,
+    generated: &str,
+) -> Result<Report, String> {
+    let _g = lock.0.lock().unwrap_or_else(|p| p.into_inner());
+    open_store(app)?
+        .report(id, generated)
+        .map_err(|e| e.to_string())
+}
+
+/// Save a timestamped tool note (add, or update the note with the same id).
+#[tauri::command]
+pub fn project_note_save(
+    app: AppHandle,
+    lock: State<'_, ProjectsLock>,
+    id: String,
+    note: NoteInput,
+    edited_label: String,
+) -> Result<ToolNote, String> {
+    let _g = lock.0.lock().unwrap_or_else(|p| p.into_inner());
+    let ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
+    open_store(&app)?
+        .save_note(&id, note, &edited_label, ms)
+        .map_err(|e| e.to_string())
+}
+
+/// Delete a tool note.
+#[tauri::command]
+pub fn project_note_delete(
+    app: AppHandle,
+    lock: State<'_, ProjectsLock>,
+    id: String,
+    note_id: String,
+) -> Result<(), String> {
+    let _g = lock.0.lock().unwrap_or_else(|p| p.into_inner());
+    open_store(&app)?
+        .delete_note(&id, &note_id, now().0)
+        .map_err(|e| e.to_string())
+}
+
 /// Render the whole project as one report and write it to `path` (chosen by
-/// the UI via a native save dialog). Returns the number of bytes written.
+/// the UI via a native save dialog), redacted first when `redact` is set.
+/// Returns the number of bytes written. Stored project data is not changed.
 #[tauri::command]
 pub fn project_export(
     app: AppHandle,
@@ -118,14 +166,21 @@ pub fn project_export(
     format: Format,
     path: String,
     generated: String,
+    redact: Option<RedactOptions>,
 ) -> Result<usize, String> {
-    let combined = {
-        let _g = lock.0.lock().unwrap_or_else(|p| p.into_inner());
-        open_store(&app)?
-            .report(&id, &generated)
-            .map_err(|e| e.to_string())?
-    };
-    let bytes = report::render(&combined, format).map_err(|e| e.to_string())?;
-    std::fs::write(&path, &bytes).map_err(|e| format!("could not write {path}: {e}"))?;
-    Ok(bytes.len())
+    let report = combined(&app, &lock, &id, &generated)?;
+    report_cmd::write_report(&report, format, &path, redact.as_ref())
+}
+
+/// Preview the redaction of a whole-project export.
+#[tauri::command]
+pub fn project_redact_preview(
+    app: AppHandle,
+    lock: State<'_, ProjectsLock>,
+    id: String,
+    generated: String,
+    opts: RedactOptions,
+) -> Result<RedactPreview, String> {
+    let report = combined(&app, &lock, &id, &generated)?;
+    report_cmd::preview(&report, &opts)
 }
