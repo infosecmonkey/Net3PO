@@ -1,6 +1,8 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { SubnetReport, SplitResult } from "$lib/tools/types";
+  import { buildSubnetReport, subnetRows } from "./report";
 
   let input = $state("");
   let splitPrefix = $state(28);
@@ -38,37 +40,7 @@
   }
 
   // Rows for the sipcalc-style grid, built per address family.
-  const rows = $derived(buildRows(report));
-
-  function buildRows(r: SubnetReport | null): [string, string][] {
-    if (!r) return [];
-    if (r.version === "ipv4") {
-      return [
-        ["Address", r.address],
-        ["Network", r.cidr],
-        ["Netmask", `${r.netmask}  (${r.netmaskHex})`],
-        ["Wildcard", r.wildcard],
-        ["Broadcast", r.broadcast],
-        ["Host range", `${r.hostMin} - ${r.hostMax}`],
-        ["Usable hosts", r.usableHosts.toLocaleString()],
-        ["Total addresses", r.totalAddresses.toLocaleString()],
-        ["Class", r.networkClass],
-        ["Type", r.addressType],
-        ["Address (bin)", r.addressBinary],
-        ["Netmask (bin)", r.netmaskBinary],
-        ["Network (bin)", r.networkBinary],
-      ];
-    }
-    return [
-      ["Address", r.addressCompressed],
-      ["Expanded", r.addressExpanded],
-      ["Network", r.cidr],
-      ["Network (expanded)", r.networkExpanded],
-      ["Host range", `${r.hostMin} - ${r.hostMax}`],
-      ["Total addresses", r.totalAddresses],
-      ["Type", r.addressType],
-    ];
-  }
+  const rows = $derived(report ? subnetRows(report) : []);
 </script>
 
 <div class="panel">
@@ -97,6 +69,15 @@
 
   {#if error}
     <div class="error">{error}</div>
+  {/if}
+
+  {#if report || split}
+    <div class="export-row">
+      <ExportMenu
+        build={() => buildSubnetReport(report, split)}
+        name={`subnet-${(report?.cidr ?? split?.parentCidr ?? "").replace(/[/:]/g, "_")}`}
+      />
+    </div>
   {/if}
 
   {#if report}
@@ -164,6 +145,12 @@
     margin: 0 0 1.25rem;
     color: var(--muted);
     font-size: 0.85rem;
+  }
+
+  .export-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
   }
 
   .controls {
