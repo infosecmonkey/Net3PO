@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import type { RedactOptions } from "./redact";
 import type { Report, ReportFormat } from "./types";
 
 export const FORMATS: { id: ReportFormat; label: string; ext: string }[] = [
@@ -35,6 +36,7 @@ export async function exportReport(
   report: Report,
   format: ReportFormat,
   baseName: string,
+  redact: RedactOptions | null = null,
 ): Promise<string | null> {
   const f = FORMATS.find((x) => x.id === format)!;
   const path = await save({
@@ -46,6 +48,7 @@ export async function exportReport(
     report: { generated: generatedNow(), ...report },
     format,
     path,
+    redact,
   });
   return path;
 }

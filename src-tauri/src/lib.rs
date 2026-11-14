@@ -5,9 +5,9 @@ mod tools;
 
 use projects::commands::{
     ProjectsLock, project_add, project_create, project_delete, project_export, project_get,
-    project_list, project_note_delete, project_note_save, project_update,
+    project_list, project_note_delete, project_note_save, project_redact_preview, project_update,
 };
-use report::commands::report_export;
+use report::commands::{report_export, report_redact_preview};
 use store::commands::{StoreLock, store_load, store_save};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
@@ -83,6 +83,7 @@ pub fn run() {
             diff_read_file,
             diff_save,
             report_export,
+            report_redact_preview,
             ssh_connect,
             ssh_write,
             ssh_resize,
@@ -100,6 +101,7 @@ pub fn run() {
             project_delete,
             project_add,
             project_export,
+            project_redact_preview,
             project_note_save,
             project_note_delete,
             dig_query,

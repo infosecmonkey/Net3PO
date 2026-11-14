@@ -7,6 +7,7 @@
     deleteProject,
     exportProject,
     getProject,
+    previewProjectRedaction,
     listProjects,
     takePendingProject,
     updateProject,
@@ -17,6 +18,8 @@
   import { editNote, notes as notePanel, setActiveProject } from "$lib/notes.svelte";
   import { FORMATS, safeName } from "$lib/report/export";
   import type { ReportFormat } from "$lib/report/types";
+  import type { RedactOptions } from "$lib/report/redact";
+  import RedactDialog from "$lib/components/RedactDialog.svelte";
 
   let projects = $state<ProjectSummary[]>([]);
   let selectedId = $state<string | null>(null);
@@ -72,6 +75,7 @@
   let error = $state("");
   let message = $state("");
   let busy = $state(false);
+  let redacting = $state(false);
 
   // Edits are saved after a short pause; structural changes save at once.
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -207,6 +211,25 @@
     }
   }
 
+  async function startRedacted() {
+    if (!selectedId) return;
+    await flush();
+    redacting = true;
+  }
+
+  async function saveRedacted(opts: RedactOptions, format: ReportFormat): Promise<string | null> {
+    if (!selectedId) return null;
+    const f = FORMATS.find((x) => x.id === format)!;
+    // The project name is often the customer; use a neutral file name.
+    const path = await save({
+      defaultPath: `project-redacted.${f.ext}`,
+      filters: [{ name: f.label, extensions: [f.ext] }],
+    });
+    if (!path) return null;
+    await exportProject(selectedId, format, path, opts);
+    return path.split(/[\\/]/).pop() ?? path;
+  }
+
   function when(secs: number): string {
     return new Date(secs * 1000).toLocaleString(undefined, {
       dateStyle: "medium",
@@ -277,6 +300,7 @@
           {#each FORMATS as f (f.id)}
             <button class="small" onclick={() => exportAs(f.id)} disabled={busy || (items.length === 0 && toolNotes.length === 0)}>{f.label}</button>
           {/each}
+          <button class="small" onclick={startRedacted} disabled={busy || items.length === 0}>Redacted...</button>
           {#if message}<span class="muted">{message}</span>{/if}
           <div class="spacer"></div>
           {#if notePanel.projectId === selectedId}
@@ -362,6 +386,16 @@
     </section>
   </div>
 </div>
+
+{#if redacting && selectedId}
+  {@const id = selectedId}
+  <RedactDialog
+    subject="Project"
+    preview={(opts) => previewProjectRedaction(id, opts)}
+    onexport={saveRedacted}
+    onclose={() => (redacting = false)}
+  />
+{/if}
 
 <style>
   .note-group {
