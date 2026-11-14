@@ -90,6 +90,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./TlsInspector/TlsInspector.svelte"),
   },
   {
+    id: "http-troubleshooter",
+    icon: "send",
+    name: "HTTP Troubleshooter",
+    category: "Network",
+    enabled: true,
+    load: () => import("./HttpTroubleshooter/HttpTroubleshooter.svelte"),
+  },
+  {
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",

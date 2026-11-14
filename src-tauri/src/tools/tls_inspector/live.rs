@@ -29,19 +29,19 @@ const IO_TIMEOUT: Duration = Duration::from_secs(8);
 /// Most certificates kept from a presented chain.
 const MAX_CHAIN: usize = 10;
 
-static ROOTS: LazyLock<Arc<RootCertStore>> = LazyLock::new(|| {
+pub(crate) static ROOTS: LazyLock<Arc<RootCertStore>> = LazyLock::new(|| {
     Arc::new(RootCertStore::from_iter(
         webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
     ))
 });
 
-fn provider() -> CryptoProvider {
+pub(crate) fn provider() -> CryptoProvider {
     rustls::crypto::ring::default_provider()
 }
 
 /// Accepts any chain (recorded for display) but checks handshake signatures.
 #[derive(Debug)]
-struct Recorder(WebPkiSupportedAlgorithms);
+pub(crate) struct Recorder(pub(crate) WebPkiSupportedAlgorithms);
 
 impl ServerCertVerifier for Recorder {
     fn verify_server_cert(
@@ -226,7 +226,7 @@ fn connect(host: &str, connect_ip: &str, port: u16) -> Result<(TcpStream, Socket
     Err(last)
 }
 
-fn server_name(host: &str) -> Result<ServerName<'static>, String> {
+pub(crate) fn server_name(host: &str) -> Result<ServerName<'static>, String> {
     ServerName::try_from(host.to_string()).map_err(|e| format!("{host}: {e}"))
 }
 
@@ -324,7 +324,7 @@ fn base_config(
 }
 
 /// Drive the handshake to completion on an already connected socket.
-fn handshake(
+pub(crate) fn handshake(
     sock: &mut TcpStream,
     cfg: ClientConfig,
     name: ServerName<'static>,
