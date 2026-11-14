@@ -533,6 +533,37 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn wrq_replaces_an_existing_file_and_cleans_up() {
+        let root = std::env::temp_dir().join(format!("omnipacket_tftp_put_{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("backup.cfg"), b"old contents").unwrap();
+
+        let sock = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = sock.local_addr().unwrap();
+        let (_tx, rx) = watch::channel(false);
+        tokio::spawn(serve(sock, root.clone(), true, rx, |_| {}));
+
+        // Exactly two blocks, so the upload ends with an empty DATA block.
+        let content = vec![7u8; 1024];
+        tftp_put(addr, "backup.cfg", &content).await;
+        let mut done = false;
+        for _ in 0..50 {
+            if std::fs::read(root.join("backup.cfg")).unwrap() == content {
+                done = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(done, "file not replaced");
+        let names: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(names.len(), 1, "temporary file left behind: {names:?}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
     #[cfg(unix)]
     #[tokio::test]
     async fn wrq_replaces_a_symlink_instead_of_following_it() {
