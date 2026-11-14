@@ -36,6 +36,7 @@ use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::jwt_saml::commands::{jwt_inspect, saml_inspect};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
+use tools::ntp_check::commands::ntp_check;
 use tools::pcap_inspector::commands::{
     PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
 };
@@ -101,6 +102,7 @@ pub fn run() {
             grep_preview,
             mac_lookup,
             mtu_calculate,
+            ntp_check,
             pcap_open,
             pcap_cancel,
             pcap_close,

@@ -20,6 +20,7 @@ pub mod ioc;
 pub mod jwt_saml;
 pub mod mac_vendor;
 pub mod mtu_calc;
+pub mod ntp_check;
 pub mod pcap_inspector;
 pub mod port_mapper;
 pub mod port_scanner;
