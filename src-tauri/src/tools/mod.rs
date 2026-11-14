@@ -19,5 +19,6 @@ pub mod ssh;
 pub mod subnet_calculator;
 pub mod syslog_server;
 pub mod tftp_server;
+pub mod tls_inspector;
 pub mod traceroute;
 pub mod wake_on_lan;

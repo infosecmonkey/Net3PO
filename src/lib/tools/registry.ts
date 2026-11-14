@@ -82,6 +82,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "tls-inspector",
+    icon: "lock",
+    name: "TLS Inspector",
+    category: "Network",
+    enabled: true,
+    load: () => import("./TlsInspector/TlsInspector.svelte"),
+  },
+  {
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",
