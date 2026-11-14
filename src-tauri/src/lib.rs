@@ -32,6 +32,7 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
+use tools::jwt_saml::commands::{jwt_inspect, saml_inspect};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
@@ -153,6 +154,8 @@ pub fn run() {
             hash_compare,
             http_send,
             ioc_extract,
+            jwt_inspect,
+            saml_inspect,
             ioc_transform,
             mon_start,
             mon_stop,

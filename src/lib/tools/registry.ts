@@ -138,6 +138,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./TlsInspector/TlsInspector.svelte"),
   },
   {
+    id: "jwt-saml",
+    icon: "key-round",
+    name: "JWT / SAML Inspector",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./JwtSaml/JwtSaml.svelte"),
+  },
+  {
     id: "http-troubleshooter",
     icon: "send",
     name: "HTTP Troubleshooter",
@@ -310,7 +318,7 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "jwt-saml", "event-log", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
