@@ -28,6 +28,9 @@ use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
 };
+use tools::socket_tools::commands::{
+    SocketRegistry, sock_listen, sock_send, sock_stop, sock_timing,
+};
 use tools::ssh::commands::{
     SshRegistry, ssh_close, ssh_connect, ssh_forget_host, ssh_resize, ssh_secret_delete,
     ssh_secret_has, ssh_secret_set, ssh_write,
@@ -46,6 +49,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
         .manage(TftpRegistry::default())
         .manage(SnmpRegistry::default())
@@ -114,6 +118,10 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            sock_send,
+            sock_listen,
+            sock_timing,
+            sock_stop,
             wol_interfaces,
             wol_send,
             wol_check,

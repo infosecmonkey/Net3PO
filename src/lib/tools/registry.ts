@@ -82,6 +82,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "socket-tools",
+    icon: "plug",
+    name: "Socket Tools",
+    category: "Network",
+    enabled: true,
+    load: () => import("./SocketTools/SocketTools.svelte"),
+  },
+  {
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",
