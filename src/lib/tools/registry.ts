@@ -90,6 +90,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "ioc-extractor",
+    icon: "scan-search",
+    name: "IOC Extractor",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./IocExtractor/IocExtractor.svelte"),
+  },
+  {
     id: "tls-inspector",
     icon: "lock",
     name: "TLS Inspector",
@@ -262,7 +270,7 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "config-diff", "script-decoder"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "ioc-extractor", "config-diff", "script-decoder"] },
   { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
