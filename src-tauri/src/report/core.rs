@@ -70,6 +70,16 @@ pub enum Block {
     Diff {
         lines: Vec<DiffLine>,
     },
+    /// User notes: a heading (timestamp, context) and multi-line plain text.
+    Notes {
+        items: Vec<NoteEntry>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NoteEntry {
+    pub heading: String,
+    pub text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -177,6 +187,9 @@ pub fn text_size(report: &Report) -> usize {
                     .map(|f| f.category.len() + f.title.len() + f.detail.len())
                     .sum(),
                 Block::Diff { lines } => lines.iter().map(|l| l.text.len() + 1).sum(),
+                Block::Notes { items } => {
+                    items.iter().map(|n| n.heading.len() + n.text.len()).sum()
+                }
             };
         }
     }
@@ -285,6 +298,13 @@ pub fn sample() -> Report {
                                 text: "next".to_string(),
                             },
                         ],
+                    },
+                    Block::Notes {
+                        items: vec![NoteEntry {
+                            heading: "Nov 14, 2026, 10:32 AM EST | Port Scanner".to_string(),
+                            text: "# not a heading\n- not a list\n<b>raw</b> & **stars**"
+                                .to_string(),
+                        }],
                     },
                 ],
             },

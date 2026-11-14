@@ -4,6 +4,7 @@
   import logoLight from "$lib/assets/net3po-logo-light.png";
   import logoDark from "$lib/assets/net3po-logo-dark.png";
   import About from "./About.svelte";
+  import { isDirty, notes, persistUi } from "$lib/notes.svelte";
 
   interface Props {
     selected: string;
@@ -21,9 +22,24 @@
       <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
       <img src={logoLight} alt="Net3PO" width="153" height="52" />
     </picture>
-    <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
-      <Icon name="info" size={15} />
-    </button>
+    <span class="brand-btns">
+      <button
+        class="about"
+        class:on={notes.open}
+        title="Project notes (Cmd/Ctrl+Shift+N)"
+        aria-label="Project notes"
+        onclick={() => {
+          notes.open = !notes.open;
+          persistUi();
+        }}
+      >
+        <Icon name="notebook-pen" size={15} />
+        {#if isDirty(notes.draft)}<span class="dot" aria-label="unsaved note"></span>{/if}
+      </button>
+      <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
+        <Icon name="info" size={15} />
+      </button>
+    </span>
   </div>
   {#each groups as group (group.category)}
     <div class="group">
@@ -94,6 +110,29 @@
     border-radius: 4px;
     color: var(--muted);
     cursor: pointer;
+  }
+
+  .brand-btns {
+    display: flex;
+    gap: 0.15rem;
+  }
+
+  .about {
+    position: relative;
+  }
+
+  .about.on {
+    color: var(--accent);
+  }
+
+  .dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
   }
 
   .about:hover {

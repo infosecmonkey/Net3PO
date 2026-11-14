@@ -20,13 +20,19 @@ export interface DiffLine {
   text: string;
 }
 
+export interface NoteEntry {
+  heading: string;
+  text: string;
+}
+
 export type Block =
   | { type: "paragraph"; text: string }
   | { type: "keyValues"; items: KeyValue[] }
   | { type: "table"; headers: string[]; rows: string[][] }
   | { type: "findings"; items: Finding[] }
   | { type: "code"; text: string }
-  | { type: "diff"; lines: DiffLine[] };
+  | { type: "diff"; lines: DiffLine[] }
+  | { type: "notes"; items: NoteEntry[] };
 
 export interface Section {
   title: string;
