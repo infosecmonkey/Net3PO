@@ -5,6 +5,7 @@ pub mod config_diff;
 pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;
+pub mod event_log;
 pub mod fgt_sniffer;
 pub mod fortinet_builder;
 pub mod grep_builder;

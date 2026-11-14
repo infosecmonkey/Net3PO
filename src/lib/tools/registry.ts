@@ -63,6 +63,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./ConfigDiff/ConfigDiff.svelte"),
   },
+  {
+    id: "event-log",
+    icon: "logs",
+    name: "Windows Event Log",
+    category: "Offline",
+    enabled: true,
+    load: () => import("./EventLog/EventLog.svelte"),
+  },
 
   // Phase 2, network tools
   {
