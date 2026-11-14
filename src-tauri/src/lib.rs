@@ -22,6 +22,7 @@ use tools::event_log::commands::{
     evtlog_record,
 };
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
+use tools::filter_builder::commands::filter_build;
 use tools::fortinet_builder::commands::{
     fortinet_bpf_add, fortinet_bpf_preset, fortinet_build, fortinet_offload_snippet,
     fortinet_save_text,
@@ -85,6 +86,7 @@ pub fn run() {
             mac_lookup,
             mac_db_info,
             fgt_parse,
+            filter_build,
             fgt_save,
             fgt_read_file,
             diff_compare,

@@ -48,6 +48,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./GrepBuilder/GrepBuilder.svelte"),
   },
   {
+    id: "filter-builder",
+    icon: "filter",
+    name: "Filter Builder",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./FilterBuilder/FilterBuilder.svelte"),
+  },
+  {
     id: "mac-vendor",
     icon: "fingerprint",
     name: "MAC Vendor Lookup",
@@ -267,7 +275,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
-  { category: "Utilities", tools: ["subnet-calculator", "regex-builder", "grep-builder", "mac-vendor"] },
+  { category: "Utilities", tools: ["subnet-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
 ];
 
