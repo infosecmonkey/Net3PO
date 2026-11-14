@@ -11,6 +11,7 @@ use report::commands::{report_export, report_redact_preview};
 use store::commands::{StoreLock, store_load, store_save};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::conn_monitor::commands::{MonitorRegistry, mon_save, mon_start, mon_stop};
+use tools::debug_flow::commands::{flow_parse, flow_read_file};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
@@ -32,9 +33,13 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
+use tools::jwt_saml::commands::{jwt_inspect, saml_inspect};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
 use tools::ntp_check::commands::ntp_check;
+use tools::pcap_inspector::commands::{
+    PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
+};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
@@ -68,6 +73,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(PcapRegistry::default())
         .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
         .manage(SocketRegistry::default())
@@ -97,6 +103,12 @@ pub fn run() {
             mac_lookup,
             mtu_calculate,
             ntp_check,
+            pcap_open,
+            pcap_cancel,
+            pcap_close,
+            pcap_query,
+            pcap_packet,
+            pcap_open_external,
             mac_db_info,
             fgt_parse,
             filter_build,
@@ -148,6 +160,8 @@ pub fn run() {
             port_map_save,
             dhcp_interfaces,
             dhcp_monitor,
+            flow_parse,
+            flow_read_file,
             dhcp_stop,
             hash_text,
             hash_file,
@@ -155,6 +169,8 @@ pub fn run() {
             hash_compare,
             http_send,
             ioc_extract,
+            jwt_inspect,
+            saml_inspect,
             ioc_transform,
             mon_start,
             mon_stop,

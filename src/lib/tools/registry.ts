@@ -103,6 +103,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./EventLog/EventLog.svelte"),
   },
+  {
+    id: "pcap-inspector",
+    icon: "file-search",
+    name: "PCAP Inspector",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./PcapInspector/PcapInspector.svelte"),
+  },
 
   // Phase 2, network tools
   {
@@ -144,6 +152,14 @@ const TOOLS: ToolDef[] = [
     category: "Analysis",
     enabled: true,
     load: () => import("./TlsInspector/TlsInspector.svelte"),
+  },
+  {
+    id: "jwt-saml",
+    icon: "key-round",
+    name: "JWT / SAML Inspector",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./JwtSaml/JwtSaml.svelte"),
   },
   {
     id: "http-troubleshooter",
@@ -271,6 +287,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./FgtSniffer/FgtSniffer.svelte"),
   },
+  {
+    id: "debug-flow",
+    icon: "workflow",
+    name: "Debug Flow Parser",
+    category: "Fortinet",
+    enabled: true,
+    load: () => import("./DebugFlow/DebugFlow.svelte"),
+  },
 
   // Decoders
   {
@@ -318,13 +342,13 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "jwt-saml", "event-log", "pcap-inspector", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
-  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
+  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
 ];
 
 /** Tools grouped for the sidebar, in LAYOUT order. */
