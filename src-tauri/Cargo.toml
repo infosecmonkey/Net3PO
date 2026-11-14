@@ -65,6 +65,9 @@ sha2 = "0.10"
 jiff = "0.2"
 mail-parser = "1"
 idna = "1"
+# PCAP inspector: streaming PCAP/PCAPNG reader and tolerant L2-L4 decoding.
+pcap-parser = "0.17.0"
+etherparse = "0.21.0"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
