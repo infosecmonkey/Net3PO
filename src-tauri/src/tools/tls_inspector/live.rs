@@ -402,13 +402,17 @@ fn trust(chain: &[CertificateDer<'static>], host: &str, leaf: Option<&CertInfo>)
     }
 }
 
+/// The port to connect to. A port typed in the host (`host:8443`, a URL) is
+/// the most specific, so it wins over the Port field, which wins over the
+/// default for the STARTTLS mode.
+fn effective_port(typed: Option<u16>, field: Option<u16>, mode: StartTls) -> u16 {
+    typed.or(field).unwrap_or(mode.default_port())
+}
+
 /// Connect, optionally STARTTLS, handshake, and report everything.
 pub fn inspect(req: &LiveRequest) -> Result<LiveResult, String> {
     let (host, typed_port) = parse_target(&req.target)?;
-    let port = req
-        .port
-        .or(typed_port)
-        .unwrap_or(req.starttls.default_port());
+    let port = effective_port(typed_port, req.port, req.starttls);
     let is_ip = host.parse::<IpAddr>().is_ok();
 
     let t0 = Instant::now();
@@ -573,10 +577,7 @@ fn try_suite(req: &LiveRequest, host: &str, port: u16, suite: SupportedCipherSui
 /// this TLS library and are not tested.
 pub fn test_suites(req: &LiveRequest) -> Result<Vec<SuiteResult>, String> {
     let (host, typed_port) = parse_target(&req.target)?;
-    let port = req
-        .port
-        .or(typed_port)
-        .unwrap_or(req.starttls.default_port());
+    let port = effective_port(typed_port, req.port, req.starttls);
     let suites = testable_suites();
     let results = std::thread::scope(|s| {
         let handles: Vec<_> = suites
@@ -597,6 +598,16 @@ pub fn test_suites(req: &LiveRequest) -> Result<Vec<SuiteResult>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn port_typed_in_host_wins() {
+        let typed = parse_target("example.com:8443").unwrap().1;
+        assert_eq!(effective_port(typed, Some(443), StartTls::None), 8443);
+        let typed = parse_target("https://example.com:9443/x").unwrap().1;
+        assert_eq!(effective_port(typed, Some(443), StartTls::None), 9443);
+        assert_eq!(effective_port(None, Some(8443), StartTls::None), 8443);
+        assert_eq!(effective_port(None, None, StartTls::None), 443);
+    }
 
     #[test]
     fn targets() {

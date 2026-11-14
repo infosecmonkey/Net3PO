@@ -183,8 +183,20 @@ pub fn resolve_read(root: &Path, filename: &str) -> Result<PathBuf, TftpError> {
     Ok(canon)
 }
 
+/// Temporary file an upload is received into, beside `target` so the final
+/// rename stays on one filesystem. Hidden, and unique per transfer id.
+pub fn upload_temp_path(target: &Path, id: u32) -> PathBuf {
+    let name = target
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    target.with_file_name(format!(".{name}.{}.{id}.part", std::process::id()))
+}
+
 /// Resolve a filename for writing, confined to `root`. The parent directory
-/// must already exist and resolve inside the root; the target must not exist.
+/// must already exist and resolve inside the root. An existing file of the
+/// same name is replaced (the upload is written to a temporary file and
+/// renamed into place, so a link at the target name is replaced, not followed).
 pub fn resolve_write(root: &Path, filename: &str) -> Result<PathBuf, TftpError> {
     validate_relative(filename)?;
     let root_canon = fs::canonicalize(root).map_err(|_| TftpError::AccessViolation)?;

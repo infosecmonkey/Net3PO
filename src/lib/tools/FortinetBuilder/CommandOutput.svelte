@@ -5,6 +5,7 @@
   import { save } from "@tauri-apps/plugin-dialog";
   import { openTabs, sendTo, type SessionTab } from "$lib/ssh/sessions.svelte";
   import type { BuildError, FortinetCategory } from "$lib/tools/types";
+  import { planSend } from "./send";
 
   interface Props {
     category: FortinetCategory;
@@ -41,11 +42,40 @@
     else picking = !picking;
   }
 
+  // Comment lines are skipped; the stop-debug block waits for "Send stop".
+  let plan = $derived(planSend(command));
+  /** Session the debug was sent to, while its stop block is pending. */
+  let stopTarget = $state<SessionTab | null>(null);
+
+  // A new command means any pending stop belongs to the old one.
+  $effect(() => {
+    void command;
+    stopTarget = null;
+  });
+
   async function send(t: SessionTab) {
     picking = false;
     try {
-      const ok = await sendTo(t.key, command);
-      message = ok ? `Sent to ${t.title}.` : "That session is closed.";
+      const ok = await sendTo(t.key, plan.now.join("\n"));
+      message = !ok
+        ? "That session is closed."
+        : plan.stop.length
+          ? `Sent to ${t.title}. Click Send stop when finished.`
+          : `Sent to ${t.title}.`;
+      if (ok && plan.stop.length) stopTarget = t;
+      else setTimeout(() => (message = ""), 2500);
+    } catch (e) {
+      message = `Send failed: ${e}`;
+    }
+  }
+
+  async function sendStop() {
+    const t = stopTarget;
+    if (!t) return;
+    try {
+      const ok = await sendTo(t.key, plan.stop.join("\n"));
+      message = ok ? `Debug stopped on ${t.title}.` : "That session is closed.";
+      stopTarget = null;
       setTimeout(() => (message = ""), 2500);
     } catch (e) {
       message = `Send failed: ${e}`;
@@ -111,7 +141,7 @@
           title={targets.length === 0
             ? "Open an SSH session in the SSH tool first"
             : targets.length === 1
-              ? `Type into SSH tab: ${targets[0].title}`
+              ? `Type into SSH tab: ${targets[0].title} (# notes are skipped)`
               : "Choose an SSH session"}
         >Send to SSH{targets.length > 1 ? " ..." : ""}</button>
         {#if picking && targets.length > 1}
@@ -126,6 +156,9 @@
           </div>
         {/if}
       </div>
+      {#if stopTarget}
+        <button class="secondary" onclick={sendStop} title={`Type the stop-debug commands into ${stopTarget.title}`}>Send stop</button>
+      {/if}
       <button class="secondary" onclick={saveFile} disabled={!command || !!error}>Save .txt</button>
       <button class="secondary" onclick={startSave} disabled={!command || !!error}>Save for later</button>
     </div>
