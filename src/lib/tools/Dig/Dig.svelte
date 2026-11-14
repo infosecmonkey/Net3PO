@@ -1,6 +1,12 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { DigResponse, DnsRecord } from "$lib/tools/types";
+  import { buildDigReport, type DigRun } from "./report";
+
+  /** Queries kept for the export. */
+  const MAX_RUNS = 30;
+  let runs = $state<DigRun[]>([]);
 
   const TYPES = ["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "PTR", "SRV", "CAA"];
 
@@ -26,6 +32,7 @@
         recordType: type,
         server,
       });
+      runs = [...runs, { at: new Date(), type, response: result }].slice(-MAX_RUNS);
     } catch (e) {
       result = null;
       error = String(e);
@@ -104,6 +111,11 @@
   {/if}
 
   {#if result && !loading}
+    <div class="export-row">
+      <span class="muted small">Export includes {runs.length} quer{runs.length === 1 ? "y" : "ies"} from this session</span>
+      <button class="link" onclick={() => (runs = [])} disabled={!runs.length}>Clear</button>
+      <ExportMenu build={() => buildDigReport(runs)} name={`dig-${name.trim()}`} disabled={!runs.length} />
+    </div>
     <div class="meta">
       <span>{result.rcode}</span>
       <span class="muted">{result.server} · {result.protocol} · {result.queryTimeMs} ms</span>
@@ -159,6 +171,32 @@
     margin: 0 0 1.25rem;
     color: var(--muted);
     font-size: 0.85rem;
+  }
+
+  .export-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .small {
+    font-size: 0.75rem;
+  }
+
+  .link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .link:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .fields {

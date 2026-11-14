@@ -16,3 +16,15 @@ pub fn subnet_split(input: String, new_prefix: u32) -> Result<SplitResult, Strin
     let net = core::parse_network(&input).map_err(|e| e.to_string())?;
     core::split(&net, new_prefix).map_err(|e| e.to_string())
 }
+
+/// Normalize and aggregate an address list; report overlaps within it.
+#[tauri::command]
+pub fn cidr_aggregate(text: String) -> super::sets::AggregateResult {
+    super::sets::aggregate(&text)
+}
+
+/// Compare two address lists: only in A, only in B, in both.
+#[tauri::command]
+pub fn cidr_compare(a: String, b: String) -> super::sets::CompareResult {
+    super::sets::compare(&a, &b)
+}
