@@ -329,6 +329,7 @@
     width: 1%;
     padding-left: 0.6rem;
     vertical-align: top;
+    white-space: nowrap;
   }
 
   tr.hit td,
@@ -346,6 +347,7 @@
   }
 
   .mini {
+    white-space: nowrap;
     background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 4px;
