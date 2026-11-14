@@ -178,7 +178,7 @@
     margin-bottom: 0.3rem;
   }
 
-  .fb :global(input:not([type="checkbox"])),
+  .fb :global(input:not([type="checkbox"]):not([type="radio"])),
   .fb :global(select),
   .fb :global(textarea) {
     width: 100%;
@@ -209,8 +209,10 @@
     background: var(--error-bg) !important;
   }
 
-  .fb :global(input[type="checkbox"]) {
+  .fb :global(input[type="checkbox"]),
+  .fb :global(input[type="radio"]) {
     margin: 0 0.3rem 0 0;
+    accent-color: var(--accent);
   }
 
   .fb :global(.checks) {
