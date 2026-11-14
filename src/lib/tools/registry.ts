@@ -114,6 +114,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./Dig/Dig.svelte"),
   },
   {
+    id: "ntp-checker",
+    icon: "clock",
+    name: "NTP Checker",
+    category: "Troubleshooting",
+    enabled: true,
+    load: () => import("./NtpChecker/NtpChecker.svelte"),
+  },
+  {
     id: "dns-analyzer",
     icon: "shield-check",
     name: "DNS Analyzer",
@@ -311,7 +319,7 @@ const TOOLS: ToolDef[] = [
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
   { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
-  { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
+  { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },

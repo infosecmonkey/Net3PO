@@ -18,6 +18,7 @@ pub mod http_client;
 pub mod ioc;
 pub mod mac_vendor;
 pub mod mtu_calc;
+pub mod ntp_check;
 pub mod port_mapper;
 pub mod port_scanner;
 pub mod regex_builder;
