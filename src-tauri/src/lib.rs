@@ -26,6 +26,7 @@ use tools::fortinet_builder::commands::{
     fortinet_save_text,
 };
 use tools::grep_builder::commands::{grep_build, grep_preview};
+use tools::http_client::commands::http_send;
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
@@ -131,6 +132,7 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            http_send,
             tls_decode,
             tls_decode_file,
             tls_inspect,

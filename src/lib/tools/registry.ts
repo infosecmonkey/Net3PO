@@ -98,6 +98,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./TlsInspector/TlsInspector.svelte"),
   },
   {
+    id: "http-troubleshooter",
+    icon: "send",
+    name: "HTTP Troubleshooter",
+    category: "Network",
+    enabled: true,
+    load: () => import("./HttpTroubleshooter/HttpTroubleshooter.svelte"),
+  },
+  {
     id: "socket-tools",
     icon: "plug",
     name: "Socket Tools",
