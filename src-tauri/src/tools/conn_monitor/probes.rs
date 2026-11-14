@@ -87,6 +87,21 @@ fn resolve_v4(host: &str) -> Result<Ipv4Addr, String> {
         .ok_or_else(|| format!("{host} has no IPv4 address"))
 }
 
+/// Blocking connect with a timeout that reports a refusal at once on every
+/// OS (Windows otherwise retries the SYN for about two seconds after a RST).
+fn connect(addr: &SocketAddr, timeout: Duration) -> std::io::Result<TcpStream> {
+    use socket2::{Domain, Protocol, Socket, Type};
+    let sock = Socket::new(
+        Domain::for_address(*addr),
+        Type::STREAM,
+        Some(Protocol::TCP),
+    )?;
+    #[cfg(windows)]
+    crate::tools::port_scanner::commands::fast_refusal(&sock);
+    sock.connect_timeout(&(*addr).into(), timeout)?;
+    Ok(sock.into())
+}
+
 fn tcp(t: &Target, timeout: Duration) -> (bool, Option<f64>, String, String) {
     let addr: SocketAddr = match (t.address.trim(), t.port)
         .to_socket_addrs()
@@ -97,7 +112,7 @@ fn tcp(t: &Target, timeout: Duration) -> (bool, Option<f64>, String, String) {
         Err(e) => return (false, None, "DNS failed".into(), e.to_string()),
     };
     let start = Instant::now();
-    match TcpStream::connect_timeout(&addr, timeout) {
+    match connect(&addr, timeout) {
         Ok(_) => (
             true,
             Some(elapsed_ms(start)),
