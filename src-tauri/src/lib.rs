@@ -23,12 +23,15 @@ use tools::event_log::commands::{
     evtlog_record,
 };
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
+use tools::filter_builder::commands::filter_build;
 use tools::fortinet_builder::commands::{
     fortinet_bpf_add, fortinet_bpf_preset, fortinet_build, fortinet_offload_snippet,
     fortinet_save_text,
 };
 use tools::grep_builder::commands::{grep_build, grep_preview};
+use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
+use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
@@ -45,11 +48,14 @@ use tools::ssh::commands::{
     SshRegistry, ssh_close, ssh_connect, ssh_forget_host, ssh_resize, ssh_secret_delete,
     ssh_secret_has, ssh_secret_set, ssh_write,
 };
-use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
+use tools::subnet_calculator::commands::{
+    cidr_aggregate, cidr_compare, subnet_calculate, subnet_split,
+};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
 };
 use tools::tftp_server::commands::{TftpRegistry, tftp_start, tftp_stop};
+use tools::timestamp::commands::{ts_convert, ts_now};
 use tools::tls_inspector::commands::{tls_decode, tls_decode_file, tls_inspect, tls_test_suites};
 use tools::traceroute::commands::{TraceRegistry, trace_method, trace_run, trace_stop};
 use tools::wake_on_lan::commands::{WolRegistry, wol_check, wol_interfaces, wol_send, wol_stop};
@@ -60,6 +66,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
         .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
@@ -76,6 +83,8 @@ pub fn run() {
         .manage(SshRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
+            cidr_aggregate,
+            cidr_compare,
             subnet_calculate,
             subnet_split,
             regex_test,
@@ -86,6 +95,7 @@ pub fn run() {
             mac_lookup,
             mac_db_info,
             fgt_parse,
+            filter_build,
             fgt_save,
             fgt_read_file,
             diff_compare,
@@ -135,10 +145,18 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            hash_text,
+            hash_file,
+            hash_stop,
+            hash_compare,
             http_send,
+            ioc_extract,
+            ioc_transform,
             mon_start,
             mon_stop,
             mon_save,
+            ts_convert,
+            ts_now,
             tls_decode,
             tls_decode_file,
             tls_inspect,

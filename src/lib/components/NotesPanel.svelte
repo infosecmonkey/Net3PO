@@ -3,6 +3,8 @@
   // tied to the active project and the current tool when you start typing,
   // and keeps that association if you switch tools before saving. Drafts are
   // kept locally on every keystroke; Save writes the note to the project.
+  import { confirm as ask } from "@tauri-apps/plugin-dialog";
+  import { tick } from "svelte";
   import { nav } from "$lib/nav.svelte";
   import { findTool } from "$lib/tools/registry";
   import {
@@ -32,6 +34,11 @@
   let project = $state<ProjectView | null>(null);
   let draftProject = $state<ProjectView | null>(null);
   let scope = $state<"tool" | "all">("tool");
+  // Inline "new project" form. The webview does not show window.prompt or
+  // window.confirm, so names are typed here and questions use native dialogs.
+  let creating = $state(false);
+  let newName = $state("");
+  let newInput = $state<HTMLInputElement | null>(null);
   let error = $state("");
   let status = $state("");
   let pickTarget = $state("");
@@ -98,18 +105,40 @@
     return i < 0 ? "" : `result ${i + 1}: ${project.items[i].title}`;
   }
 
+  async function startCreate() {
+    creating = true;
+    newName = "";
+    await tick();
+    newInput?.focus();
+  }
+
+  async function createAndUse() {
+    const name = newName.trim();
+    if (!name) return;
+    error = "";
+    try {
+      const p = await createProject(name);
+      setActiveProject(p.id, p.name);
+      pickTarget = "";
+      creating = false;
+      notes.version += 1;
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  function onNewKey(e: KeyboardEvent) {
+    if (e.key === "Enter") void createAndUse();
+    if (e.key === "Escape") {
+      e.preventDefault();
+      creating = false;
+    }
+  }
+
   async function chooseProject(value: string) {
     error = "";
     if (value === "__new") {
-      const name = prompt("New project name")?.trim();
-      if (!name) return;
-      try {
-        const p = await createProject(name);
-        setActiveProject(p.id, p.name);
-        notes.version += 1;
-      } catch (e) {
-        error = String(e);
-      }
+      await startCreate();
       return;
     }
     const p = projects.find((x) => x.id === value);
@@ -127,8 +156,8 @@
     status = "";
   }
 
-  function newNote() {
-    if (dirty && !confirm("Discard the unsaved note?")) return;
+  async function newNote() {
+    if (dirty && !(await ask("Discard the unsaved note?", { title: "Discard note", kind: "warning" }))) return;
     discardDraft();
     status = "";
     error = "";
@@ -142,7 +171,7 @@
     if (!d.projectId) {
       target = projects.find((p) => p.id === (pickTarget || notes.projectId));
       if (!target) {
-        error = "Choose a project for this note first.";
+        error = projects.length ? "Choose a project for this note first." : "Create a project for this note first (New project... above).";
         return;
       }
     }
@@ -162,15 +191,15 @@
     }
   }
 
-  function edit(n: ToolNote) {
+  async function edit(n: ToolNote) {
     if (!project) return;
-    if (dirty && draft?.id !== n.id && !confirm("Discard the unsaved note and edit this one?")) return;
+    if (dirty && draft?.id !== n.id && !(await ask("Discard the unsaved note and edit this one?", { title: "Discard note", kind: "warning" }))) return;
     editNote(n, project.id, project.name);
     status = "";
   }
 
   async function remove(n: ToolNote) {
-    if (!project || !confirm("Delete this note?")) return;
+    if (!project || !(await ask("Delete this note?", { title: "Delete note", kind: "warning" }))) return;
     try {
       await deleteNote(project.id, n.id);
       if (notes.draft?.id === n.id) discardDraft();
@@ -209,6 +238,13 @@
   }
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    // Esc hides the panel, unless a modal dialog is open (it owns Esc).
+    if (e.key === "Escape" && !creating && !e.defaultPrevented && !document.querySelector('[aria-modal="true"]')) close();
+  }}
+/>
+
 <aside class="notes" style:width="{notes.width}px">
   <div
     class="handle"
@@ -224,17 +260,26 @@
 
   <div class="head">
     <strong>Notes</strong>
-    <button class="x" title="Hide notes (the draft is kept)" aria-label="Hide notes" onclick={close}>x</button>
+    <button class="x" title="Hide notes (Esc; the draft is kept)" aria-label="Hide notes" onclick={close}>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
   </div>
 
   <label class="lbl" for="np-project">Active project</label>
-  <select id="np-project" value={notes.projectId ?? ""} onchange={(e) => chooseProject(e.currentTarget.value)}>
+  <select id="np-project" value={notes.projectId ?? ""} onchange={(e) => { const v = e.currentTarget.value; e.currentTarget.value = notes.projectId ?? ""; void chooseProject(v); }}>
     <option value="">No project</option>
     {#each projects as p (p.id)}
       <option value={p.id}>{p.name}</option>
     {/each}
     <option value="__new">New project...</option>
   </select>
+  {#if creating}
+    <div class="newproj">
+      <input bind:this={newInput} bind:value={newName} onkeydown={onNewKey} placeholder="Project name" maxlength="200" spellcheck="false" />
+      <button class="action" onclick={createAndUse} disabled={!newName.trim()}>Create</button>
+      <button class="secondary" onclick={() => (creating = false)}>Cancel</button>
+    </div>
+  {/if}
 
   <div class="draft">
     {#if draft}
@@ -263,11 +308,12 @@
 
     {#if draft && !draft.projectId}
       <label class="lbl" for="np-target">Save to project</label>
-      <select id="np-target" bind:value={pickTarget}>
+      <select id="np-target" value={pickTarget} onchange={(e) => { const v = e.currentTarget.value; if (v === "__new") { e.currentTarget.value = pickTarget; void startCreate(); } else pickTarget = v; }}>
         <option value="">{notes.projectId ? `${notes.projectName} (active)` : "Choose a project"}</option>
         {#each projects.filter((p) => p.id !== notes.projectId) as p (p.id)}
           <option value={p.id}>{p.name}</option>
         {/each}
+        <option value="__new">New project...</option>
       </select>
     {/if}
 
@@ -367,15 +413,22 @@
   }
 
   .x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: -4px -6px -4px 0;
     background: none;
     border: none;
+    border-radius: 6px;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.85rem;
   }
 
   .x:hover {
     color: var(--fg);
+    background: var(--hover);
   }
 
   .lbl {
@@ -463,6 +516,24 @@
     color: var(--accent-fg);
     font-weight: 600;
     padding: 0.35rem 0.9rem;
+  }
+
+  .newproj {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0.35rem 0 0.2rem;
+  }
+
+  .newproj input {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.45rem;
+    color: var(--fg);
+    font-size: 0.8rem;
   }
 
   .action:disabled {
