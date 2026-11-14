@@ -14,6 +14,49 @@
   let { selected, onselect }: Props = $props();
   const groups = toolGroups();
   let aboutOpen = $state(false);
+
+  // Collapsed groups, remembered on this computer. Everything starts
+  // expanded; the group holding the open tool always stays open.
+  const COLLAPSED_KEY = "net3po.sidebar.collapsed";
+  function loadCollapsed(): string[] {
+    try {
+      const v = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? "[]");
+      return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+  let collapsed = $state<string[]>(loadCollapsed());
+
+  function persist() {
+    try {
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsed));
+    } catch {
+      // Storage unavailable: the choice lasts for this session only.
+    }
+  }
+
+  function holdsSelected(category: string): boolean {
+    return groups.some((g) => g.category === category && g.tools.some((t) => t.id === selected));
+  }
+
+  function isOpen(category: string): boolean {
+    return !collapsed.includes(category) || holdsSelected(category);
+  }
+
+  function toggle(category: string) {
+    collapsed = isOpen(category)
+      ? [...collapsed.filter((c) => c !== category), category]
+      : collapsed.filter((c) => c !== category);
+    persist();
+  }
+
+  const anyCollapsed = $derived(groups.some((g) => !isOpen(g.category)));
+
+  function toggleAll() {
+    collapsed = anyCollapsed ? [] : groups.map((g) => g.category);
+    persist();
+  }
 </script>
 
 <nav class="sidebar">
@@ -41,9 +84,23 @@
       </button>
     </span>
   </div>
+  <div class="all-row">
+    <button class="all" onclick={toggleAll}>{anyCollapsed ? "Expand all" : "Collapse all"}</button>
+  </div>
   {#each groups as group (group.category)}
+    {@const open = isOpen(group.category)}
     <div class="group">
-      <div class="group-label">{group.category}</div>
+      <button
+        class="group-label"
+        aria-expanded={open}
+        onclick={() => toggle(group.category)}
+        title={holdsSelected(group.category) ? "Holds the open tool" : open ? "Collapse" : "Expand"}
+      >
+        <span class="chev" class:open>▸</span>
+        <span>{group.category}</span>
+        {#if !open}<span class="count">{group.tools.length}</span>{/if}
+      </button>
+      {#if open}
       <ul>
         {#each group.tools as tool (tool.id)}
           <li>
@@ -62,6 +119,7 @@
           </li>
         {/each}
       </ul>
+      {/if}
     </div>
   {/each}
 </nav>
@@ -140,16 +198,68 @@
     background: var(--hover);
   }
 
+  .all-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.4rem 0.75rem 0;
+  }
+
+  .all {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.68rem;
+    cursor: pointer;
+    padding: 0.1rem 0.25rem;
+    border-radius: 3px;
+  }
+
+  .all:hover {
+    color: var(--accent);
+    background: var(--hover);
+  }
+
   .group {
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
   }
 
   .group-label {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: none;
+    text-align: left;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--muted);
-    padding: 0 1rem 0.25rem;
+    padding: 0.15rem 1rem 0.25rem;
+    cursor: pointer;
+  }
+
+  .group-label:hover {
+    color: var(--fg);
+  }
+
+  .chev {
+    display: inline-block;
+    font-size: 0.6rem;
+    transition: transform 0.12s ease;
+  }
+
+  .chev.open {
+    transform: rotate(90deg);
+  }
+
+  .count {
+    margin-left: auto;
+    font-size: 0.62rem;
+    letter-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 0.35rem;
   }
 
   ul {
