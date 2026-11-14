@@ -21,6 +21,7 @@ pub const COLLECTIONS: &[&str] = &[
     "ssh_connections",
     "ssh_known_hosts",
     "report_redaction",
+    "wol_devices",
 ];
 
 /// Largest collection file accepted, on load and on save.

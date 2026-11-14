@@ -20,3 +20,4 @@ pub mod subnet_calculator;
 pub mod syslog_server;
 pub mod tftp_server;
 pub mod traceroute;
+pub mod wake_on_lan;
