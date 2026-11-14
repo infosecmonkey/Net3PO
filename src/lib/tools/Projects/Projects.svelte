@@ -3,6 +3,7 @@
   import { confirm, save } from "@tauri-apps/plugin-dialog";
   import {
     createProject,
+    deleteNote,
     deleteProject,
     exportProject,
     getProject,
@@ -11,7 +12,9 @@
     updateProject,
     type ProjectItem,
     type ProjectSummary,
+    type ToolNote,
   } from "$lib/projects";
+  import { editNote, notes as notePanel, setActiveProject } from "$lib/notes.svelte";
   import { FORMATS, safeName } from "$lib/report/export";
   import type { ReportFormat } from "$lib/report/types";
 
@@ -22,7 +25,48 @@
   let name = $state("");
   let notes = $state("");
   let items = $state<ProjectItem[]>([]);
+  let toolNotes = $state<ToolNote[]>([]);
   let updated = $state(0);
+
+  // Notes grouped by tool, oldest first, as the export shows them.
+  const noteGroups = $derived.by(() => {
+    const groups = new Map<string, ToolNote[]>();
+    for (const n of [...toolNotes].sort((a, b) => a.created - b.created)) {
+      if (!groups.has(n.tool)) groups.set(n.tool, []);
+      groups.get(n.tool)!.push(n);
+    }
+    return [...groups.entries()];
+  });
+
+  // Reload notes when the notes pop-out saves or deletes one.
+  $effect(() => {
+    void notePanel.version;
+    const id = selectedId;
+    if (!id) return;
+    getProject(id)
+      .then((v) => {
+        if (v.id === selectedId) toolNotes = v.toolNotes;
+      })
+      .catch(() => {});
+  });
+
+  function resultLabel(id: string | null): string {
+    const i = id ? items.findIndex((x) => x.id === id) : -1;
+    return i < 0 ? "" : `About result ${i + 1}: ${items[i].title}`;
+  }
+
+  async function removeNote(n: ToolNote) {
+    if (!selectedId) return;
+    const ok = await confirm("Delete this note?", { title: "Delete note", kind: "warning" });
+    if (!ok) return;
+    try {
+      await deleteNote(selectedId, n.id);
+      if (notePanel.draft?.id === n.id) notePanel.draft = null;
+      notePanel.version += 1;
+    } catch (e) {
+      error = String(e);
+    }
+  }
 
   let newName = $state("");
   let error = $state("");
@@ -58,6 +102,7 @@
       name = v.name;
       notes = v.notes;
       items = v.items;
+      toolNotes = v.toolNotes;
       updated = v.updated;
     } catch (e) {
       error = String(e);
@@ -230,18 +275,23 @@
         <div class="bar">
           <span class="label">Export all</span>
           {#each FORMATS as f (f.id)}
-            <button class="small" onclick={() => exportAs(f.id)} disabled={busy || items.length === 0}>{f.label}</button>
+            <button class="small" onclick={() => exportAs(f.id)} disabled={busy || (items.length === 0 && toolNotes.length === 0)}>{f.label}</button>
           {/each}
           {#if message}<span class="muted">{message}</span>{/if}
           <div class="spacer"></div>
+          {#if notePanel.projectId === selectedId}
+            <span class="muted">Active for notes</span>
+          {:else}
+            <button class="small" onclick={() => setActiveProject(selectedId, name)}>Use for notes</button>
+          {/if}
           <button class="small danger" onclick={removeProject}>Delete project</button>
         </div>
 
         <h2>Results <span class="muted">({items.length})</span></h2>
         {#if items.length === 0}
           <p class="hint">
-            No results yet. Run a tool, then use Export, Add to project. Config Diff, DNS
-            Analyzer, Port Scanner and SNMP Sweep support it today.
+            No results yet. Run a tool, then use Export, Add to project in any tool that
+            has an Export menu.
           </p>
         {/if}
         <ol class="items">
@@ -277,6 +327,32 @@
             </li>
           {/each}
         </ol>
+        <h2>Notes <span class="muted">({toolNotes.length})</span></h2>
+        {#if toolNotes.length === 0}
+          <p class="hint">
+            No notes yet. Open the notes pop-out (notebook button next to the logo, or
+            Cmd/Ctrl+Shift+N) from any tool to add timestamped notes here.
+          </p>
+        {/if}
+        {#each noteGroups as [tool, list] (tool)}
+          <div class="note-group">
+            <div class="label">{tool}</div>
+            {#each list as n (n.id)}
+              <div class="tnote">
+                <div class="item-meta muted">
+                  {n.createdLabel}{n.edited ? ` | edited ${n.editedLabel}` : ""}{resultLabel(n.itemId)
+                    ? ` | ${resultLabel(n.itemId)}`
+                    : ""}
+                </div>
+                <div class="tnote-text">{n.text}</div>
+                <div class="item-actions">
+                  <button class="small" onclick={() => selectedId && editNote(n, selectedId, name)}>Edit</button>
+                  <button class="small" onclick={() => removeNote(n)}>Delete</button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/each}
         <p class="hint">Last saved {when(updated)}.</p>
       {:else if projects.length > 0}
         <p class="hint">Select a project.</p>
@@ -288,6 +364,38 @@
 </div>
 
 <style>
+  .note-group {
+    margin: 0.6rem 0;
+  }
+
+  .note-group .label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .tnote {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .tnote-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+    user-select: text;
+  }
+
+  .tnote .item-actions {
+    display: flex;
+    gap: 0.3rem;
+    justify-content: flex-end;
+  }
+
   .panel {
     padding: 1.5rem 2rem;
     max-width: 1100px;
