@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openTool } from "$lib/nav.svelte";
 import { generatedNow } from "$lib/report/export";
+import type { RedactOptions, RedactPreview } from "$lib/report/redact";
 import type { Report, ReportFormat } from "$lib/report/types";
 
 export interface ProjectSummary {
@@ -25,6 +26,32 @@ export interface ProjectItem {
   sections: string[];
 }
 
+/** A timestamped note about one tool's work in a project. */
+export interface ToolNote {
+  id: string;
+  tool: string;
+  toolId: string;
+  text: string;
+  /** Unix milliseconds. */
+  created: number;
+  createdLabel: string;
+  timeZone: string;
+  edited: number | null;
+  editedLabel: string;
+  itemId: string | null;
+}
+
+export interface NoteInput {
+  id: string;
+  tool: string;
+  toolId: string;
+  text: string;
+  created: number;
+  createdLabel: string;
+  timeZone: string;
+  itemId: string | null;
+}
+
 export interface ProjectView {
   id: string;
   name: string;
@@ -32,6 +59,7 @@ export interface ProjectView {
   created: number;
   updated: number;
   items: ProjectItem[];
+  toolNotes: ToolNote[];
 }
 
 export interface ItemEdit {
@@ -51,6 +79,17 @@ export const updateProject = (id: string, name: string, notes: string, items: It
 
 export const deleteProject = (id: string) => invoke<void>("project_delete", { id });
 
+/** Local time with time zone, e.g. "Nov 14, 2026, 10:32 AM EST". */
+export function stampNow(d = new Date()): string {
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZoneName: "short" });
+}
+
+export const saveNote = (id: string, note: NoteInput) =>
+  invoke<ToolNote>("project_note_save", { id, note, editedLabel: stampNow() });
+
+export const deleteNote = (id: string, noteId: string) =>
+  invoke<void>("project_note_delete", { id, noteId });
+
 /** Add a tool's report to a project, stamped with the current time. */
 export function addToProject(id: string, report: Report): Promise<ProjectSummary> {
   const label = generatedNow();
@@ -62,8 +101,15 @@ export function addToProject(id: string, report: Report): Promise<ProjectSummary
   });
 }
 
-export const exportProject = (id: string, format: ReportFormat, path: string) =>
-  invoke<number>("project_export", { id, format, path, generated: generatedNow() });
+export const exportProject = (
+  id: string,
+  format: ReportFormat,
+  path: string,
+  redact: RedactOptions | null = null,
+) => invoke<number>("project_export", { id, format, path, generated: generatedNow(), redact });
+
+export const previewProjectRedaction = (id: string, opts: RedactOptions) =>
+  invoke<RedactPreview>("project_redact_preview", { id, generated: generatedNow(), opts });
 
 /** A project the Projects panel should select when it next mounts. */
 let pendingSelect: string | null = null;

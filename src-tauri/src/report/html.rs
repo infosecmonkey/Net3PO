@@ -29,6 +29,9 @@ td { overflow-wrap: anywhere; }
 .warn { border-left-color: #b45309; } .warn .badge { background: #b45309; }
 .fail { border-left-color: #b91c1c; } .fail .badge { background: #b91c1c; }
 pre { font: 12px/1.45 "SF Mono", Menlo, Consolas, monospace; background: #f6f7f9; border: 1px solid #e2e5e9; border-radius: 4px; padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note { border-left: 3px solid #c2410c; background: #fafafa; padding: 6px 12px; margin: 8px 0; }
+.note .head { color: #6b7280; font-size: 12px; }
+.note .text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
 pre.diff { padding: 6px 0; }
 pre.diff span { display: block; padding: 0 12px; }
 pre.diff .add { background: #e9f7ee; }
@@ -165,6 +168,15 @@ fn render_block(o: &mut String, b: &Block) {
             }
         }
         Block::Code { text } => o.push_str(&format!("<pre>{}</pre>\n", esc(text))),
+        Block::Notes { items } => {
+            for n in items {
+                o.push_str(&format!(
+                    "<div class=\"note\"><div class=\"head\">{}</div><div class=\"text\">{}</div></div>\n",
+                    esc(&n.heading),
+                    esc(&n.text)
+                ));
+            }
+        }
         Block::Diff { lines } => {
             o.push_str("<pre class=\"diff\">");
             for l in lines {
@@ -189,6 +201,14 @@ fn render_block(o: &mut String, b: &Block) {
 mod tests {
     use super::super::core::sample;
     use super::*;
+
+    #[test]
+    fn notes_are_escaped_and_keep_line_breaks() {
+        let html = render(&sample());
+        assert!(html.contains("&lt;b&gt;raw&lt;/b&gt; &amp; **stars**"));
+        assert!(!html.contains("<b>raw</b>"));
+        assert!(html.contains("<div class=\"text\"># not a heading\n- not a list"));
+    }
 
     #[test]
     fn escapes_report_text() {

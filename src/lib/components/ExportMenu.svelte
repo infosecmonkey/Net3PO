@@ -9,7 +9,9 @@
     openProject,
     type ProjectSummary,
   } from "$lib/projects";
-  import { exportReport, FORMATS } from "$lib/report/export";
+  import { exportReport, FORMATS, safeName } from "$lib/report/export";
+  import { previewReport, type RedactOptions } from "$lib/report/redact";
+  import RedactDialog from "./RedactDialog.svelte";
   import type { Report, ReportFormat } from "$lib/report/types";
 
   interface Props {
@@ -33,6 +35,8 @@
   let anchor = $state<HTMLSpanElement | null>(null);
 
   let projects = $state<ProjectSummary[]>([]);
+  /** The report being exported through the redaction dialog. */
+  let redacting = $state<Report | null>(null);
   let creating = $state(false);
   let newName = $state("");
   let newInput = $state<HTMLInputElement | null>(null);
@@ -80,6 +84,18 @@
     } finally {
       busy = false;
     }
+  }
+
+  function startRedacted() {
+    open = false;
+    redacting = buildReport();
+  }
+
+  async function saveRedacted(opts: RedactOptions, format: ReportFormat): Promise<string | null> {
+    if (!redacting) return null;
+    // The usual file name is often the target; use a neutral one instead.
+    const path = await exportReport(redacting, format, `${safeName(redacting.tool ?? "report")}-redacted`, opts);
+    return path ? (path.split(/[\\/]/).pop() ?? path) : null;
   }
 
   async function addTo(projectId: string) {
@@ -152,6 +168,7 @@
         {#each FORMATS as f (f.id)}
           <button role="menuitem" onclick={() => choose(f.id)}>{f.label}</button>
         {/each}
+        <button role="menuitem" onclick={startRedacted}>Redacted...</button>
         <hr />
         <span class="group">Add to project</span>
         {#each projects as p (p.id)}
@@ -178,6 +195,15 @@
       </div>
     {/if}
   </span>
+  {#if redacting}
+    {@const r = redacting}
+    <RedactDialog
+      subject={r.tool ?? "Report"}
+      preview={(opts) => previewReport(r, opts)}
+      onexport={saveRedacted}
+      onclose={() => (redacting = null)}
+    />
+  {/if}
   {#if message}
     <span class="msg" class:failed>{message}</span>
     {#if lastProject && !failed}
