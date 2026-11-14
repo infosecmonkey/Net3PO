@@ -263,6 +263,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./FgtSniffer/FgtSniffer.svelte"),
   },
+  {
+    id: "debug-flow",
+    icon: "workflow",
+    name: "Debug Flow Parser",
+    category: "Fortinet",
+    enabled: true,
+    load: () => import("./DebugFlow/DebugFlow.svelte"),
+  },
 
   // Decoders
   {
@@ -316,7 +324,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
-  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
+  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
 ];
 
 /** Tools grouped for the sidebar, in LAYOUT order. */
