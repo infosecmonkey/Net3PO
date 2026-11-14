@@ -233,6 +233,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./ScriptDecoder/ScriptDecoder.svelte"),
   },
+  {
+    id: "encoder-workbench",
+    icon: "binary",
+    name: "Encoder Workbench",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./EncoderWorkbench/EncoderWorkbench.svelte"),
+  },
 
   // Remote access
   {
@@ -262,7 +270,7 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "config-diff", "script-decoder"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "event-log", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
