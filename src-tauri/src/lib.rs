@@ -27,6 +27,7 @@ use tools::fortinet_builder::commands::{
     fortinet_save_text,
 };
 use tools::grep_builder::commands::{grep_build, grep_preview};
+use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
@@ -59,6 +60,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
         .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
@@ -134,6 +136,10 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            hash_text,
+            hash_file,
+            hash_stop,
+            hash_compare,
             http_send,
             mon_start,
             mon_stop,
