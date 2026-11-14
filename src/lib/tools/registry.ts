@@ -32,6 +32,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./SubnetCalculator/SubnetCalculator.svelte"),
   },
   {
+    id: "mtu-calculator",
+    icon: "ruler",
+    name: "MTU Calculator",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./MtuCalculator/MtuCalculator.svelte"),
+  },
+  {
     id: "hash-calculator",
     icon: "hash",
     name: "Hash Calculator",
@@ -307,7 +315,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
-  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
+  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer"] },
 ];
 

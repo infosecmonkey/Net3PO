@@ -33,6 +33,7 @@ use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, 
 use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
+use tools::mtu_calc::commands::mtu_calculate;
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
@@ -93,6 +94,7 @@ pub fn run() {
             grep_build,
             grep_preview,
             mac_lookup,
+            mtu_calculate,
             mac_db_info,
             fgt_parse,
             filter_build,
