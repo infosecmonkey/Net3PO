@@ -3,6 +3,15 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { SubnetReport, SplitResult } from "$lib/tools/types";
   import { buildSubnetReport, subnetRows } from "./report";
+  import CidrSets from "./CidrSets.svelte";
+
+  type Tab = "calculate" | "aggregate" | "compare";
+  let tab = $state<Tab>("calculate");
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "calculate", label: "Calculate and split" },
+    { id: "aggregate", label: "Aggregate and overlap" },
+    { id: "compare", label: "Compare sets" },
+  ];
 
   let input = $state("");
   let splitPrefix = $state(28);
@@ -46,9 +55,16 @@
 <div class="panel">
   <header>
     <h1>Subnet Calculator</h1>
-    <p class="sub">IPv4 and IPv6. Accepts CIDR or dotted netmask, for example 10.1.1.0/24, 10.0.0.0/255.255.255.0, or 2001:db8::/48.</p>
+    <p class="sub">IPv4 and IPv6: calculate and split a network, aggregate an address list and find overlaps, or compare two lists.</p>
   </header>
 
+  <div class="tabs" role="tablist">
+    {#each TABS as t (t.id)}
+      <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
+    {/each}
+  </div>
+
+  <div hidden={tab !== "calculate"}>
   <div class="controls">
     <input
       class="addr"
@@ -128,6 +144,9 @@
       </div>
     </section>
   {/if}
+  </div>
+  <div hidden={tab !== "aggregate"}><CidrSets mode="aggregate" /></div>
+  <div hidden={tab !== "compare"}><CidrSets mode="compare" /></div>
 </div>
 
 <style>
@@ -145,6 +164,28 @@
     margin: 0 0 1.25rem;
     color: var(--muted);
     font-size: 0.85rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+
+  .tabs button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .tabs button.active {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
   }
 
   .export-row {

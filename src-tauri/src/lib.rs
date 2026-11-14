@@ -44,7 +44,9 @@ use tools::ssh::commands::{
     SshRegistry, ssh_close, ssh_connect, ssh_forget_host, ssh_resize, ssh_secret_delete,
     ssh_secret_has, ssh_secret_set, ssh_write,
 };
-use tools::subnet_calculator::commands::{subnet_calculate, subnet_split};
+use tools::subnet_calculator::commands::{
+    cidr_aggregate, cidr_compare, subnet_calculate, subnet_split,
+};
 use tools::syslog_server::commands::{
     SyslogRegistry, syslog_save, syslog_send, syslog_start, syslog_stop,
 };
@@ -75,6 +77,8 @@ pub fn run() {
         .manage(SshRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
+            cidr_aggregate,
+            cidr_compare,
             subnet_calculate,
             subnet_split,
             regex_test,
