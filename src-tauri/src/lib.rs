@@ -38,6 +38,7 @@ use tools::syslog_server::commands::{
 };
 use tools::tftp_server::commands::{TftpRegistry, tftp_start, tftp_stop};
 use tools::traceroute::commands::{TraceRegistry, trace_method, trace_run, trace_stop};
+use tools::wake_on_lan::commands::{WolRegistry, wol_check, wol_interfaces, wol_send, wol_stop};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -52,6 +53,7 @@ pub fn run() {
         .manage(SweepRegistry::default())
         .manage(PortMapRegistry::default())
         .manage(DhcpRegistry::default())
+        .manage(WolRegistry::default())
         .manage(TraceRegistry::default())
         .manage(StoreLock::default())
         .manage(SshRegistry::default())
@@ -112,6 +114,10 @@ pub fn run() {
             dhcp_interfaces,
             dhcp_monitor,
             dhcp_stop,
+            wol_interfaces,
+            wol_send,
+            wol_check,
+            wol_stop,
             trace_method,
             trace_run,
             trace_stop,
