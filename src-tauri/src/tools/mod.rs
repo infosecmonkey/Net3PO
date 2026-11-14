@@ -3,6 +3,7 @@
 
 pub mod config_diff;
 pub mod conn_monitor;
+pub mod debug_flow;
 pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;
@@ -19,6 +20,7 @@ pub mod ioc;
 pub mod jwt_saml;
 pub mod mac_vendor;
 pub mod mtu_calc;
+pub mod pcap_inspector;
 pub mod port_mapper;
 pub mod port_scanner;
 pub mod regex_builder;
