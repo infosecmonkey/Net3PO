@@ -3,6 +3,8 @@
   import Sidebar from "$lib/components/Sidebar.svelte";
   import SessionBar from "$lib/components/SessionBar.svelte";
   import TerminalDrawer from "$lib/components/TerminalDrawer.svelte";
+  import NotesPanel from "$lib/components/NotesPanel.svelte";
+  import { notes, persistUi } from "$lib/notes.svelte";
   import { ssh } from "$lib/ssh/sessions.svelte";
   import { findTool } from "$lib/tools/registry";
   import { nav } from "$lib/nav.svelte";
@@ -14,6 +16,15 @@
   const onSsh = $derived(nav.selected === "ssh");
   const showBar = $derived(!onSsh && ssh.tabs.length > 0);
   const showDrawer = $derived(showBar && ssh.drawer && ssh.active !== null);
+
+  // Cmd/Ctrl+Shift+N toggles the notes pop-out from any tool.
+  function onKey(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "n") {
+      e.preventDefault();
+      notes.open = !notes.open;
+      persistUi();
+    }
+  }
 
   // Load the selected tool's panel whenever the selection changes.
   $effect(() => {
@@ -34,6 +45,8 @@
   });
 </script>
 
+<svelte:window onkeydown={onKey} />
+
 <div class="app">
   <Sidebar selected={nav.selected} onselect={(id) => (nav.selected = id)} />
   <div class="main-col">
@@ -49,6 +62,7 @@
     </main>
     {#if showDrawer}<TerminalDrawer />{/if}
   </div>
+  {#if notes.open}<NotesPanel />{/if}
 </div>
 
 <style>

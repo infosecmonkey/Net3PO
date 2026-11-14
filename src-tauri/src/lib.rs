@@ -5,7 +5,7 @@ mod tools;
 
 use projects::commands::{
     ProjectsLock, project_add, project_create, project_delete, project_export, project_get,
-    project_list, project_update,
+    project_list, project_note_delete, project_note_save, project_update,
 };
 use report::commands::report_export;
 use store::commands::{StoreLock, store_load, store_save};
@@ -90,6 +90,8 @@ pub fn run() {
             project_delete,
             project_add,
             project_export,
+            project_note_save,
+            project_note_delete,
             dig_query,
             dns_analyze,
             port_scan,
