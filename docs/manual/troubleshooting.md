@@ -15,6 +15,10 @@ the whole app.
 **The AppImage does nothing on Ubuntu.** Install FUSE 2: `sudo apt install libfuse2`
 (`libfuse2t64` on 24.04). Or use the `.deb`.
 
+**apt says "libwebkit2gtk-4.1-0:amd64 but it is not installable".** You downloaded the
+x86-64 package on an ARM64 system, such as Ubuntu in Parallels on an Apple Silicon Mac. Check
+with `uname -m` and download the `arm64` `.deb` instead.
+
 **I only have an `.rpm` on Ubuntu.** Every release also has a `.deb` and an `.AppImage` under
 **Assets** on the release page.
 

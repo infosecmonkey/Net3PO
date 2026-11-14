@@ -28,6 +28,12 @@ jobs:
             os: ubuntu-22.04
             rust-targets: ""
             args: ""
+          # ARM64 Linux, for example Ubuntu in a VM on an Apple Silicon Mac or
+          # on a Raspberry Pi 5. Same glibc baseline as the x64 build.
+          - name: Linux ARM64
+            os: ubuntu-22.04-arm
+            rust-targets: ""
+            args: ""
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +79,7 @@ jobs:
 
             **Windows** (`-setup.exe` recommended, or `.msi`): SmartScreen may say "Windows protected your PC". Click **More info**, then **Run anyway**.
 
-            **Linux**: `.deb` for Ubuntu and Debian (`sudo apt install ./Net3PO_*.deb`), `.rpm` for RHEL and Fedora (`sudo dnf install ./Net3PO-*.rpm`), or the `.AppImage` (`chmod +x` it and run).
+            **Linux** (`amd64`/`x86_64` for Intel and AMD PCs, `arm64`/`aarch64` for ARM, including VMs on Apple Silicon Macs; check with `uname -m`): `.deb` for Ubuntu and Debian (`sudo apt install ./Net3PO_*.deb`), `.rpm` for RHEL and Fedora (`sudo dnf install ./Net3PO-*.rpm`), or the `.AppImage` (`chmod +x` it and run).
 
             A few tools need extra privileges on some systems (for example Syslog or TFTP on their standard ports on Linux); the tool explains what it needs.
 
