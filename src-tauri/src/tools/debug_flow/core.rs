@@ -243,6 +243,33 @@ fn fact(value: impl Into<String>, line: usize) -> Fact {
     }
 }
 
+/// Join lines that a terminal or SSH client hard-wrapped back onto the
+/// record they belong to. A line continues the previous record when that
+/// record has not reached its `msg=` yet, or its quoted message is still
+/// open. Each logical line keeps the number of the line it started on.
+fn unwrap_lines(text: &str) -> Vec<(usize, String)> {
+    let mut out: Vec<(usize, String)> = Vec::new();
+    for (i, raw) in text.lines().enumerate() {
+        let raw = raw.trim_end_matches('\r');
+        let starts_record = raw.contains("trace_id=");
+        if !starts_record
+            && let Some((_, cur)) = out.last_mut()
+            && cur.contains("trace_id=")
+        {
+            let open_quote = cur
+                .find("msg=\"")
+                .is_some_and(|at| cur[at + 5..].matches('"').count() % 2 == 0);
+            if !cur.contains("msg=") || open_quote {
+                // Terminals wrap at a fixed width, often mid-word: join as is.
+                cur.push_str(raw);
+                continue;
+            }
+        }
+        out.push((i + 1, raw.to_string()));
+    }
+    out
+}
+
 /// Parse pasted or imported debug flow output.
 pub fn parse(text: &str) -> Parsed {
     let mut p = Parsed::default();
@@ -251,8 +278,7 @@ pub fn parse(text: &str) -> Parsed {
         return p;
     }
     let mut traces: BTreeMap<u64, Trace> = BTreeMap::new();
-    for (i, raw) in text.lines().enumerate() {
-        let n = i + 1;
+    for (n, raw) in unwrap_lines(text) {
         let line = raw.trim();
         if line.is_empty() {
             continue;
@@ -570,6 +596,43 @@ id=65308 trace_id=21 func=ipsec_output_finish line=544 msg="encrypted, and send 
         let b = &p.traces[1];
         assert_eq!(b.verdict, Verdict::ExistingSession);
         assert!(b.session.as_ref().unwrap().value.contains("0003aaaa"));
+    }
+
+    #[test]
+    fn rejoins_hard_wrapped_lines() {
+        // Wrap every line at 60 columns, the way some SSH clients copy.
+        let wrapped: String = ALLOW
+            .lines()
+            .flat_map(|l| {
+                let c: Vec<char> = l.chars().collect();
+                c.chunks(60)
+                    .map(|x| x.iter().collect::<String>())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let p = parse(&wrapped);
+        assert_eq!(p.traces.len(), 1, "{:?}", p);
+        let t = &p.traces[0];
+        assert_eq!(t.src.as_deref(), Some("10.1.1.10:51234"));
+        assert_eq!(t.dst.as_deref(), Some("198.51.100.20:443"));
+        assert_eq!(t.in_iface.as_ref().unwrap().value, "port2");
+        assert_eq!(t.verdict, Verdict::Allowed);
+        assert_eq!(t.nat[0].value, "SNAT 10.1.1.10 to 203.0.113.5:60123");
+        assert_eq!(p.other_lines, 0);
+        // An existing-session trace that was wrapped still reads as such.
+        let e = "id=65308 trace_id=2 func=resolve_ip_tuple_fast line=5974 msg=\"Find an existing session, id-0e\nb31aa2, original direction\"\nid=65308 trace_id=2 func=npu_handle_session44 line=1 msg=\"Trying to offloading session from port2 to port1, skb.npu_flag=00000400\"";
+        let p = parse(e);
+        assert_eq!(p.traces[0].verdict, Verdict::ExistingSession);
+        assert!(
+            p.traces[0]
+                .session
+                .as_ref()
+                .unwrap()
+                .value
+                .contains("0eb31aa2")
+        );
+        assert!(p.traces[0].events.iter().any(|x| x.kind == "offload"));
     }
 
     #[test]
