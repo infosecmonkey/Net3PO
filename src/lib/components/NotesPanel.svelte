@@ -129,7 +129,10 @@
 
   function onNewKey(e: KeyboardEvent) {
     if (e.key === "Enter") void createAndUse();
-    if (e.key === "Escape") creating = false;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      creating = false;
+    }
   }
 
   async function chooseProject(value: string) {
@@ -235,6 +238,13 @@
   }
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    // Esc hides the panel, unless a modal dialog is open (it owns Esc).
+    if (e.key === "Escape" && !creating && !e.defaultPrevented && !document.querySelector('[aria-modal="true"]')) close();
+  }}
+/>
+
 <aside class="notes" style:width="{notes.width}px">
   <div
     class="handle"
@@ -250,7 +260,9 @@
 
   <div class="head">
     <strong>Notes</strong>
-    <button class="x" title="Hide notes (the draft is kept)" aria-label="Hide notes" onclick={close}>x</button>
+    <button class="x" title="Hide notes (Esc; the draft is kept)" aria-label="Hide notes" onclick={close}>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
   </div>
 
   <label class="lbl" for="np-project">Active project</label>
@@ -401,15 +413,22 @@
   }
 
   .x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: -4px -6px -4px 0;
     background: none;
     border: none;
+    border-radius: 6px;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.85rem;
   }
 
   .x:hover {
     color: var(--fg);
+    background: var(--hover);
   }
 
   .lbl {
