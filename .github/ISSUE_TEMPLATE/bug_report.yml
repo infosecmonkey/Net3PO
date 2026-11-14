@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in Net3PO is broken or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Net3PO. Please do not paste passwords, keys, real customer configs or public IPs you are not allowed to share. Security problems go to private reporting instead (see the link on the New issue page).
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      options:
+        - Subnet Calculator
+        - Regex Builder
+        - Grep Builder
+        - MAC Vendor Lookup
+        - Config Diff
+        - Dig
+        - DNS Analyzer
+        - Port Scanner
+        - Syslog Server
+        - TFTP Server
+        - SNMP Walk
+        - SNMP Sweep
+        - Switch Port Mapper
+        - DHCP Monitor
+        - Visual Traceroute
+        - Fortinet Command Builder
+        - FortiGate Sniffer to PCAP
+        - Script Decoder
+        - SSH
+        - Projects / report export
+        - Install, startup or the app as a whole
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead. Include any error text.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Enter ...
+        3. Click ...
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Windows 11
+        - Windows 10
+        - Linux (Ubuntu / Debian)
+        - Linux (RHEL / Fedora)
+        - Linux (other, AppImage)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Net3PO version
+      description: Shown in About (the info button next to the logo).
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or extra detail
+      description: Optional. Drag images in here.

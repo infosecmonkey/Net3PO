@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a new tool or an improvement to an existing one.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or problem, in your own words. How do you handle it today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: The tool, option or change you have in mind.
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Related tool (if any)
+      placeholder: "e.g. Port Scanner, or a new tool"
