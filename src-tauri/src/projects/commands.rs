@@ -7,12 +7,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager, State};
 
-use super::core::{self, ItemEdit, ProjectStore, ProjectSummary, ProjectView};
+use super::core::{self, ItemEdit, NoteInput, ProjectStore, ProjectSummary, ProjectView, ToolNote};
 use crate::report::commands::{self as report_cmd, RedactPreview};
 use crate::report::core::{Format, Report};
 use crate::report::redact::RedactOptions;
-use super::core::{self, ItemEdit, NoteInput, ProjectStore, ProjectSummary, ProjectView, ToolNote};
-use crate::report::core::{self as report, Format, Report};
 
 /// Serializes project reads and writes.
 #[derive(Default)]
@@ -121,6 +119,9 @@ fn combined(
     let _g = lock.0.lock().unwrap_or_else(|p| p.into_inner());
     open_store(app)?
         .report(id, generated)
+        .map_err(|e| e.to_string())
+}
+
 /// Save a timestamped tool note (add, or update the note with the same id).
 #[tauri::command]
 pub fn project_note_save(

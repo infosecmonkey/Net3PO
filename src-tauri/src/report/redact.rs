@@ -707,6 +707,12 @@ impl<'a> Redactor<'a> {
                     l.text = self.text(&l.text);
                 }
             }
+            Block::Notes { items } => {
+                for n in items {
+                    n.heading = self.text(&n.heading);
+                    n.text = self.text(&n.text);
+                }
+            }
         }
     }
 }
@@ -1068,6 +1074,37 @@ mod tests {
             assert!(text.contains("[USER-1]") && text.contains("4624"));
         }
         assert!(!render(&out.report, Format::Pdf).unwrap().is_empty());
+    }
+
+    #[test]
+    fn notes_are_redacted() {
+        use crate::report::core::NoteEntry;
+        let report = Report {
+            title: "t".into(),
+            subtitle: String::new(),
+            generated: String::new(),
+            tool: String::new(),
+            sections: vec![Section {
+                blocks: vec![Block::Notes {
+                    items: vec![NoteEntry {
+                        heading: "Nov 14, fw1.acme.com".into(),
+                        text: "Called alice@acme.com; 10.2.3.4 still drops, password=hunter2"
+                            .into(),
+                    }],
+                }],
+                ..Default::default()
+            }],
+        };
+        let out = redact(&report, &all()).unwrap();
+        let Block::Notes { items } = &out.report.sections[0].blocks[0] else {
+            panic!()
+        };
+        assert_eq!(items[0].heading, "Nov 14, [HOST-1]");
+        assert!(
+            !items[0].text.contains("acme")
+                && !items[0].text.contains("10.2.3.4")
+                && !items[0].text.contains("hunter2")
+        );
     }
 
     #[test]

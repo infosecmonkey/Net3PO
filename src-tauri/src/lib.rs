@@ -5,8 +5,7 @@ mod tools;
 
 use projects::commands::{
     ProjectsLock, project_add, project_create, project_delete, project_export, project_get,
-    project_list, project_redact_preview, project_update,
-    project_list, project_note_delete, project_note_save, project_update,
+    project_list, project_note_delete, project_note_save, project_redact_preview, project_update,
 };
 use report::commands::{report_export, report_redact_preview};
 use store::commands::{StoreLock, store_load, store_save};
