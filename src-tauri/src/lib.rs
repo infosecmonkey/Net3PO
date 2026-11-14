@@ -13,11 +13,12 @@ use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
+use tools::email_analyzer::commands::{
+    email_analyze, email_blocklist_check, email_blocklists, email_ip_owner, email_open,
+};
 use tools::event_log::commands::{
     EventLogRegistry, evtlog_cancel, evtlog_close, evtlog_export_rows, evtlog_load, evtlog_query,
     evtlog_record,
-use tools::email_analyzer::commands::{
-    email_analyze, email_blocklist_check, email_blocklists, email_ip_owner, email_open,
 };
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
 use tools::fortinet_builder::commands::{

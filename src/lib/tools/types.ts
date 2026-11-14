@@ -652,6 +652,8 @@ export interface EvtRecordDetail {
   levelName: string;
   explanation: { title: string; meaning: string; lookAt: string[]; caution: string } | null;
   decoded: [string, string][];
+}
+
 // Email Header Analyzer
 
 export type EmailSev = "pass" | "info" | "warn" | "fail";
