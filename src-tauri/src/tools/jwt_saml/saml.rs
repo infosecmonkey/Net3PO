@@ -99,7 +99,7 @@ fn pct_decode(s: &str) -> String {
 }
 
 /// Turn whatever was pasted into XML, saying which binding it looked like.
-fn to_xml(input: &str) -> Result<(String, String), String> {
+pub(crate) fn to_xml(input: &str) -> Result<(String, String), String> {
     let mut s = input.trim().to_string();
     if s.starts_with('<') {
         return Ok((s, "raw XML".into()));
