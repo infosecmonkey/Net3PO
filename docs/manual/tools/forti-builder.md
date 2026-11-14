@@ -32,13 +32,14 @@ Every builder tab ends with the same **Command** box:
 | Button | What it does |
 |---|---|
 | Copy | Copies the command text to the clipboard. |
-| Send to SSH | Types the command into an open SSH session, one line at a time, each followed by Enter, and makes that session active. With several sessions open, a menu lets you pick one (the active session is listed first). Disabled when no session is open. |
+| Send to SSH | Types the command into an open SSH session, one line at a time, each followed by Enter, and makes that session active. `#` note lines and blank lines are skipped. The stop-debug block is held back (see below). With several sessions open, a menu lets you pick one (the active session is listed first). Disabled when no session is open. |
+| Send stop | Appears after **Send to SSH** when the command has a stop-debug block. Click it when you are finished to type `diagnose debug disable` and `diagnose debug reset` into the same session. |
 | Save .txt | Saves the command to a text file (default name `fortigate-<tab>.txt`). |
 | Save for later | Asks for a **Title** (pre-filled from your inputs) and optional **Notes**, then adds the command to the Saved tab. |
 
 All buttons are disabled while the inputs have an error.
 
-**Send to SSH** types every line at once, including `#` note lines and the stop-debug block. For a live debug, that means the debug is disabled and reset straight after it starts. Untick **Append stop-debug block** before sending, and send or type the stop commands when you are done.
+**Send to SSH** skips `#` note lines and does not type the stop-debug block, so a live debug keeps running. When you have the output you need, click **Send stop** (or type the stop commands yourself). Commands under `# Changes cluster state` in the HA tab are sent like any other line, so review them before sending.
 
 ### Session
 

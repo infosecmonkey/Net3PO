@@ -53,7 +53,8 @@ Worked example. A switch at `192.0.2.20` runs `copy tftp://192.0.2.50/fw.bin fla
 
 - `done` means the last block was acknowledged (GET) or received (PUT). TFTP has no checksum; verify firmware hashes with the [Hash Calculator](hash-calculator.md).
 - File names with `..`, an absolute path, a backslash or a NUL are refused, and the resolved path must stay inside the folder (symlinks are resolved before the check on reads).
-- Uploads can go into existing subfolders only; subfolders are not created. An existing file with the same name is overwritten.
+- Uploads can go into existing subfolders only; subfolders are not created. An existing file with the same name is replaced once the upload completes.
+- An upload is received into a hidden temporary file in the same folder and renamed into place at the end. A failed or cancelled upload leaves any existing file untouched, and a symlink or hard link at the target name is replaced rather than followed, so a write cannot land outside the folder.
 - Transfer mode (`netascii` or `octet`) is not converted; every file is sent and stored byte for byte.
 - Each transfer waits 3 seconds per block and retries 5 times, then fails. The server listens on IPv4 only.
 - A file being served is read into memory first, so very large images use that much RAM during the transfer. Uploads have no size limit beyond free disk space.

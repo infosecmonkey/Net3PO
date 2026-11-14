@@ -31,7 +31,7 @@ To decode offline, switch to **Decode PEM / DER**, paste one or more PEM blocks 
 | Field | What it means | Default / accepted values |
 |---|---|---|
 | Host | Target to connect to. A scheme, path, query and `user@` are stripped from URLs. | Hostname, IPv4, IPv6, `host:port`, `[2001:db8::1]:443` or a URL. |
-| Port | TCP port. | 443. Changes automatically with STARTTLS until you edit it: SMTP 587, IMAP 143, POP3 110, FTP 21. 1 to 65535. If this field is filled, it is used rather than a port typed in Host. |
+| Port | TCP port. | 443. Changes automatically with STARTTLS until you edit it: SMTP 587, IMAP 143, POP3 110, FTP 21. 1 to 65535. A port typed in Host (`host:8443`, or a URL with a port) takes priority; the Port field then shows that port and is locked. |
 | STARTTLS | Plain-text upgrade before the handshake. | None (direct TLS), SMTP, IMAP, POP3, FTP. |
 | Connect to IP (optional), under Advanced | Connect to this address instead of resolving the host. The hostname is still used for SNI and checks. | Empty (resolve the host). Must be an IP address. |
 | Send SNI, under Advanced | Include the hostname in the TLS ClientHello. | On. |
@@ -105,8 +105,6 @@ No differences between macOS, Windows and Linux. Trust uses the bundled root sto
 **"the server does not recognise the SNI name".** Check the hostname, or try with Send SNI off.
 
 **"STARTTLS: the server does not offer STARTTLS"** or "STARTTLS refused". The service does not support or allow the upgrade.
-
-**A port typed in Host is ignored.** The Port field takes priority. Clear it or set it to the port you want.
 
 **"file larger than 1 MB; certificates and CSRs are much smaller".** You opened the wrong file.
 

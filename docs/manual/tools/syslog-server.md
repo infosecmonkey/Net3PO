@@ -36,7 +36,7 @@ Receive tab:
 |---|---|---|
 | Port | Port to listen on, for both UDP and TCP. | 514; 1 to 65535 |
 | UDP | Listen on UDP. | On |
-| TCP | Listen on TCP. Messages are read one per line (newline-delimited). | On |
+| TCP | Listen on TCP. Accepts both RFC 6587 framings: octet counting (`<length> <message>`) and messages ended by a newline or NUL. | On |
 | Filter text | Case-insensitive match against the raw message. | Empty |
 | Severity list | Show messages at the chosen severity or worse (lower number). Messages without a parseable priority are always shown. | All severities |
 | Save | Saves the currently shown (filtered) messages as raw lines, oldest first, to a `.txt` or `.log` file. | |
@@ -80,7 +80,8 @@ Send tab: a running count (`N sent`) and a log of the last 2,000 lines sent, new
 
 - The list keeps the newest 10,000 messages. Older ones drop off the bottom; save regularly during long captures.
 - One UDP datagram can carry several newline-separated messages; each becomes its own row. UDP datagrams up to 65,535 bytes are accepted.
-- TCP input is split on newlines only. Senders that use octet-counting framing without newlines (including this tool's own Send tab over TCP) arrive as one long row. Use UDP, or a sender that ends each message with a newline.
+- TCP input is split by octet counting or by newline/NUL, whichever the sender uses, so this tool's own Send tab over TCP shows one row per message.
+- TCP limits: a message longer than 64 KiB is cut to 64 KiB; a connection idle for 10 minutes is closed; at most 64 TCP senders are served at once, and further connections are closed.
 - Structured data in RFC 5424 messages stays inside the message text.
 - Timestamps in the Received column are local arrival times, not the device's timestamp.
 - The receiver listens on IPv4 only (all IPv4 addresses on the chosen port).
