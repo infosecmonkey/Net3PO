@@ -347,6 +347,20 @@ fn block(l: &mut Layout, b: &Block) {
                 l.gap(4.0);
             }
         }
+        Block::Notes { items } => {
+            for n in items {
+                l.paragraph(&n.heading, Font::Bold, 8.5, 12.0, MARGIN, MUTED);
+                l.paragraph(
+                    n.text.trim_end(),
+                    Font::Regular,
+                    10.0,
+                    13.5,
+                    MARGIN + 10.0,
+                    TEXT,
+                );
+                l.gap(6.0);
+            }
+        }
         Block::Code { text } => {
             let lines: Vec<(String, Rgb)> = text
                 .lines()

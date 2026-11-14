@@ -11,6 +11,7 @@ export type Collection =
   | "ssh_groups"
   | "ssh_connections"
   | "ssh_known_hosts"
+  | "report_redaction"
   | "wol_devices";
 
 export interface Loaded<T> {

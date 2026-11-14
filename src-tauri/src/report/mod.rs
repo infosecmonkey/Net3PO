@@ -7,4 +7,5 @@ pub mod core;
 mod html;
 mod markdown;
 mod pdf;
+pub mod redact;
 mod text;

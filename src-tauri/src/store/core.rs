@@ -20,6 +20,7 @@ pub const COLLECTIONS: &[&str] = &[
     "ssh_groups",
     "ssh_connections",
     "ssh_known_hosts",
+    "report_redaction",
     "wol_devices",
 ];
 
