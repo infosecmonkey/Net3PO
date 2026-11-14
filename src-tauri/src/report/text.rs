@@ -152,6 +152,18 @@ fn render_block(o: &mut String, b: &Block) {
                 }
             }
         }
+        Block::Notes { items } => {
+            for n in items {
+                for line in wrap(&n.heading, WIDTH) {
+                    o.push_str(&line);
+                    o.push('\n');
+                }
+                for line in wrap(n.text.trim_end(), WIDTH - 4) {
+                    o.push_str(&format!("    {line}\n"));
+                }
+                o.push('\n');
+            }
+        }
         Block::Code { text } => {
             for line in text.lines() {
                 o.push_str(&format!("    {line}\n"));
@@ -229,6 +241,14 @@ fn table(o: &mut String, headers: &[String], rows: &[Vec<String>]) {
 mod tests {
     use super::super::core::sample;
     use super::*;
+
+    #[test]
+    fn notes_are_indented_under_their_heading() {
+        let t = render(&sample());
+        assert!(t.contains(
+            "Nov 14, 2026, 10:32 AM EST | Port Scanner\n    # not a heading\n    - not a list\n"
+        ));
+    }
 
     #[test]
     fn wrap_basic() {
