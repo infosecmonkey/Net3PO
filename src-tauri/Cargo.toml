@@ -26,6 +26,8 @@ ureq = "2"
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+# HTTPS for RDAP lookups (rustls + ring, already in the tree via russh).
+ureq = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
@@ -53,6 +55,10 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 webpki-roots = "1"
 ring = "0.17"
 x509-parser = { version = "0.18", features = ["verify"] }
+evtx = { version = "0.15", default-features = false }
+quick-xml = "0.42"
+mail-parser = "1"
+idna = "1"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

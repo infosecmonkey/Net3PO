@@ -11,6 +11,33 @@ fn cell(s: &str) -> String {
         .replace('\n', "<br>")
 }
 
+/// Escape user text so Markdown shows it literally: inline markup is
+/// backslash-escaped, and line starts that would form headings, lists or
+/// quotes are neutralized.
+fn literal(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if matches!(
+            c,
+            '\\' | '`' | '*' | '_' | '[' | ']' | '<' | '>' | '#' | '|' | '~'
+        ) {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    let t = out.trim_start();
+    let lead = &out[..out.len() - t.len()];
+    let starts_list = t.starts_with("- ") || t.starts_with("+ ") || t == "-" || t == "+";
+    let starts_num = t
+        .find(|c: char| !c.is_ascii_digit())
+        .is_some_and(|i| i > 0 && (t[i..].starts_with('.') || t[i..].starts_with(')')));
+    if starts_list || starts_num || t.starts_with("===") {
+        format!("{lead}\\{t}")
+    } else {
+        out
+    }
+}
+
 /// A backtick fence longer than any run of backticks in `text`.
 fn fence(text: &str) -> String {
     let mut longest = 0;
@@ -104,6 +131,16 @@ fn render_block(o: &mut String, b: &Block) {
             }
             o.push('\n');
         }
+        Block::Notes { items } => {
+            for n in items {
+                o.push_str(&format!("**{}**\n\n", literal(&n.heading)));
+                for line in n.text.trim_end().lines() {
+                    // Trailing double space keeps the user's line breaks.
+                    o.push_str(&format!("> {}  \n", literal(line)));
+                }
+                o.push('\n');
+            }
+        }
         Block::Code { text } => {
             let f = fence(text);
             o.push_str(&format!("{f}\n{}\n{f}\n\n", text.trim_end_matches('\n')));
@@ -123,6 +160,17 @@ fn render_block(o: &mut String, b: &Block) {
 mod tests {
     use super::super::core::sample;
     use super::*;
+
+    #[test]
+    fn notes_render_literally() {
+        let md = render(&sample());
+        assert!(md.contains("> \\# not a heading  \n"));
+        assert!(md.contains("> \\- not a list  \n"));
+        assert!(md.contains("> \\<b\\>raw\\</b\\> & \\*\\*stars\\*\\*  \n"));
+        assert_eq!(literal("1. one"), "\\1. one");
+        assert_eq!(literal("é. ok"), "é. ok");
+        assert_eq!(literal("plain"), "plain");
+    }
 
     #[test]
     fn renders_headings_and_tables() {

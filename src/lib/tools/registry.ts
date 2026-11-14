@@ -63,6 +63,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./ConfigDiff/ConfigDiff.svelte"),
   },
+  {
+    id: "event-log",
+    icon: "logs",
+    name: "Windows Event Log",
+    category: "Offline",
+    enabled: true,
+    load: () => import("./EventLog/EventLog.svelte"),
+  },
 
   // Phase 2, network tools
   {
@@ -104,6 +112,22 @@ const TOOLS: ToolDef[] = [
     category: "Network",
     enabled: true,
     load: () => import("./ConnMonitor/ConnMonitor.svelte"),
+  },
+  {
+    id: "socket-tools",
+    icon: "plug",
+    name: "Socket Tools",
+    category: "Network",
+    enabled: true,
+    load: () => import("./SocketTools/SocketTools.svelte"),
+  },
+  {
+    id: "email-analyzer",
+    icon: "mail-search",
+    name: "Email Header Analyzer",
+    category: "Network",
+    enabled: true,
+    load: () => import("./EmailAnalyzer/EmailAnalyzer.svelte"),
   },
   {
     id: "port-scanner",
