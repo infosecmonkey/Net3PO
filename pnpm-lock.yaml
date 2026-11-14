@@ -36,6 +36,9 @@ importers:
       '@tauri-apps/cli':
         specifier: ^2
         version: 2.12.4
+      marked:
+        specifier: 18.1.2
+        version: 18.1.2
       svelte:
         specifier: ^5.56.3
         version: 5.57.3
@@ -460,6 +463,11 @@ packages:
   magic-string@1.4.4:
     resolution: {integrity: sha512-jQz9sVhrZuphH4NrAIHSgkDJCluQO7Ioi4KGRLa7aTUjAODQ13hENX0YIytqYE/rIkO485gQG2LeBxJaW53kkQ==}
 
+  marked@18.1.2:
+    resolution: {integrity: sha512-DfOnvLAQ6WYeWxWO1u4RyFOeqyHup6dks5PPqnoFiooU7ipRvidO/2j8plhAHIiZg574E9ZlzSjUiPMLAzFkgg==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
     engines: {node: '>=4'}
@@ -866,6 +874,8 @@ snapshots:
   magic-string@1.4.4:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  marked@18.1.2: {}
 
   mri@1.2.0: {}
 
