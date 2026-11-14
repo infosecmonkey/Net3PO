@@ -17,6 +17,7 @@ use tools::dns_analyzer::commands::dns_analyze;
 use tools::email_analyzer::commands::{
     email_analyze, email_blocklist_check, email_blocklists, email_ip_owner, email_open,
 };
+use tools::encoder::commands::codec_run;
 use tools::event_log::commands::{
     EventLogRegistry, evtlog_cancel, evtlog_close, evtlog_export_rows, evtlog_load, evtlog_query,
     evtlog_record,
@@ -170,6 +171,7 @@ pub fn run() {
             evtlog_record,
             evtlog_export_rows,
             evtlog_close,
+            codec_run,
             email_analyze,
             email_open,
             email_blocklists,
