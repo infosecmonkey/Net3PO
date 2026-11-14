@@ -653,3 +653,46 @@ export interface EvtRecordDetail {
   explanation: { title: string; meaning: string; lookAt: string[]; caution: string } | null;
   decoded: [string, string][];
 }
+// Wake-on-LAN
+
+export type WolDelivery = "limitedBroadcast" | "localBroadcast" | "remoteBroadcast" | "unicast";
+
+export interface WolInterface {
+  name: string;
+  ip: string;
+  prefix: number;
+  broadcast: string;
+}
+
+/** A saved device profile. The SecureOn password is never saved. */
+export interface WolDevice {
+  id: string;
+  name: string;
+  mac: string;
+  destination: string;
+  port: number;
+  interface: string;
+  repeats: number;
+  checkHost: string;
+  checkPorts: string;
+  notes: string;
+}
+
+export interface WolSendResult {
+  mac: string;
+  destination: string;
+  port: number;
+  delivery: WolDelivery;
+  packets: number;
+  bytes: number;
+  source: string | null;
+  interface: string;
+  sentAtMs: number;
+  warnings: string[];
+}
+
+export type WolCheckEvent =
+  | { type: "started"; host: string; ports: number[] }
+  | { type: "waiting"; elapsedMs: number }
+  | { type: "up"; port: number; answer: "open" | "refused"; elapsedMs: number }
+  | { type: "done"; reachable: boolean; cancelled: boolean; elapsedMs: number };
