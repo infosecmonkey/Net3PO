@@ -3,6 +3,7 @@
 
 pub mod config_diff;
 pub mod conn_monitor;
+pub mod debug_flow;
 pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;
