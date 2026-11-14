@@ -285,8 +285,7 @@ async fn scan_one(ip: IpAddr, port: u16, timeout: Duration) -> PortState {
 /// refusals immediate, as on macOS and Linux. Best effort: on failure the
 /// default behavior stays.
 #[cfg(windows)]
-pub(crate) fn fast_refusal(socket: &TcpSocket) {
-    use std::os::windows::io::AsRawSocket;
+pub(crate) fn fast_refusal<S: std::os::windows::io::AsRawSocket>(socket: &S) {
     use windows_sys::Win32::Networking::WinSock::{
         SIO_TCP_INITIAL_RTO, SOCKET, TCP_INITIAL_RTO_DEFAULT_RTT,
         TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS, TCP_INITIAL_RTO_PARAMETERS, WSAIoctl,

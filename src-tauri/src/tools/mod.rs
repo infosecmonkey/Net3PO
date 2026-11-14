@@ -17,6 +17,7 @@ pub mod regex_builder;
 pub mod script_decoder;
 pub mod snmp_sweep;
 pub mod snmp_walk;
+pub mod socket_tools;
 pub mod ssh;
 pub mod subnet_calculator;
 pub mod syslog_server;
