@@ -8,9 +8,14 @@ Net3PO is free and open source (Apache-2.0). Download installers from the
 |---|---|---|
 | macOS (Apple Silicon and Intel) | `Net3PO_<version>_universal.dmg` | One universal build for both chip types. |
 | Windows 10/11 (x64) | `Net3PO_<version>_x64-setup.exe` or `..._x64_en-US.msi` | Use the `.msi` for managed deployment. |
-| Ubuntu, Debian | `Net3PO_<version>_amd64.deb` | |
-| RHEL, Fedora, Rocky, Alma | `Net3PO-<version>-1.x86_64.rpm` | |
-| Any x86-64 Linux | `Net3PO_<version>_amd64.AppImage` | Portable, no install. |
+| Ubuntu, Debian | `Net3PO_<version>_amd64.deb` or `..._arm64.deb` | |
+| RHEL, Fedora, Rocky, Alma | `Net3PO-<version>-1.x86_64.rpm` or `...-1.aarch64.rpm` | |
+| Any Linux | `Net3PO_<version>_amd64.AppImage` or `..._aarch64.AppImage` | Portable, no install. |
+
+**Pick the Linux file for your CPU.** Run `uname -m`: `x86_64` means the `amd64` / `x86_64`
+files, `aarch64` means the `arm64` / `aarch64` files. A Linux VM on an Apple Silicon Mac
+(Parallels, UTM, VMware Fusion) is ARM64. Installing the wrong one fails with
+"Depends: libwebkit2gtk-4.1-0:amd64 but it is not installable".
 
 ## Verify the download
 
