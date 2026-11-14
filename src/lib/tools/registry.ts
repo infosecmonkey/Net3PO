@@ -98,6 +98,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./HttpTroubleshooter/HttpTroubleshooter.svelte"),
   },
   {
+    id: "conn-monitor",
+    icon: "activity",
+    name: "Connectivity Monitor",
+    category: "Network",
+    enabled: true,
+    load: () => import("./ConnMonitor/ConnMonitor.svelte"),
+  },
+  {
     id: "port-scanner",
     icon: "radar",
     name: "Port Scanner",
