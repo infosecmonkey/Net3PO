@@ -251,9 +251,12 @@
   td:last-child {
     text-align: right;
     width: 1%;
+    white-space: nowrap;
+    padding-left: 0.6rem;
   }
 
   .mini {
+    white-space: nowrap;
     background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 4px;
