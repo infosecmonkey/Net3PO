@@ -50,6 +50,10 @@ use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, p
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
 use tools::script_decoder::commands::{script_decode, script_read_file};
+use tools::sftp::commands::{
+    SftpRegistry, sftp_cancel, sftp_close, sftp_connect, sftp_download, sftp_list, sftp_mkdir,
+    sftp_remove, sftp_rename, sftp_upload,
+};
 use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
@@ -97,6 +101,7 @@ pub fn run() {
         .manage(TraceRegistry::default())
         .manage(StoreLock::default())
         .manage(SshRegistry::default())
+        .manage(SftpRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
             cidr_aggregate,
@@ -135,6 +140,15 @@ pub fn run() {
             ssh_secret_has,
             ssh_secret_delete,
             ssh_forget_host,
+            sftp_connect,
+            sftp_close,
+            sftp_list,
+            sftp_mkdir,
+            sftp_rename,
+            sftp_remove,
+            sftp_cancel,
+            sftp_download,
+            sftp_upload,
             script_decode,
             script_read_file,
             project_list,

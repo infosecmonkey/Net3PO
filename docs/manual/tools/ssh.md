@@ -75,7 +75,7 @@ Password prompt: if a password connection has no saved password, or the saved on
 
 - Host key trust is trust on first use. The first fingerprint is only as good as your check against the device. Keys are pinned per host name or address and port, so `fw1.example.com` and `192.0.2.1` are pinned separately.
 - A host key is pinned only after a successful login.
-- Only interactive shell sessions are supported. There is no SFTP, port forwarding, agent forwarding, SSH agent authentication or keyboard-interactive (one-time password) login.
+- Only interactive shell sessions are supported here; file transfer is in the [SFTP](sftp.md) tool. There is no port forwarding, agent forwarding, SSH agent authentication or keyboard-interactive (one-time password) login.
 - Limits: 16 open sessions at once; 15 seconds to connect and complete the handshake; keepalives every 30 seconds, and the session drops after 3 missed replies; a single paste or write is limited to 64 KB.
 
 ## Online activity and privacy
@@ -133,6 +133,7 @@ There is no export or "Add to project" for SSH sessions. Copy text from the term
 
 ## Related tools
 
+- [SFTP](sftp.md)
 - [Fortinet Command Builder](forti-builder.md)
 - [Debug Flow Parser](debug-flow.md)
 - [FortiGate Sniffer to PCAP](forti-sniffer.md)

@@ -13,8 +13,8 @@ nothing anywhere unless you click a button that does a network job.
   local configuration with the OS's own commands).
 - **Network tools send traffic only to the target you enter, only when you click:** Dig, DNS
   Analyzer, NTP Checker, Port Scanner, Visual Traceroute, HTTP Troubleshooter, Socket Tools,
-  Connectivity Monitor, Throughput Tester (client mode), Wake-on-LAN, SNMP Walk and Sweep, Switch Port Mapper, TLS Inspector and
-  SSH.
+  Connectivity Monitor, Throughput Tester (client mode), Wake-on-LAN, SNMP Walk and Sweep, Switch Port Mapper, TLS Inspector,
+  SSH and SFTP.
 - **Listeners accept traffic only while running:** Syslog Server, TFTP Server, DHCP Monitor and
   the Throughput Tester in server mode
   listen on a port from **Start** until **Stop**.

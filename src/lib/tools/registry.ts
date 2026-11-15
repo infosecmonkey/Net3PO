@@ -347,6 +347,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./Ssh/Ssh.svelte"),
   },
+  {
+    id: "sftp",
+    icon: "folder-sync",
+    name: "SFTP",
+    category: "Remote",
+    enabled: true,
+    load: () => import("./Sftp/Sftp.svelte"),
+  },
 
   // Workspace
   {
@@ -370,7 +378,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "iperf", "net-snapshot", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["lldp", "snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
-  { category: "Remote", tools: ["ssh"] },
+  { category: "Remote", tools: ["ssh", "sftp"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
 ];
