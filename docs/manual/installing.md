@@ -74,8 +74,11 @@ only. See each tool's **Platform notes**.
 
 ## Optional software
 
-- **libpcap / Npcap:** Net3PO never bundles a capture driver. Features that need one say so
-  and work without it where possible. On Windows, install Npcap yourself from npcap.com.
+- **libpcap / Npcap:** Net3PO never bundles a capture driver. Live capture in
+  [LLDP / CDP Neighbors](tools/lldp.md) loads the one you install: libpcap is part of macOS
+  (capture needs Wireshark's ChmodBPF), Linux needs the libpcap package (and CAP_NET_RAW),
+  and on Windows you install Npcap from npcap.com. Without it, the app works normally and
+  capture files can still be read.
 
 ## Updating and uninstalling
 

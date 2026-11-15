@@ -19,6 +19,7 @@ pub mod http_client;
 pub mod ioc;
 pub mod iperf;
 pub mod jwt_saml;
+pub mod lldp;
 pub mod mac_vendor;
 pub mod mtu_calc;
 pub mod net_snapshot;

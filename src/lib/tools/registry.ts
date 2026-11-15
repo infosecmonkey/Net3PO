@@ -244,6 +244,14 @@ const TOOLS: ToolDef[] = [
 
   // Phase 3, SNMP
   {
+    id: "lldp",
+    icon: "cable",
+    name: "LLDP / CDP Neighbors",
+    category: "Discovery and SNMP",
+    enabled: true,
+    load: () => import("./Lldp/Lldp.svelte"),
+  },
+  {
     id: "snmp-walk",
     icon: "list-tree",
     name: "SNMP Walk",
@@ -360,7 +368,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
   { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "jwt-saml", "event-log", "pcap-inspector", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "iperf", "net-snapshot", "wake-on-lan"] },
-  { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
+  { category: "Discovery and SNMP", tools: ["lldp", "snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },

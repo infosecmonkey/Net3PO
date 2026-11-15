@@ -35,6 +35,7 @@ use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::iperf::commands::{IperfRegistry, iperf_client, iperf_detect, iperf_server, iperf_stop};
 use tools::jwt_saml::commands::{jwt_inspect, saml_inspect, saml_read_file, saml_scan};
+use tools::lldp::commands::{LldpRegistry, lldp_listen, lldp_read_file, lldp_status, lldp_stop};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
 use tools::net_snapshot::commands::{
@@ -82,6 +83,7 @@ pub fn run() {
         .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
         .manage(IperfRegistry::default())
+        .manage(LldpRegistry::default())
         .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
         .manage(TftpRegistry::default())
@@ -187,6 +189,10 @@ pub fn run() {
             iperf_client,
             iperf_server,
             iperf_stop,
+            lldp_status,
+            lldp_listen,
+            lldp_stop,
+            lldp_read_file,
             snap_take,
             snap_list,
             snap_get,
