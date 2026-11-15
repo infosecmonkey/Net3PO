@@ -28,6 +28,7 @@ pub mod pcap_inspector;
 pub mod port_mapper;
 pub mod port_scanner;
 pub mod regex_builder;
+pub mod remote_launch;
 pub mod script_decoder;
 pub mod sftp;
 pub mod snmp_sweep;

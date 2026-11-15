@@ -14,7 +14,7 @@ needs no admin rights for the app itself, and sends no telemetry.
 | Advanced | DHCP Monitor (rogue server detection), Visual Traceroute with Path MTU |
 | Fortinet | Fortinet Command Builder, FortiGate Sniffer to PCAP |
 | Decoders | Script Decoder (Python, JavaScript, Bash, PowerShell): unwraps obfuscation layers statically, never executes input |
-| Remote | SSH with grouped saved connections, OS keychain secrets, host key pinning, tabs and a docked terminal; SFTP file browser with uploads and downloads on the same saved connections |
+| Remote | SSH with grouped saved connections, OS keychain secrets, host key pinning, tabs and a docked terminal; SFTP file browser with uploads and downloads on the same saved connections; RDP and VNC launchers for the installed clients |
 | Workspace | Projects: collect results from several tools and export one report (HTML, PDF, Markdown, text) |
 
 ## Build from source

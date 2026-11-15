@@ -4,6 +4,7 @@
 
 import type { Component } from "svelte";
 import type { IconName } from "$lib/components/icons/icons";
+import { clientAvailable } from "$lib/settings.svelte";
 
 export interface ToolDef {
   id: string;
@@ -14,6 +15,8 @@ export interface ToolDef {
   icon: IconName;
   /** Loader for the tool's Svelte panel. Only required when enabled. */
   load?: () => Promise<{ default: Component }>;
+  /** Left out of the sidebar while this returns true (read reactively). */
+  hidden?: () => boolean;
 }
 
 export interface ToolGroup {
@@ -355,6 +358,24 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./Sftp/Sftp.svelte"),
   },
+  {
+    id: "rdp",
+    icon: "monitor",
+    name: "RDP",
+    category: "Remote",
+    enabled: true,
+    load: () => import("./RemoteDesktop/Rdp.svelte"),
+    hidden: () => !clientAvailable("rdp"),
+  },
+  {
+    id: "vnc",
+    icon: "screen-share",
+    name: "VNC",
+    category: "Remote",
+    enabled: true,
+    load: () => import("./RemoteDesktop/Vnc.svelte"),
+    hidden: () => !clientAvailable("vnc"),
+  },
 
   // Workspace
   {
@@ -364,6 +385,16 @@ const TOOLS: ToolDef[] = [
     category: "Workspace",
     enabled: true,
     load: () => import("./Projects/Projects.svelte"),
+  },
+  {
+    // Opened from the gear button at the top of the sidebar.
+    id: "settings",
+    icon: "settings",
+    name: "Settings",
+    category: "Workspace",
+    enabled: true,
+    load: () => import("./Settings/Settings.svelte"),
+    hidden: () => true,
   },
 ];
 
@@ -378,7 +409,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "iperf", "net-snapshot", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["lldp", "snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
-  { category: "Remote", tools: ["ssh", "sftp"] },
+  { category: "Remote", tools: ["ssh", "sftp", "rdp", "vnc"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
 ];
@@ -392,6 +423,7 @@ export function toolGroups(): ToolGroup[] {
     return i < 0 ? Number.MAX_SAFE_INTEGER : i;
   };
   for (const tool of TOOLS) {
+    if (tool.hidden?.()) continue;
     let group = groups.find((g) => g.category === tool.category);
     if (!group) {
       group = { category: tool.category, tools: [] };

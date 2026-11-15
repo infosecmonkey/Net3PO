@@ -22,6 +22,9 @@ pub const COLLECTIONS: &[&str] = &[
     "ssh_known_hosts",
     "report_redaction",
     "wol_devices",
+    "settings",
+    "rdp_hosts",
+    "vnc_hosts",
 ];
 
 /// Largest collection file accepted, on load and on save.
@@ -218,7 +221,7 @@ mod tests {
     fn rejects_unknown_and_path_like_names() {
         let d = temp_dir("names");
         for bad in [
-            "settings",
+            "not_a_collection",
             "../etc/passwd",
             "fortinet_saved_commands/..",
             "",

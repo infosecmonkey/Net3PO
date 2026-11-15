@@ -49,6 +49,7 @@ use tools::pcap_inspector::commands::{
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
 use tools::regex_builder::commands::{regex_recipes, regex_replace, regex_test};
+use tools::remote_launch::commands::{remote_clients, remote_launch};
 use tools::script_decoder::commands::{script_decode, script_read_file};
 use tools::sftp::commands::{
     SftpRegistry, sftp_cancel, sftp_close, sftp_connect, sftp_download, sftp_list, sftp_mkdir,
@@ -149,6 +150,8 @@ pub fn run() {
             sftp_cancel,
             sftp_download,
             sftp_upload,
+            remote_clients,
+            remote_launch,
             script_decode,
             script_read_file,
             project_list,

@@ -10,6 +10,10 @@
   import { ssh } from "$lib/ssh/sessions.svelte";
   import { findTool } from "$lib/tools/registry";
   import { nav } from "$lib/nav.svelte";
+  import { loadSettings } from "$lib/settings.svelte";
+  // Settings decide which remote tools show; detection runs once at launch.
+  void loadSettings();
+
   let ToolComponent = $state<Component | null>(null);
   let loading = $state(false);
 
