@@ -225,6 +225,14 @@ const TOOLS: ToolDef[] = [
     enabled: true,
     load: () => import("./WakeOnLan/WakeOnLan.svelte"),
   },
+  {
+    id: "net-snapshot",
+    icon: "camera",
+    name: "Network Snapshot",
+    category: "Troubleshooting",
+    enabled: true,
+    load: () => import("./NetSnapshot/NetSnapshot.svelte"),
+  },
 
   // Phase 3, SNMP
   {
@@ -343,7 +351,7 @@ const TOOLS: ToolDef[] = [
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
   { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "jwt-saml", "event-log", "pcap-inspector", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
-  { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "wake-on-lan"] },
+  { category: "Troubleshooting", tools: ["dig", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "net-snapshot", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh"] },

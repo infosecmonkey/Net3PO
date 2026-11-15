@@ -18,7 +18,7 @@ Windows and Linux.
 
 **Analysis:** [DNS Analyzer](tools/dns-analyzer.md) · [Email Header Analyzer](tools/email-analyzer.md) · [TLS Inspector](tools/tls-inspector.md) · [JWT / SAML Inspector](tools/jwt-saml.md) · [Windows Event Log](tools/event-log.md) · [PCAP Inspector](tools/pcap-inspector.md) · [IOC Extractor](tools/ioc-extractor.md) · [Config Diff](tools/config-diff.md) · [Script Decoder](tools/script-decoder.md) · [Encoder Workbench](tools/encoder-workbench.md)
 
-**Troubleshooting:** [Dig](tools/dig.md) · [NTP Checker](tools/ntp-checker.md) · [Port Scanner](tools/port-scanner.md) · [Visual Traceroute](tools/traceroute.md) · [HTTP Troubleshooter](tools/http-troubleshooter.md) · [Socket Tools](tools/socket-tools.md) · [Connectivity Monitor](tools/conn-monitor.md) · [Wake-on-LAN](tools/wake-on-lan.md)
+**Troubleshooting:** [Dig](tools/dig.md) · [NTP Checker](tools/ntp-checker.md) · [Port Scanner](tools/port-scanner.md) · [Visual Traceroute](tools/traceroute.md) · [HTTP Troubleshooter](tools/http-troubleshooter.md) · [Socket Tools](tools/socket-tools.md) · [Connectivity Monitor](tools/conn-monitor.md) · [Network Snapshot](tools/net-snapshot.md) · [Wake-on-LAN](tools/wake-on-lan.md)
 
 **Discovery and SNMP:** [SNMP Walk](tools/snmp-walk.md) · [SNMP Sweep](tools/snmp-sweep.md) · [Switch Port Mapper](tools/port-mapper.md) · [DHCP Monitor](tools/dhcp-monitor.md)
 

@@ -9,7 +9,8 @@ nothing anywhere unless you click a button that does a network job.
   Calculator, MTU Calculator, Regex Builder, Grep Builder, Filter Builder, MAC Vendor Lookup
   (the vendor database is bundled), Config Diff, Script Decoder, Encoder Workbench, IOC
   Extractor, PCAP Inspector, Windows Event Log, JWT / SAML Inspector, Debug Flow Parser,
-  FortiGate Sniffer to PCAP and the Fortinet Command Builder.
+  FortiGate Sniffer to PCAP, the Fortinet Command Builder and Network Snapshot (which reads
+  local configuration with the OS's own commands).
 - **Network tools send traffic only to the target you enter, only when you click:** Dig, DNS
   Analyzer, NTP Checker, Port Scanner, Visual Traceroute, HTTP Troubleshooter, Socket Tools,
   Connectivity Monitor, Wake-on-LAN, SNMP Walk and Sweep, Switch Port Mapper, TLS Inspector and
@@ -29,6 +30,7 @@ nothing anywhere unless you click a button that does a network job.
 | Projects, saved results and notes | App data folder, `projects/` |
 | Saved SSH hosts and known host keys | App data folder |
 | SSH passwords and key passphrases | OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service), only if you choose to save them |
+| Network snapshots | App data folder, `snapshots/` |
 | Tool history and settings (for example recent targets) | App data folder |
 | Unsaved note draft, sidebar layout, redaction settings | App's local web storage |
 
