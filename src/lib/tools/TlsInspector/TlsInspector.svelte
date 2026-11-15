@@ -99,7 +99,13 @@
       decoded = null;
       return;
     }
-    decoded = await invoke<DecodeResult>("tls_decode", { text: pemText });
+    try {
+      decoded = await invoke<DecodeResult>("tls_decode", { text: pemText });
+    } catch (e) {
+      decoded = null;
+      decodeError = String(e);
+      return;
+    }
     // Never keep a pasted private key on screen or in memory longer than needed.
     if (decoded.privateKeySkipped) {
       pemText = pemText.replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----\s*/g, "");

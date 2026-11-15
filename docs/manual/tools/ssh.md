@@ -101,7 +101,7 @@ There is no export or "Add to project" for SSH sessions. Copy text from the term
 - **macOS:** secrets go to the Keychain.
 - **Windows:** secrets go to Windows Credential Manager.
 - **Linux:** secrets go to the desktop secret service (for example GNOME Keyring or KWallet). If none is running, saving fails with "keychain unavailable" or "could not save to the keychain"; you can still connect and type the password each time.
-- The key path is used as typed: `~` is not expanded, even though the field's placeholder shows `~/.ssh/id_ed25519`. Use **Browse** or enter the full path.
+- A leading `~` in the key path is expanded to your home folder (`~/.ssh/id_ed25519`). `~user` forms are not.
 
 ## Troubleshooting
 

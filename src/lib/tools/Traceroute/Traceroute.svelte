@@ -1,9 +1,9 @@
 <script lang="ts">
   import { invoke, Channel } from "@tauri-apps/api/core";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
-  import { buildTraceReport } from "./report";
+  import { buildTraceReport, SEVERITY } from "./report";
   import { tick } from "svelte";
-  import type { HopView, MtuResult, PathSummary, TraceEvent, TraceFinding } from "$lib/tools/types";
+  import type { HopView, MtuResult, PathSummary, TraceEvent } from "$lib/tools/types";
   import LatencyChart from "./LatencyChart.svelte";
   import RttHistory from "./RttHistory.svelte";
   import { fmtMs, hopLabel } from "./format";
@@ -40,14 +40,6 @@
   /** Shared y-scale for the per-hop charts so hops compare honestly. */
   const sharedTop = $derived(Math.max(1, ...hops.flatMap((h) => h.history.filter((v): v is number => v !== null))));
   const destHop = $derived(summary?.reached ? (hops[hops.length - 1] ?? null) : null);
-
-  const SEVERITY: Record<TraceFinding["kind"], { label: string; cls: string }> = {
-    loss: { label: "Critical", cls: "critical" },
-    unreachable: { label: "Serious", cls: "serious" },
-    noReply: { label: "Serious", cls: "serious" },
-    latency: { label: "Warning", cls: "warning" },
-    rateLimit: { label: "Info", cls: "info" },
-  };
 
   async function select(ttl: number) {
     selected = ttl;

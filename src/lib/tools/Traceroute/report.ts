@@ -1,7 +1,16 @@
 // Export report for Traceroute: per-hop statistics, findings and Path MTU.
 
-import type { Report, Section } from "$lib/report/types";
-import type { HopView, MtuResult, PathSummary } from "$lib/tools/types";
+import type { Report, ReportSeverity, Section } from "$lib/report/types";
+import type { HopView, MtuResult, PathSummary, TraceFinding } from "$lib/tools/types";
+
+/** How each finding kind is shown in the panel and in exports. */
+export const SEVERITY: Record<TraceFinding["kind"], { label: string; cls: string; severity: ReportSeverity }> = {
+  loss: { label: "Critical", cls: "critical", severity: "fail" },
+  unreachable: { label: "Serious", cls: "serious", severity: "fail" },
+  noReply: { label: "Serious", cls: "serious", severity: "fail" },
+  latency: { label: "Warning", cls: "warning", severity: "warn" },
+  rateLimit: { label: "Info", cls: "info", severity: "info" },
+};
 
 const ms = (v: number | null) => (v === null ? "-" : v.toFixed(1));
 
@@ -37,7 +46,7 @@ export function buildTraceReport(target: string, resolved: string, method: strin
   if (summary?.findings.length) {
     sections.push({
       title: "Findings",
-      blocks: [{ type: "findings", items: summary.findings.map((f) => ({ severity: f.kind === "unreachable" ? ("fail" as const) : ("warn" as const), title: f.message, category: f.ttl === null ? "" : `hop ${f.ttl}` })) }],
+      blocks: [{ type: "findings", items: summary.findings.map((f) => ({ severity: SEVERITY[f.kind].severity, title: f.message, category: [SEVERITY[f.kind].label, f.ttl === null ? "" : `hop ${f.ttl}`].filter(Boolean).join(", ") })) }],
     });
   }
   if (mtu) {

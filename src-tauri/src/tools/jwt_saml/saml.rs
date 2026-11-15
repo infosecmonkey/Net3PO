@@ -442,7 +442,22 @@ pub fn inspect(input: &str, exp: &Expect, now: i64) -> Result<SamlResult, String
         ));
     }
     if r.signatures.is_empty() && !r.encrypted_assertion {
-        checks.push(check("Signature", "fail", "no XML signature present; a service provider should reject an unsigned response or assertion"));
+        let is_response = r.message == "Response" || r.message == "Assertion";
+        let redirect = r.binding.starts_with("Redirect");
+        // Redirect binding signs the URL (Signature and SigAlg parameters),
+        // never the XML, and requests are often unsigned by design.
+        let url_signed = input
+            .split(['&', '?'])
+            .any(|kv| kv.starts_with("Signature="));
+        if is_response {
+            checks.push(check("Signature", "fail", "no XML signature present; a service provider should reject an unsigned response or assertion"));
+        } else if redirect && url_signed {
+            checks.push(check("Signature", "info", "signed in the URL (Redirect binding Signature and SigAlg parameters); that signature is not verified here"));
+        } else if redirect {
+            checks.push(check("Signature", "info", "no XML signature, as expected for the Redirect binding, which signs the URL; this paste has no Signature parameter, so the request is unsigned or the parameter was not included"));
+        } else {
+            checks.push(check("Signature", "info", format!("{} is not signed; signing requests is optional unless the other party requires it", if r.message.is_empty() { "the message" } else { &r.message })));
+        }
     }
     for s in &r.signatures {
         if s.weak {
@@ -569,7 +584,23 @@ mod tests {
         assert!(r.binding.starts_with("Redirect binding"));
         assert_eq!(r.message, "AuthnRequest");
         assert_eq!(r.issuer, "https://sp.example.com");
-        assert!(r.checks.iter().any(|c| c.name == "Signature"));
+        let sig = r.checks.iter().find(|c| c.name == "Signature").unwrap();
+        assert_eq!(
+            sig.status, "info",
+            "an unsigned Redirect request is not a failure"
+        );
+        let signed = inspect(
+            &format!("{qs}&SigAlg=x&Signature=abc"),
+            &Expect::default(),
+            NOW,
+        )
+        .unwrap();
+        let sig = signed
+            .checks
+            .iter()
+            .find(|c| c.name == "Signature")
+            .unwrap();
+        assert!(sig.detail.contains("signed in the URL"), "{}", sig.detail);
     }
 
     #[test]

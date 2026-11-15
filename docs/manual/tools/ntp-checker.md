@@ -24,7 +24,7 @@
 
 | Field | What it means | Default / accepted values |
 |---|---|---|
-| Servers | NTP servers to query: host name, IP address, or `host:port`. Separate with new lines, spaces or commas. IPv6 with a port uses brackets, for example `[2001:db8::123]:123`. A bare IPv6 address without brackets uses port 123. | Empty. 1 to 10 servers. Port 123 if none is given. |
+| Servers | NTP servers to query: host name, IP address, or `host:port`. Separate with new lines, spaces or commas. IPv6 with a port uses brackets, for example `[2001:db8::123]:123`. A bare IPv6 address, with or without brackets, uses port 123. | Empty. 1 to 10 servers. Port 123 if none is given. |
 | Samples | How many queries to send to each server. | 4. Range 1 to 10. |
 | Interval (ms) | Wait between samples to the same server. | 1000. Range 200 to 10000. |
 | Timeout (ms) | How long to wait for each reply. | 2000. Range 200 to 10000. |
@@ -99,7 +99,7 @@ The tool uses ordinary UDP sockets with an ephemeral source port, so it needs no
 
 **"could not resolve ..." or "resolving ... timed out".** The name did not resolve within 5 seconds. Check the spelling or use an IP address. Try [Dig](dig.md) to see what DNS returns.
 
-**"bad port in ...".** The text after the last colon is not a port. For IPv6 with a port, use `[2001:db8::123]:123`; for a bare IPv6 address, leave the brackets off.
+**"bad port in ...".** The text after the last colon is not a port. For IPv6 with a port, use `[2001:db8::123]:123`.
 
 **"no reply within the timeout ..."** The server did not answer. It may be down, UDP 123 may be filtered, or the server may be rate-limiting you. Raise the timeout or interval and try again.
 

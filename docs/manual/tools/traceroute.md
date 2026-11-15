@@ -120,7 +120,7 @@ Nothing is sent until you click. Results stay in memory unless you export or add
 
 When a run is finished, the **Export** menu offers HTML, PDF, Markdown and Plain text, **Redacted...**, and **Add to project**. See [Export and redaction](../export-and-redaction.md) and [Projects and notes](../projects-and-notes.md).
 
-The report contains a **Path** section (target and resolved IP, probe method, cycles, destination reached, destination average and loss), the hop table (Hop, Address, Name, Loss, Sent, Last, Avg, Best, Worst, StDev), a note about rate limiting, a **Findings** section (unreachable findings marked as failures, the rest as warnings), and a **Path MTU** section (MTU, limiting router, black hole suspected, note). Jitter, per-cycle RTT history, the charts and the MTU step table are not in the report.
+The report contains a **Path** section (target and resolved IP, probe method, cycles, destination reached, destination average and loss), the hop table (Hop, Address, Name, Loss, Sent, Last, Avg, Best, Worst, StDev), a note about rate limiting, a **Findings** section (each finding with the same severity as in the panel: Critical and Serious as failures, Warning as a warning, Info as information, with the label and hop in the category), and a **Path MTU** section (MTU, limiting router, black hole suspected, note). Jitter, per-cycle RTT history, the charts and the MTU step table are not in the report.
 
 ## Platform notes
 

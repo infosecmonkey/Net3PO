@@ -299,7 +299,11 @@ async fn establish(
                 .map_err(|e| format!("authentication error: {e}"))?
         }
         AuthKind::Key => {
-            let key = load_secret_key(params.key_path.trim(), secret.as_deref()).map_err(|e| {
+            let key = load_secret_key(
+                core::expand_home(params.key_path.trim(), core::home_dir().as_deref()),
+                secret.as_deref(),
+            )
+            .map_err(|e| {
                 if secret.is_none() {
                     format!("could not load the key (if it has a passphrase, enter it): {e}")
                 } else {
