@@ -12,7 +12,10 @@ export type Collection =
   | "ssh_connections"
   | "ssh_known_hosts"
   | "report_redaction"
-  | "wol_devices";
+  | "wol_devices"
+  | "settings"
+  | "rdp_hosts"
+  | "vnc_hosts";
 
 export interface Loaded<T> {
   items: T[];

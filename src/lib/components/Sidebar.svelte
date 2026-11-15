@@ -13,7 +13,8 @@
   }
 
   let { selected, onselect }: Props = $props();
-  const groups = toolGroups();
+  // Re-read when Settings change which remote clients are available.
+  const groups = $derived(toolGroups());
   let aboutOpen = $state(false);
 
   // Collapsed groups, remembered on this computer. Everything starts
@@ -64,7 +65,7 @@
   <div class="brand">
     <picture>
       <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
-      <img src={logoLight} alt="Net3PO" width="135" height="46" />
+      <img src={logoLight} alt="Net3PO" width="123" height="42" />
     </picture>
     <span class="brand-btns">
       <button
@@ -79,6 +80,9 @@
       </button>
       <button class="about" class:on={help.open} title="Help for this tool (F1)" aria-label="Help" onclick={() => toggleHelp(selected)}>
         <Icon name="circle-help" size={15} />
+      </button>
+      <button class="about" class:on={selected === "settings"} title="Settings" aria-label="Settings" onclick={() => onselect("settings")}>
+        <Icon name="settings" size={15} />
       </button>
       <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
         <Icon name="info" size={15} />
@@ -143,7 +147,7 @@
     font-weight: 700;
     font-size: 1rem;
     letter-spacing: 0.02em;
-    padding: 1rem 1rem 0.75rem;
+    padding: 1rem 0.75rem 0.75rem;
     position: sticky;
     top: 0;
     background: var(--sidebar-bg);

@@ -14,7 +14,8 @@ nothing anywhere unless you click a button that does a network job.
 - **Network tools send traffic only to the target you enter, only when you click:** Dig, DNS
   Analyzer, NTP Checker, Port Scanner, Visual Traceroute, HTTP Troubleshooter, Socket Tools,
   Connectivity Monitor, Throughput Tester (client mode), Wake-on-LAN, SNMP Walk and Sweep, Switch Port Mapper, TLS Inspector,
-  SSH and SFTP.
+  SSH and SFTP. RDP and VNC send nothing themselves: they open your installed
+  client, which connects to the host you pick.
 - **Listeners accept traffic only while running:** Syslog Server, TFTP Server, DHCP Monitor and
   the Throughput Tester in server mode
   listen on a port from **Start** until **Stop**.
@@ -30,6 +31,7 @@ nothing anywhere unless you click a button that does a network job.
 |---|---|
 | Projects, saved results and notes | App data folder, `projects/` |
 | Saved SSH hosts and known host keys | App data folder |
+| Saved RDP and VNC hosts, and app settings (which remote clients to open) | App data folder (`rdp_hosts`, `vnc_hosts`, `settings`) |
 | SSH passwords and key passphrases | OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service), only if you choose to save them |
 | Network snapshots | App data folder, `snapshots/` |
 | Tool history and settings (for example recent targets) | App data folder |
