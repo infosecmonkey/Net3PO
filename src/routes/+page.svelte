@@ -121,6 +121,38 @@
     }
   }
 
+  /* Native controls (scrollbars, number spinners, date pickers) follow the
+     app theme instead of the OS default. */
+  :global(:root) {
+    color-scheme: light dark;
+  }
+
+  /* WebKitGTK (Linux) draws <select> with the GTK theme and ignores the
+     panel's background, so light text landed on a white box. Drop the native
+     look everywhere and draw our own chevron. Panels set the background and
+     padding shorthands, hence !important on the parts this rule owns. */
+  :global(select) {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.5rem center !important;
+    background-size: 0.75rem !important;
+    padding-right: 1.7rem !important;
+  }
+
+  :global(select[multiple]),
+  :global(select[size]:not([size="1"])) {
+    background-image: none !important;
+    padding-right: 0.5rem !important;
+  }
+
+  :global(option),
+  :global(optgroup) {
+    background-color: var(--input-bg);
+    color: var(--fg);
+  }
+
   :global(body) {
     margin: 0;
     background: var(--bg);

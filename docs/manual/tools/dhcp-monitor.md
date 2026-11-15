@@ -86,7 +86,7 @@ The **Export** menu (shown once a server answered) offers HTML, PDF, Markdown an
 
 - **Linux:** binding UDP 68 needs permission for ports below 1024. Grant only that capability to the app binary with `sudo setcap cap_net_bind_service=+ep <path to app>`, or allow low ports system-wide with `sudo sysctl net.ipv4.ip_unprivileged_port_start=67`. The error message shows the exact path. Pinning to a chosen interface needs CAP_NET_RAW; without it the tool warns and uses the default route.
 - **macOS:** interface selection works. Binding UDP 68 normally works without admin rights.
-- **Windows:** interface selection is not supported; the tool warns and uses the default route. Choose the segment by making it the default route, or run from a host on that segment. Windows can report ICMP errors as receive errors; the tool skips them.
+- **Windows:** interface selection works by binding the interface's own IPv4 address, so the DISCOVER leaves through that interface and broadcast replies arriving on it are heard. An interface with only a link-local (169.254.x.x) address still works. Windows can report ICMP errors as receive errors; the tool skips them.
 - On all systems, the OS DHCP client or a local DHCP server may hold UDP 68 exclusively. The tool uses address reuse to share the port where the OS allows it.
 
 ## Troubleshooting

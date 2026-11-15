@@ -33,7 +33,9 @@ The Notes pop-out docks on the right of every tool.
   the project.
 - The panel can be resized by dragging its left edge.
 
-Notes are included in the project export, grouped by tool.
+Notes are included in the project export, grouped by tool. To export notes on their own, use
+**Export** above the notes list in the pop-out: it saves the notes shown (this tool or all), plus
+an unsaved draft, as HTML, PDF, Markdown or plain text.
 
 ## Where it is stored
 

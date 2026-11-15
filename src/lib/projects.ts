@@ -81,7 +81,16 @@ export const deleteProject = (id: string) => invoke<void>("project_delete", { id
 
 /** Local time with time zone, e.g. "Nov 14, 2026, 10:32 AM EST". */
 export function stampNow(d = new Date()): string {
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZoneName: "short" });
+  // dateStyle/timeStyle cannot be combined with timeZoneName (TypeError in
+  // Chromium/WebView2 and newer WebKit), so spell the fields out.
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 }
 
 export const saveNote = (id: string, note: NoteInput) =>
