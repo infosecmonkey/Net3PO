@@ -36,6 +36,10 @@ use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::jwt_saml::commands::{jwt_inspect, saml_inspect, saml_read_file, saml_scan};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
+use tools::net_snapshot::commands::{
+    snap_compare, snap_delete, snap_export_file, snap_get, snap_import_file, snap_label, snap_list,
+    snap_take,
+};
 use tools::ntp_check::commands::ntp_check;
 use tools::pcap_inspector::commands::{
     PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
@@ -177,6 +181,14 @@ pub fn run() {
             mon_start,
             mon_stop,
             mon_save,
+            snap_take,
+            snap_list,
+            snap_get,
+            snap_label,
+            snap_delete,
+            snap_compare,
+            snap_export_file,
+            snap_import_file,
             ts_convert,
             ts_now,
             tls_decode,

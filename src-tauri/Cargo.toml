@@ -37,7 +37,7 @@ hickory-net = "0.26.3"
 hickory-proto = "0.26.3"
 hickory-resolver = "0.26.3"
 snmp2 = { version = "0.5", features = ["crypto-rust"] }
-tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros", "sync", "process", "io-util", "fs"] }
 if-addrs = "0.15.0"
 socket2 = { version = "0.6", features = ["all"] }
 libc = "0.2.191"
