@@ -17,6 +17,7 @@ pub mod grep_builder;
 pub mod hashes;
 pub mod http_client;
 pub mod ioc;
+pub mod iperf;
 pub mod jwt_saml;
 pub mod mac_vendor;
 pub mod mtu_calc;

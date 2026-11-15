@@ -1,0 +1,87 @@
+{
+ "start": {
+  "connected": [
+   {
+    "socket": 4,
+    "local_host": "127.0.0.1",
+    "local_port": 60124,
+    "remote_host": "127.0.0.1",
+    "remote_port": 5299
+   }
+  ],
+  "connecting_to": {
+   "host": "127.0.0.1",
+   "port": 5299
+  },
+  "test_start": {
+   "protocol": "TCP",
+   "num_streams": 1,
+   "blksize": 131072,
+   "omit": 0,
+   "duration": 2,
+   "bytes": 0,
+   "blocks": 0,
+   "reverse": 0,
+   "tos": 0,
+   "target_bitrate": 0,
+   "bidir": 0,
+   "fqrate": 0,
+   "interval": 1,
+   "gso": 0,
+   "gro": 0
+  }
+ },
+ "intervals": [
+  {
+   "sum": {
+    "start": 0,
+    "end": 1.010012,
+    "seconds": 1.0100120306015015,
+    "bytes": 11014242304,
+    "bits_per_second": 87240484036.14037,
+    "retransmits": 0,
+    "omitted": false,
+    "sender": true
+   }
+  },
+  {
+   "sum": {
+    "start": 1.010012,
+    "end": 2.003287,
+    "seconds": 0.993274986743927,
+    "bytes": 10884612096,
+    "bits_per_second": 87666454838.90456,
+    "retransmits": 0,
+    "omitted": false,
+    "sender": true
+   }
+  }
+ ],
+ "end": {
+  "sum_sent": {
+   "start": 0,
+   "end": 2.003287,
+   "seconds": 2.003287,
+   "bytes": 21898985472,
+   "bits_per_second": 87452214174.00504,
+   "retransmits": 0,
+   "sender": true
+  },
+  "sum_received": {
+   "start": 0,
+   "end": 2.003362,
+   "seconds": 2.003362,
+   "bytes": 21898985472,
+   "bits_per_second": 87448940219.49103,
+   "sender": true
+  },
+  "cpu_utilization_percent": {
+   "host_total": 84.6820956332492,
+   "host_user": 1.1063812377699345,
+   "host_system": 83.57581418183668,
+   "remote_total": 65.22482661680392,
+   "remote_user": 1.8332146996604717,
+   "remote_system": 63.39161191714344
+  }
+ }
+}
