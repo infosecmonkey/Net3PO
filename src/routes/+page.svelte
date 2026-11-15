@@ -4,7 +4,9 @@
   import SessionBar from "$lib/components/SessionBar.svelte";
   import TerminalDrawer from "$lib/components/TerminalDrawer.svelte";
   import NotesPanel from "$lib/components/NotesPanel.svelte";
-  import { notes, persistUi } from "$lib/notes.svelte";
+  import HelpPanel from "$lib/components/HelpPanel.svelte";
+  import { help, toggleHelp } from "$lib/help/help.svelte";
+  import { notes, setNotesOpen } from "$lib/notes.svelte";
   import { ssh } from "$lib/ssh/sessions.svelte";
   import { findTool } from "$lib/tools/registry";
   import { nav } from "$lib/nav.svelte";
@@ -17,12 +19,21 @@
   const showBar = $derived(!onSsh && ssh.tabs.length > 0);
   const showDrawer = $derived(showBar && ssh.drawer && ssh.active !== null);
 
-  // Cmd/Ctrl+Shift+N toggles the notes pop-out from any tool.
+  // Cmd/Ctrl+Shift+N toggles the notes pop-out from any tool; F1 toggles
+  // help for the open tool; Esc closes help when nothing else wants it.
   function onKey(e: KeyboardEvent) {
+    if (e.key === "F1") {
+      e.preventDefault();
+      toggleHelp(nav.selected);
+      return;
+    }
+    if (e.key === "Escape" && help.open && !e.defaultPrevented && !document.querySelector('[aria-modal="true"]')) {
+      help.open = false;
+      return;
+    }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "n") {
       e.preventDefault();
-      notes.open = !notes.open;
-      persistUi();
+      setNotesOpen(!notes.open);
     }
   }
 
@@ -62,6 +73,7 @@
     </main>
     {#if showDrawer}<TerminalDrawer />{/if}
   </div>
+  {#if help.open}<HelpPanel />{/if}
   {#if notes.open}<NotesPanel />{/if}
 </div>
 

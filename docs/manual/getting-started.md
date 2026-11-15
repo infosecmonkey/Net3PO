@@ -11,6 +11,10 @@ its own panel. It runs on macOS, Windows and Linux, needs no account, and sends 
 - **Notes (right, optional):** a pop-out for project notes, toggled with
   **Cmd+Shift+N** (macOS) or **Ctrl+Shift+N** (Windows, Linux). See
   [Projects and notes](projects-and-notes.md).
+- **Help (right, optional):** this manual, built into the app and readable offline. Press
+  **F1** or click the **?** next to the logo to open the page for the tool you are using;
+  **Contents** lists every page. Help and Notes share the right edge, so opening one hides
+  the other (an unsaved note is kept). **Esc** closes it.
 - **SSH session bar:** when SSH sessions are open, a bar above other tools lets you switch to
   a session or dock a terminal under the current tool. See [SSH](tools/ssh.md).
 

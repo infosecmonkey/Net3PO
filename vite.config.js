@@ -24,8 +24,12 @@ export default defineConfig(() => ({
           port: 1421,
         }
       : undefined,
+    // 3. the in-app help bundles the user manual from docs/manual
+    fs: {
+      allow: ["docs/manual"],
+    },
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
+      // 4. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
   },

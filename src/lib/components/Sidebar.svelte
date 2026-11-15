@@ -4,7 +4,8 @@
   import logoLight from "$lib/assets/net3po-logo-light.png";
   import logoDark from "$lib/assets/net3po-logo-dark.png";
   import About from "./About.svelte";
-  import { isDirty, notes, persistUi } from "$lib/notes.svelte";
+  import { isDirty, notes, setNotesOpen } from "$lib/notes.svelte";
+  import { help, toggleHelp } from "$lib/help/help.svelte";
 
   interface Props {
     selected: string;
@@ -63,7 +64,7 @@
   <div class="brand">
     <picture>
       <source srcset={logoDark} media="(prefers-color-scheme: dark)" />
-      <img src={logoLight} alt="Net3PO" width="153" height="52" />
+      <img src={logoLight} alt="Net3PO" width="135" height="46" />
     </picture>
     <span class="brand-btns">
       <button
@@ -71,13 +72,13 @@
         class:on={notes.open}
         title="Project notes (Cmd/Ctrl+Shift+N)"
         aria-label="Project notes"
-        onclick={() => {
-          notes.open = !notes.open;
-          persistUi();
-        }}
+        onclick={() => setNotesOpen(!notes.open)}
       >
         <Icon name="notebook-pen" size={15} />
         {#if isDirty(notes.draft)}<span class="dot" aria-label="unsaved note"></span>{/if}
+      </button>
+      <button class="about" class:on={help.open} title="Help for this tool (F1)" aria-label="Help" onclick={() => toggleHelp(selected)}>
+        <Icon name="circle-help" size={15} />
       </button>
       <button class="about" title="About Net3PO" aria-label="About Net3PO" onclick={() => (aboutOpen = true)}>
         <Icon name="info" size={15} />

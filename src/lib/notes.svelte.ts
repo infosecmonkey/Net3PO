@@ -58,6 +58,19 @@ export const notes = $state({
   version: 0,
 });
 
+/** Called when the notes panel opens, so the help panel can make room. */
+let onOpen: (() => void) | null = null;
+export function onNotesOpen(fn: () => void) {
+  onOpen = fn;
+}
+
+/** Show or hide the notes panel. */
+export function setNotesOpen(open: boolean) {
+  notes.open = open;
+  if (open) onOpen?.();
+  persistUi();
+}
+
 export function persistUi() {
   write(KEY_UI, {
     open: notes.open,
@@ -119,9 +132,8 @@ export function editNote(note: ToolNote, projectId: string, projectName: string)
     savedText: note.text,
     savedItemId: note.itemId,
   };
-  notes.open = true;
   persistDraft();
-  persistUi();
+  setNotesOpen(true);
 }
 
 export function discardDraft() {
