@@ -1,6 +1,6 @@
 {
   "name": "omnipacket",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Network and security engineering toolkit",
   "type": "module",
   "scripts": {
