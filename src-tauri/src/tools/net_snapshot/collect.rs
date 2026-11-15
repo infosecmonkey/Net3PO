@@ -378,5 +378,26 @@ mod tests {
         let s = take().await;
         assert!(!s.os.is_empty());
         assert!(!s.sources.is_empty());
+        // On CI runners (real macOS, Linux and Windows machines) every source
+        // must work, which checks the live commands and not only the parsers.
+        if std::env::var_os("CI").is_some() {
+            let failed: Vec<_> = s.sources.iter().filter(|x| !x.ok).collect();
+            assert!(failed.is_empty(), "failed sources: {failed:?}");
+            assert!(!s.interfaces.is_empty(), "no interfaces");
+            assert!(!s.routes.is_empty(), "no routes");
+            assert!(
+                s.interfaces.iter().any(|i| !i.addrs.is_empty()),
+                "no addresses"
+            );
+            println!(
+                "{}: {} interfaces, {} routes, {} dns, {} neighbors, {} listeners",
+                s.os,
+                s.interfaces.len(),
+                s.routes.len(),
+                s.dns.len(),
+                s.neighbors.len(),
+                s.listeners.len()
+            );
+        }
     }
 }
