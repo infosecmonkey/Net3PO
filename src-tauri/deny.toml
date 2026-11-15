@@ -56,8 +56,10 @@ deny = [
   # Native C build (cmake, NASM on Windows). russh uses the ring backend.
   { crate = "aws-lc-sys", reason = "native build requirement; use ring" },
   { crate = "openssl-sys", reason = "native OpenSSL dependency; use rustls/ring" },
-  # Npcap/libpcap: redistribution is not allowed in a paid product.
-  { crate = "pcap", reason = "Npcap/libpcap license and dependency" },
+  # The pcap crate links libpcap/wpcap at build time, so the app would not
+  # start without Npcap on Windows. Live capture loads the user-installed
+  # library at run time instead (tools/lldp/capture.rs, via libloading).
+  { crate = "pcap", reason = "links libpcap/Npcap; load it at run time instead" },
 ]
 
 [sources]

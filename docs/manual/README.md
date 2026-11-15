@@ -20,7 +20,7 @@ Windows and Linux.
 
 **Troubleshooting:** [Dig](tools/dig.md) · [NTP Checker](tools/ntp-checker.md) · [Port Scanner](tools/port-scanner.md) · [Visual Traceroute](tools/traceroute.md) · [HTTP Troubleshooter](tools/http-troubleshooter.md) · [Socket Tools](tools/socket-tools.md) · [Connectivity Monitor](tools/conn-monitor.md) · [Throughput Tester](tools/iperf.md) · [Network Snapshot](tools/net-snapshot.md) · [Wake-on-LAN](tools/wake-on-lan.md)
 
-**Discovery and SNMP:** [SNMP Walk](tools/snmp-walk.md) · [SNMP Sweep](tools/snmp-sweep.md) · [Switch Port Mapper](tools/port-mapper.md) · [DHCP Monitor](tools/dhcp-monitor.md)
+**Discovery and SNMP:** [LLDP / CDP Neighbors](tools/lldp.md) · [SNMP Walk](tools/snmp-walk.md) · [SNMP Sweep](tools/snmp-sweep.md) · [Switch Port Mapper](tools/port-mapper.md) · [DHCP Monitor](tools/dhcp-monitor.md)
 
 **Servers:** [Syslog Server](tools/syslog-server.md) · [TFTP Server](tools/tftp-server.md)
 
