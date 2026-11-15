@@ -33,6 +33,7 @@ use tools::grep_builder::commands::{grep_build, grep_preview};
 use tools::hashes::commands::{HashRegistry, hash_compare, hash_file, hash_stop, hash_text};
 use tools::http_client::commands::http_send;
 use tools::ioc::commands::{ioc_extract, ioc_transform};
+use tools::iperf::commands::{IperfRegistry, iperf_client, iperf_detect, iperf_server, iperf_stop};
 use tools::jwt_saml::commands::{jwt_inspect, saml_inspect, saml_read_file, saml_scan};
 use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
 use tools::mtu_calc::commands::mtu_calculate;
@@ -80,6 +81,7 @@ pub fn run() {
         .manage(PcapRegistry::default())
         .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
+        .manage(IperfRegistry::default())
         .manage(SocketRegistry::default())
         .manage(SyslogRegistry::default())
         .manage(TftpRegistry::default())
@@ -181,6 +183,10 @@ pub fn run() {
             mon_start,
             mon_stop,
             mon_save,
+            iperf_detect,
+            iperf_client,
+            iperf_server,
+            iperf_stop,
             snap_take,
             snap_list,
             snap_get,
