@@ -392,6 +392,8 @@ export function findTool(id: string): ToolDef | undefined {
 }
 
 /** First enabled tool, used as the default selection. */
+/** The tool shown at launch: Projects, where work usually starts. */
 export function defaultToolId(): string {
-  return TOOLS.find((t) => t.enabled)?.id ?? TOOLS[0].id;
+  const projects = TOOLS.find((t) => t.id === "projects" && t.enabled);
+  return projects?.id ?? TOOLS.find((t) => t.enabled)?.id ?? TOOLS[0].id;
 }

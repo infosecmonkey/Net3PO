@@ -166,6 +166,30 @@ pub fn validate(p: &ConnectParams) -> Result<String, SshError> {
     Ok(host)
 }
 
+/// Expand a leading `~` (alone, or followed by `/` or `\\`) to the home
+/// folder. `~user` forms and paths without a tilde are returned unchanged.
+pub fn expand_home(path: &str, home: Option<&std::path::Path>) -> std::path::PathBuf {
+    let rest = match path.strip_prefix('~') {
+        Some("") => Some(""),
+        Some(r) if r.starts_with('/') || r.starts_with('\\') => Some(&r[1..]),
+        _ => None,
+    };
+    match (rest, home) {
+        (Some(""), Some(h)) => h.to_path_buf(),
+        (Some(r), Some(h)) => h.join(r),
+        _ => std::path::PathBuf::from(path),
+    }
+}
+
+/// The user's home folder from the environment (HOME, or USERPROFILE on
+/// Windows).
+pub fn home_dir() -> Option<std::path::PathBuf> {
+    let var = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    std::env::var_os(var)
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from)
+}
+
 /// Decide whether `fingerprint` is trusted for host and port. `confirmed` is
 /// a fingerprint the user accepted moments ago in the UI; it only counts if
 /// it is exactly the key now presented.
@@ -205,6 +229,29 @@ pub fn clamp_size(cols: u32, rows: u32) -> (u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expands_tilde() {
+        let h = std::path::Path::new("/home/u");
+        assert_eq!(
+            expand_home("~/.ssh/id_ed25519", Some(h)),
+            h.join(".ssh/id_ed25519")
+        );
+        assert_eq!(expand_home("~\\.ssh\\key", Some(h)), h.join(".ssh\\key"));
+        assert_eq!(expand_home("~", Some(h)), h.to_path_buf());
+        assert_eq!(
+            expand_home("~other/key", Some(h)),
+            std::path::PathBuf::from("~other/key")
+        );
+        assert_eq!(
+            expand_home("/abs/key", Some(h)),
+            std::path::PathBuf::from("/abs/key")
+        );
+        assert_eq!(
+            expand_home("~/key", None),
+            std::path::PathBuf::from("~/key")
+        );
+    }
 
     fn params() -> ConnectParams {
         ConnectParams {

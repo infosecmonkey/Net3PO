@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -55,6 +55,15 @@ pub enum TftpEvent {
         id: u32,
         bytes: u64,
         ok: bool,
+        message: String,
+    },
+    /// A request refused before any transfer started (not found, uploads
+    /// off, outside the folder, malformed).
+    Rejected {
+        id: u32,
+        file: String,
+        client: String,
+        direction: String,
         message: String,
     },
     Stopped,
@@ -177,15 +186,31 @@ async fn handle<F>(
             let _ = sock
                 .send(&core::build_error(e.code(), &e.to_string()))
                 .await;
+            emit(TftpEvent::Rejected {
+                id,
+                file: String::new(),
+                client: client.to_string(),
+                direction: String::new(),
+                message: e.to_string(),
+            });
             return;
         }
     };
 
+    // Note whether the transfer got as far as starting, so a refusal before
+    // that is reported as its own row rather than an end with no start.
+    let started = AtomicBool::new(false);
+    let tracked = |ev: TftpEvent| {
+        if matches!(ev, TftpEvent::TransferStart { .. }) {
+            started.store(true, Ordering::Relaxed);
+        }
+        emit(ev);
+    };
     let result = match req.kind {
-        ReqKind::Read => handle_read(id, &sock, &req, &root, &emit, shutdown).await,
+        ReqKind::Read => handle_read(id, &sock, &req, &root, &tracked, shutdown).await,
         ReqKind::Write => {
             if writable {
-                handle_write(id, &sock, &req, &root, &emit, shutdown).await
+                handle_write(id, &sock, &req, &root, &tracked, shutdown).await
             } else {
                 Err(TftpError::AccessViolation)
             }
@@ -196,12 +221,32 @@ async fn handle<F>(
         let _ = sock
             .send(&core::build_error(e.code(), &e.to_string()))
             .await;
-        emit(TftpEvent::TransferEnd {
-            id,
-            bytes: 0,
-            ok: false,
-            message: e.to_string(),
-        });
+        if started.load(Ordering::Relaxed) {
+            emit(TftpEvent::TransferEnd {
+                id,
+                bytes: 0,
+                ok: false,
+                message: e.to_string(),
+            });
+        } else {
+            let message = match (&req.kind, &e) {
+                (ReqKind::Write, TftpError::AccessViolation) if !writable => {
+                    "upload refused: uploads are off".to_string()
+                }
+                _ => e.to_string(),
+            };
+            emit(TftpEvent::Rejected {
+                id,
+                file: req.filename.clone(),
+                client: client.to_string(),
+                direction: match req.kind {
+                    ReqKind::Read => "read",
+                    ReqKind::Write => "write",
+                }
+                .to_string(),
+                message,
+            });
+        }
     }
 }
 
@@ -531,6 +576,54 @@ mod tests {
             let (n, _) = client.recv_from(&mut buf).await.unwrap();
             assert_eq!(core::parse_ack(&buf[..n]), Some(block));
         }
+    }
+
+    #[tokio::test]
+    async fn refused_requests_are_reported() {
+        let root = std::env::temp_dir().join(format!("omnipacket_tftp_rej_{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let sock = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = sock.local_addr().unwrap();
+        let (_tx, rx) = watch::channel(false);
+        let (etx, mut erx) = tokio::sync::mpsc::unbounded_channel::<TftpEvent>();
+        tokio::spawn(serve(sock, root.clone(), false, rx, move |e| {
+            let _ = etx.send(e);
+        }));
+
+        let client = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let req = |op: u16, name: &str| {
+            let mut p = op.to_be_bytes().to_vec();
+            p.extend_from_slice(name.as_bytes());
+            p.extend_from_slice(b"\0octet\0");
+            p
+        };
+        let mut seen = Vec::new();
+        for pkt in [
+            req(core::OP_RRQ, "missing.bin"),
+            req(core::OP_WRQ, "up.cfg"),
+            vec![0, 9],
+        ] {
+            client.send_to(&pkt, addr).await.unwrap();
+            let ev = tokio::time::timeout(Duration::from_secs(2), erx.recv())
+                .await
+                .unwrap()
+                .unwrap();
+            match ev {
+                TftpEvent::Rejected {
+                    file,
+                    direction,
+                    message,
+                    ..
+                } => seen.push((file, direction, message)),
+                _ => panic!("expected a Rejected event"),
+            }
+        }
+        assert_eq!(seen[0].0, "missing.bin");
+        assert_eq!(seen[0].1, "read");
+        assert_eq!(seen[1].1, "write");
+        assert!(seen[1].2.contains("uploads are off"), "{}", seen[1].2);
+        assert_eq!(seen[2].0, "");
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[tokio::test]

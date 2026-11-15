@@ -179,7 +179,13 @@ async fn run_scan(
             &mut filtered,
             &mut hosts_with_open,
         );
+        done += 1;
+        if done.is_multiple_of(progress_every) {
+            let _ = on_event.send(ScanEvent::Progress { done, total, open });
+        }
     }
+    // Final count, so the bar ends at the true figure (100% unless cancelled).
+    let _ = on_event.send(ScanEvent::Progress { done, total, open });
 
     let cancelled = cancel.load(Ordering::Relaxed);
     let _ = on_event.send(ScanEvent::Done {

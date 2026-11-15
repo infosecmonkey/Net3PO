@@ -43,11 +43,11 @@ The transfer table, newest first:
 - **File**: the file name as requested by the client.
 - **Client**: the client's address and port.
 - **Size**: bytes transferred so far, updated every 64 blocks and at the end.
-- **Status**: `active`, `done`, or the failure reason (for example `illegal TFTP operation`, or `access violation` if the file cannot be written).
+- **Status**: `active`, `done`, the failure reason (for example `illegal TFTP operation`, or `access violation` if the file cannot be written), or `rejected:` and the reason.
 
-Requests refused before the transfer starts (file not found, uploads while Writable is off, paths outside the folder) are answered with a TFTP error to the client but do not add a row to the table. Check the client's error message in that case.
+Requests refused before the transfer starts (file not found, uploads while Writable is off, paths outside the folder, malformed requests) are answered with a TFTP error to the client and added as a `rejected` row, so you can see what the device asked for. The table keeps the newest 500 rows.
 
-Worked example. A switch at `192.0.2.20` runs `copy tftp://192.0.2.50/fw.bin flash:`. The table shows `GET`, `fw.bin`, `192.0.2.20:49152`, the growing size, then `done`. A later `copy running-config tftp://192.0.2.50/sw1.cfg` with Writable on shows `PUT`, `sw1.cfg`, and `done`. With Writable off, the switch reports an access violation error and no row is added.
+Worked example. A switch at `192.0.2.20` runs `copy tftp://192.0.2.50/fw.bin flash:`. The table shows `GET`, `fw.bin`, `192.0.2.20:49152`, the growing size, then `done`. A later `copy running-config tftp://192.0.2.50/sw1.cfg` with Writable on shows `PUT`, `sw1.cfg`, and `done`. With Writable off, the switch reports an access violation error and the table shows `PUT`, `sw1.cfg`, `rejected: upload refused: uploads are off`.
 
 ## What the results do and do not tell you
 

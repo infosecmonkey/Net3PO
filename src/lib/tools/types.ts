@@ -294,6 +294,7 @@ export type TftpEvent =
   | { type: "transferStart"; id: number; file: string; client: string; direction: string }
   | { type: "transferProgress"; id: number; bytes: number }
   | { type: "transferEnd"; id: number; bytes: number; ok: boolean; message: string }
+  | { type: "rejected"; id: number; file: string; client: string; direction: string; message: string }
   | { type: "stopped" };
 
 // SNMP walk.

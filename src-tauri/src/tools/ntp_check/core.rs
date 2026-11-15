@@ -174,9 +174,63 @@ pub fn summarize(samples: usize, answered: &[(i128, i128)]) -> Summary {
     }
 }
 
+/// Split a server entry into host and port. Accepts `host`, `host:port`,
+/// a bare IPv6 address, `[v6]` and `[v6]:port`; the port defaults to
+/// `default_port`.
+pub fn split_host_port(s: &str, default_port: u16) -> Result<(&str, u16), String> {
+    let s = s.trim();
+    let bad = || format!("bad port in {s}");
+    if let Some(rest) = s.strip_prefix('[') {
+        let (host, after) = rest
+            .split_once(']')
+            .ok_or_else(|| format!("missing ] in {s}"))?;
+        let port = match after {
+            "" => default_port,
+            p => p
+                .strip_prefix(':')
+                .ok_or_else(bad)?
+                .parse::<u16>()
+                .map_err(|_| bad())?,
+        };
+        return Ok((host, port));
+    }
+    match s.rsplit_once(':') {
+        // One colon: host:port. More than one: a bare IPv6 address.
+        Some((h, p)) if !h.contains(':') => Ok((h, p.parse::<u16>().map_err(|_| bad())?)),
+        _ => Ok((s, default_port)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn splits_host_and_port() {
+        assert_eq!(
+            split_host_port("pool.ntp.org", 123),
+            Ok(("pool.ntp.org", 123))
+        );
+        assert_eq!(
+            split_host_port("time.example:1123", 123),
+            Ok(("time.example", 1123))
+        );
+        assert_eq!(
+            split_host_port("2001:db8::1", 123),
+            Ok(("2001:db8::1", 123))
+        );
+        assert_eq!(
+            split_host_port("[2001:db8::1]", 123),
+            Ok(("2001:db8::1", 123))
+        );
+        assert_eq!(
+            split_host_port("[2001:db8::1]:1123", 123),
+            Ok(("2001:db8::1", 1123))
+        );
+        assert!(split_host_port("[2001:db8::1]x", 123).is_err());
+        assert!(split_host_port("[2001:db8::1", 123).is_err());
+        assert!(split_host_port("host:notaport", 123).is_err());
+    }
 
     #[test]
     fn timestamp_round_trip() {

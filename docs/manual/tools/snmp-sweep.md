@@ -62,7 +62,6 @@ The status line would read `Done: 2 SNMP responders of 14 hosts.`
 - A host counts as a responder only if it answered the first request within 1 second. For v2c that is one GETBULK for all three values; for v1 it is a GET for sysDescr.0, followed by GETs for sysName.0 and sysObjectID.0.
 - A missing host does not prove SNMP is off. The community may be wrong (agents usually drop such requests silently), an ACL may block this computer, the reply may have been slower than 1 second, or the packet may have been lost. There are no retries.
 - Responders only tell you that the community works for at least the system group. They say nothing about write access.
-- The progress counter may stop short of the total while the last probes finish; the status line gives the final count.
 - IPv6 ranges are not supported. List IPv6 hosts one by one.
 
 ## Online activity and privacy

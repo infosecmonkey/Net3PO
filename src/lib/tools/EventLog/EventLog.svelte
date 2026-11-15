@@ -145,6 +145,11 @@
     changed();
   }
 
+  // The Level menu shows the filter's levels, so Clear filter resets it too.
+  const levelChoice = $derived(
+    filter.levels.length === 0 ? "" : filter.levels.includes(4) ? "info" : String(filter.levels[0]),
+  );
+
   function clearFilter() {
     filter = emptyFilter();
     fromText = toText = "";
@@ -231,7 +236,7 @@
       </div>
       <div class="field small-field">
         <label for="ev-level">Level</label>
-        <select id="ev-level" onchange={(e) => { const v = e.currentTarget.value; filter.levels = v === "" ? [] : v === "info" ? [0, 4] : [Number(v)]; changed(); }}>
+        <select id="ev-level" value={levelChoice} onchange={(e) => { const v = e.currentTarget.value; filter.levels = v === "" ? [] : v === "info" ? [0, 4] : [Number(v)]; changed(); }}>
           <option value="">Any</option>
           <option value="1">Critical</option>
           <option value="2">Error</option>

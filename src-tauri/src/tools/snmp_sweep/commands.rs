@@ -148,11 +148,17 @@ pub async fn snmp_sweep(
     }
 
     while let Some(joined) = set.join_next().await {
+        done += 1;
         if let Ok(Some((ip, p))) = joined {
             found += 1;
             emit_responder(ip, p, &on_event);
         }
+        if done.is_multiple_of(PROGRESS_EVERY) {
+            let _ = on_event.send(SweepEvent::Progress { done, total, found });
+        }
     }
+    // Final count, so the bar ends at the true figure (100% unless cancelled).
+    let _ = on_event.send(SweepEvent::Progress { done, total, found });
 
     let cancelled = cancel.load(Ordering::Relaxed);
     reg.lock().unwrap().remove(&sweep_id);

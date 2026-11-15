@@ -68,7 +68,7 @@ Example: a token with `"iss": "https://idp.example.com"`, `"aud": "api.example.n
 **SAML.** When messages are found, a line says which one (for example "Found a Response (SAMLResponse parameter, line 12).") or shows chips to choose from. A bar shows the binding: "POST binding (Base64)", "POST binding (Base64, URL-encoded)", "Redirect binding (Base64 + DEFLATE)" or "raw XML".
 
 - **Message panel**: message type, binding, ID, issue instant, Destination, InResponseTo, issuer, status, assertion issuer, NameID and format, Recipient, NotBefore, NotOnOrAfter, SubjectConfirmation NotOnOrAfter, audiences, AuthnInstant and SessionIndex (empty fields are hidden), then the **Attributes** table.
-- **Checks**: Status (pass on Success), the Conditions and SubjectConfirmation time windows against your clock and skew, Audience, Destination, Recipient and Issuer against your expectations, "no XML signature present" (fail), SHA-1 signatures (fail), an expired embedded signing certificate (info) and an encrypted assertion (info).
+- **Checks**: Status (pass on Success), the Conditions and SubjectConfirmation time windows against your clock and skew, Audience, Destination, Recipient and Issuer against your expectations, "no XML signature present" (fail for a Response or Assertion; info for requests, see below), SHA-1 signatures (fail), an expired embedded signing certificate (info) and an encrypted assertion (info).
 - **Signatures**: for each XML signature, what it covers (Response or Assertion), the signature and digest methods, a SHA-1 tag when weak, and the embedded certificate's subject, expiry and SHA-256 fingerprint.
 
 ## What the results do and do not tell you
@@ -77,7 +77,7 @@ Example: a token with `"iss": "https://idp.example.com"`, `"aud": "api.example.n
 - For JWTs, the signature is verified cryptographically only when you supply the key. Encrypted JWTs (JWE, five parts) cannot be read: "its claims cannot be read without the decryption key".
 - "XML signatures are located and described here, not cryptographically verified. Compare the certificate fingerprint with the one your SP trusts."
 - An encrypted assertion's contents need the SP's private key and are not shown.
-- The "no XML signature present" check also fires for messages that are normally signed outside the XML, such as a Redirect-binding AuthnRequest. Judge it by message type.
+- An unsigned request (AuthnRequest, LogoutRequest and similar) is reported as info, not a failure: signing requests is optional unless the other party requires it. In the Redirect binding the signature is in the URL (`Signature` and `SigAlg` parameters); when the pasted URL contains it, the check says so, but that signature is not verified.
 - Limits: JWT 64 KB; one SAML message 1 MB of input and 4 MB of decoded XML, nesting depth 64; Decoded XML display is cut at 200,000 characters.
 
 ## Online activity and privacy

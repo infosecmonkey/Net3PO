@@ -20,12 +20,20 @@
   let agg = $state<AggregateResult | null>(null);
   let cmp = $state<CompareResult | null>(null);
   let copied = $state("");
+  let error = $state("");
 
   async function run() {
-    if (mode === "aggregate") {
-      agg = await invoke<AggregateResult>("cidr_aggregate", { text: textA });
-    } else {
-      cmp = await invoke<CompareResult>("cidr_compare", { a: textA, b: textB });
+    error = "";
+    try {
+      if (mode === "aggregate") {
+        agg = await invoke<AggregateResult>("cidr_aggregate", { text: textA });
+      } else {
+        cmp = await invoke<CompareResult>("cidr_compare", { a: textA, b: textB });
+      }
+    } catch (e) {
+      if (mode === "aggregate") agg = null;
+      else cmp = null;
+      error = String(e);
     }
   }
 
@@ -87,6 +95,8 @@
     <ExportMenu build={() => (cmp ? buildCompareReport(cmp) : null)} name="cidr-compare" />
   {/if}
 </div>
+
+{#if error}<div class="error">{error}</div>{/if}
 
 {#if mode === "aggregate" && agg}
   {#if agg.inputTruncated}<div class="note">Only the first 20,000 entries were read.</div>{/if}
@@ -176,6 +186,16 @@
     align-items: center;
     gap: 0.8rem;
     margin: 0.7rem 0 1rem;
+  }
+
+  .error {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-fg);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .spacer {

@@ -18,11 +18,13 @@
     client: string;
     direction: string;
     bytes: number;
-    state: "active" | "done" | "failed";
+    state: "active" | "done" | "failed" | "rejected";
     message: string;
   }
 
   let transfers = $state<Transfer[]>([]);
+  // Rows kept; a client hammering bad requests cannot grow the table forever.
+  const MAX_ROWS = 500;
 
   function upsert(id: number, patch: Partial<Transfer>) {
     const i = transfers.findIndex((t) => t.id === id);
@@ -65,11 +67,25 @@
               client: ev.client,
               direction: ev.direction,
               bytes: 0,
-              state: "active",
+              state: "active" as const,
               message: "",
             },
             ...transfers,
-          ];
+          ].slice(0, MAX_ROWS);
+          break;
+        case "rejected":
+          transfers = [
+            {
+              id: ev.id,
+              file: ev.file || "(malformed request)",
+              client: ev.client,
+              direction: ev.direction || "-",
+              bytes: 0,
+              state: "rejected" as const,
+              message: ev.message,
+            },
+            ...transfers,
+          ].slice(0, MAX_ROWS);
           break;
         case "transferProgress":
           upsert(ev.id, { bytes: ev.bytes });
@@ -174,7 +190,7 @@
             <td class="mono">{t.file}</td>
             <td class="mono dim">{t.client}</td>
             <td class="mono num">{fmtBytes(t.bytes)}</td>
-            <td><span class="state {t.state}">{t.state === "failed" ? t.message || "failed" : t.state}</span></td>
+            <td><span class="state {t.state}">{t.state === "failed" || t.state === "rejected" ? `${t.state === "rejected" ? "rejected: " : ""}${t.message || t.state}` : t.state}</span></td>
           </tr>
         {/each}
       </tbody>
@@ -410,6 +426,10 @@
   }
   .state.failed {
     background: #c0392b;
+  }
+
+  .state.rejected {
+    background: #b45309;
   }
 
   .empty {

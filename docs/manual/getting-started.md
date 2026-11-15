@@ -29,7 +29,7 @@ its own panel. It runs on macOS, Windows and Linux, needs no account, and sends 
 
 ## A typical workflow
 
-1. Create a project for the job in **Workspace > Projects** (for example "Branch 12 VPN outage").
+1. Net3PO opens on **Workspace > Projects**. Create a project for the job there (for example "Branch 12 VPN outage").
 2. Run tools. When a result matters, open the tool's **Export** menu and pick the project under
    **Add to project**.
 3. Keep notes as you go in the Notes pop-out; each note is tied to the project and the tool.

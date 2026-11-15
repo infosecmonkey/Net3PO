@@ -63,14 +63,19 @@
 
   async function query() {
     if (!loaded) return;
-    const res = await invoke<{ rows: Summary[]; total: number }>("pcap_query", {
-      id,
-      filter: { ...filter, port: filter.port ? Number(filter.port) : null },
-      offset,
-      limit: PAGE,
-    });
-    rows = res.rows;
-    total = res.total;
+    try {
+      const res = await invoke<{ rows: Summary[]; total: number }>("pcap_query", {
+        id,
+        filter: { ...filter, port: filter.port ? Number(filter.port) : null },
+        offset,
+        limit: PAGE,
+      });
+      rows = res.rows;
+      total = res.total;
+      error = "";
+    } catch (e) {
+      error = String(e);
+    }
   }
 
   let qTimer: ReturnType<typeof setTimeout> | undefined;

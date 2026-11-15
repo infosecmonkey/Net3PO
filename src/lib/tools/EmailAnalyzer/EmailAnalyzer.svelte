@@ -158,7 +158,7 @@
   <div class="row">
     <div class="field grow">
       <label for="em-known">Customer's genuine domains (optional, for the lookalike check)</label>
-      <input id="em-known" class="mono" bind:value={known} spellcheck="false" placeholder="customer.com, customer-mail.com" />
+      <input id="em-known" class="mono" bind:value={known} spellcheck="false" placeholder="example.com, example.net" />
     </div>
   </div>
   <div class="row">

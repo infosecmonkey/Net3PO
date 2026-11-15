@@ -63,14 +63,7 @@ fn now_ns() -> i128 {
 }
 
 async fn resolve(s: &str) -> Result<SocketAddr, String> {
-    let s = s.trim();
-    let (host, port) = match s.rsplit_once(':') {
-        Some((h, p)) if !h.contains(':') || h.starts_with('[') => (
-            h.trim_matches(['[', ']']),
-            p.parse::<u16>().map_err(|_| format!("bad port in {s}"))?,
-        ),
-        _ => (s.trim_matches(['[', ']']), 123),
-    };
+    let (host, port) = core::split_host_port(s, 123)?;
     if host.is_empty() {
         return Err("empty server name".into());
     }
