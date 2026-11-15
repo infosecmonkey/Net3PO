@@ -7,6 +7,9 @@
   import { tick } from "svelte";
   import { nav } from "$lib/nav.svelte";
   import { findTool } from "$lib/tools/registry";
+  import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { generatedNow } from "$lib/report/export";
+  import type { NoteEntry, Report, Section } from "$lib/report/types";
   import {
     createProject,
     deleteNote,
@@ -98,6 +101,36 @@
     const list = scope === "tool" ? project.toolNotes.filter((n) => n.toolId === nav.selected) : project.toolNotes;
     return [...list].sort((a, b) => b.created - a.created);
   });
+
+  /** The notes on screen (this tool or all), plus an unsaved draft, as a
+   * report: one section per tool, oldest first. */
+  function buildNotesReport(): Report | null {
+    const byTool = new Map<string, NoteEntry[]>();
+    const add = (toolName: string, e: NoteEntry) => {
+      if (!byTool.has(toolName)) byTool.set(toolName, []);
+      byTool.get(toolName)!.push(e);
+    };
+    for (const n of [...shown].sort((a, b) => a.created - b.created)) {
+      const about = itemTitle(n.itemId);
+      const edited = n.edited ? `, edited ${n.editedLabel}` : "";
+      add(n.tool, { heading: `${n.createdLabel}${edited}${about ? ` (about ${about})` : ""}`, text: n.text });
+    }
+    const d = notes.draft;
+    if (d && dirty) add(d.toolName, { heading: `Draft, not saved (started ${d.createdLabel})`, text: d.text });
+    if (byTool.size === 0) return null;
+    const sections: Section[] = [...byTool.entries()].map(([t, items]) => ({ title: t, blocks: [{ type: "notes", items }] }));
+    return {
+      title: "Notes",
+      subtitle: project ? project.name : "",
+      generated: generatedNow(),
+      tool: "Notes",
+      sections,
+    };
+  }
+
+  const exportName = $derived(
+    `notes-${project ? project.name : "draft"}${scope === "tool" && tool ? `-${tool.name}` : ""}`,
+  );
 
   function itemTitle(id: string | null): string {
     if (!id || !project) return "";
@@ -342,12 +375,15 @@
 
   <div class="listhead">
     <strong class="small">{project ? project.name : "No active project"}</strong>
-    {#if project}
-      <div class="seg">
-        <button class:on={scope === "tool"} onclick={() => (scope = "tool")}>This tool</button>
-        <button class:on={scope === "all"} onclick={() => (scope = "all")}>All</button>
-      </div>
-    {/if}
+    <div class="tools">
+      {#if project}
+        <div class="seg">
+          <button class:on={scope === "tool"} onclick={() => (scope = "tool")}>This tool</button>
+          <button class:on={scope === "all"} onclick={() => (scope = "all")}>All</button>
+        </div>
+      {/if}
+      <ExportMenu build={buildNotesReport} name={exportName} disabled={shown.length === 0 && !dirty} />
+    </div>
   </div>
   <div class="list">
     {#if !project}
@@ -563,6 +599,12 @@
 
   .seg {
     display: flex;
+  }
+
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
 
   .seg button {

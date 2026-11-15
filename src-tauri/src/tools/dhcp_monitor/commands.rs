@@ -289,14 +289,14 @@ fn open_socket(interface: &str) -> Result<(UdpSocket, String, Vec<String>), Stri
     sock.set_broadcast(true)
         .map_err(|e| format!("could not enable broadcast: {e}"))?;
 
-    let label = if interface.is_empty() {
-        "default route".to_string()
+    let (label, local) = if interface.is_empty() {
+        ("default route".to_string(), Ipv4Addr::UNSPECIFIED)
     } else {
-        bind_interface(&sock, interface, &mut warnings);
-        interface.to_string()
+        let local = bind_interface(&sock, interface, &mut warnings);
+        (interface.to_string(), local)
     };
 
-    let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, CLIENT_PORT));
+    let addr = SocketAddr::from((local, CLIENT_PORT));
     sock.bind(&addr.into()).map_err(|e| bind_error(&e))?;
     sock.set_nonblocking(true)
         .map_err(|e| format!("could not set non-blocking: {e}"))?;
@@ -307,8 +307,10 @@ fn open_socket(interface: &str) -> Result<(UdpSocket, String, Vec<String>), Stri
 
 /// Pin the socket to an interface where the OS allows it without extra
 /// privileges; otherwise fall back to the default route with a warning.
+/// Returns the local address to bind (unspecified here: the device binding
+/// picks the interface).
 #[cfg(any(target_os = "macos", target_os = "linux"))]
-fn bind_interface(sock: &Socket, name: &str, warnings: &mut Vec<String>) {
+fn bind_interface(sock: &Socket, name: &str, warnings: &mut Vec<String>) -> Ipv4Addr {
     let index = if_addrs::get_if_addrs()
         .ok()
         .and_then(|list| list.into_iter().find(|i| i.name == name))
@@ -318,7 +320,7 @@ fn bind_interface(sock: &Socket, name: &str, warnings: &mut Vec<String>) {
         warnings.push(format!(
             "interface {name} not found; using the default route"
         ));
-        return;
+        return Ipv4Addr::UNSPECIFIED;
     };
     if let Err(e) = sock.bind_device_by_index_v4(Some(index)) {
         let hint = if cfg!(target_os = "linux") {
@@ -330,13 +332,47 @@ fn bind_interface(sock: &Socket, name: &str, warnings: &mut Vec<String>) {
             "could not bind to {name}: {e}{hint}; using the default route"
         ));
     }
+    Ipv4Addr::UNSPECIFIED
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn bind_interface(_sock: &Socket, name: &str, warnings: &mut Vec<String>) {
+/// Windows has no device binding for UDP; binding the interface's own IPv4
+/// address makes broadcasts leave through that interface and still receives
+/// the broadcast replies that arrive on it.
+#[cfg(windows)]
+fn bind_interface(_sock: &Socket, name: &str, warnings: &mut Vec<String>) -> Ipv4Addr {
+    // Prefer a routable address; a link-local (APIPA) one still pins the
+    // interface, which matters when DHCP on it is what is broken.
+    let v4s: Vec<Ipv4Addr> = if_addrs::get_if_addrs()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|i| i.name == name)
+        .filter_map(|i| match i.addr {
+            if_addrs::IfAddr::V4(v4) => Some(v4.ip),
+            if_addrs::IfAddr::V6(_) => None,
+        })
+        .collect();
+    let addr = v4s
+        .iter()
+        .find(|ip| !ip.is_link_local())
+        .or_else(|| v4s.first())
+        .copied();
+    match addr {
+        Some(ip) => ip,
+        None => {
+            warnings.push(format!(
+                "interface {name} has no usable IPv4 address; using the default route"
+            ));
+            Ipv4Addr::UNSPECIFIED
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
+fn bind_interface(_sock: &Socket, name: &str, warnings: &mut Vec<String>) -> Ipv4Addr {
     warnings.push(format!(
         "interface selection is not supported on this OS; probing via the default route, not {name}"
     ));
+    Ipv4Addr::UNSPECIFIED
 }
 
 /// Explain a failure to bind UDP 68 in terms of what the user can do.
