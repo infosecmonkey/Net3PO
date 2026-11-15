@@ -30,7 +30,7 @@ const KEYCHAIN_SERVICE: &str = "OmniPacket SSH";
 /// Most sessions open at once.
 const MAX_SESSIONS: usize = 16;
 /// TCP connect plus SSH handshake budget.
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+pub(crate) const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 /// Largest single write from the terminal.
 const MAX_WRITE: usize = 64 * 1024;
 const KNOWN_HOSTS: &str = "ssh_known_hosts";
@@ -98,7 +98,7 @@ pub enum ConnectOutcome {
 }
 
 /// Records the presented host key and accepts it only when trusted.
-struct Client {
+pub(crate) struct Client {
     known: Vec<KnownHost>,
     host: String,
     port: u16,
@@ -135,14 +135,14 @@ impl client::Handler for Client {
     }
 }
 
-fn now_secs() -> u64 {
+pub(crate) fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
 }
 
-fn load_known(app: &AppHandle, lock: &StoreLock) -> Vec<KnownHost> {
+pub(crate) fn load_known(app: &AppHandle, lock: &StoreLock) -> Vec<KnownHost> {
     let _g = lock.guard();
     let Ok(dir) = app_data_dir(app) else {
         return Vec::new();
@@ -157,7 +157,11 @@ fn load_known(app: &AppHandle, lock: &StoreLock) -> Vec<KnownHost> {
         .unwrap_or_default()
 }
 
-fn save_known(app: &AppHandle, lock: &StoreLock, entry: KnownHost) -> Result<(), String> {
+pub(crate) fn save_known(
+    app: &AppHandle,
+    lock: &StoreLock,
+    entry: KnownHost,
+) -> Result<(), String> {
     let _g = lock.guard();
     let dir = app_data_dir(app)?;
     let mut known: Vec<KnownHost> = store::load(&dir, KNOWN_HOSTS)
@@ -181,7 +185,7 @@ fn keychain(id: &str) -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYCHAIN_SERVICE, id).map_err(|e| format!("keychain unavailable: {e}"))
 }
 
-fn keychain_get(id: &str) -> Option<String> {
+pub(crate) fn keychain_get(id: &str) -> Option<String> {
     keychain(id).ok()?.get_password().ok()
 }
 
@@ -208,6 +212,17 @@ pub fn ssh_secret_delete(id: String) -> Result<(), String> {
     }
 }
 
+/// A login attempt's result.
+pub(crate) enum Authed {
+    Ready {
+        handle: client::Handle<Client>,
+        algorithm: String,
+        fingerprint: String,
+    },
+    /// The host key needs the user's confirmation.
+    Prompt(ConnectOutcome),
+}
+
 /// A connect attempt's result before a session task exists.
 enum Established {
     Ready {
@@ -220,16 +235,14 @@ enum Established {
     Prompt(ConnectOutcome),
 }
 
-/// Connect, check the host key, authenticate, and start a PTY shell.
+/// Connect, check the host key and authenticate. Shared by SSH and SFTP.
 /// `stored_secret` is the keychain secret, if any; a typed one wins.
-async fn establish(
+pub(crate) async fn authenticate(
     params: &ConnectParams,
     host: &str,
     known: &[KnownHost],
     stored_secret: Option<String>,
-    cols: u32,
-    rows: u32,
-) -> Result<Established, String> {
+) -> Result<Authed, String> {
     let seen = Arc::new(Mutex::new(None));
     let handler = Client {
         known: known.to_vec(),
@@ -263,7 +276,7 @@ async fn establish(
                 ) {
                     HostKeyStatus::Trusted => {}
                     HostKeyStatus::New => {
-                        return Ok(Established::Prompt(ConnectOutcome::HostKey {
+                        return Ok(Authed::Prompt(ConnectOutcome::HostKey {
                             status: "new".into(),
                             algorithm,
                             fingerprint,
@@ -271,7 +284,7 @@ async fn establish(
                         }));
                     }
                     HostKeyStatus::Changed { previous } => {
-                        return Ok(Established::Prompt(ConnectOutcome::HostKey {
+                        return Ok(Authed::Prompt(ConnectOutcome::HostKey {
                             status: "changed".into(),
                             algorithm,
                             fingerprint,
@@ -329,6 +342,31 @@ async fn establish(
         return Err("authentication failed: check the user name and credentials".to_string());
     }
 
+    Ok(Authed::Ready {
+        handle,
+        algorithm,
+        fingerprint,
+    })
+}
+
+/// Connect, check the host key, authenticate, and start a PTY shell.
+async fn establish(
+    params: &ConnectParams,
+    host: &str,
+    known: &[KnownHost],
+    stored_secret: Option<String>,
+    cols: u32,
+    rows: u32,
+) -> Result<Established, String> {
+    let (handle, algorithm, fingerprint) =
+        match authenticate(params, host, known, stored_secret).await? {
+            Authed::Prompt(p) => return Ok(Established::Prompt(p)),
+            Authed::Ready {
+                handle,
+                algorithm,
+                fingerprint,
+            } => (handle, algorithm, fingerprint),
+        };
     let channel = handle
         .channel_open_session()
         .await
@@ -348,6 +386,39 @@ async fn establish(
         algorithm,
         fingerprint,
     })
+}
+
+/// After a successful login: pin a newly confirmed host key and save a typed
+/// secret if asked. Returns a keychain warning that should not fail the login.
+pub(crate) fn after_login(
+    app: &AppHandle,
+    lock: &StoreLock,
+    params: &ConnectParams,
+    host: &str,
+    algorithm: String,
+    fingerprint: &str,
+) -> Result<Option<String>, String> {
+    if params.trust_fingerprint.is_some() {
+        save_known(
+            app,
+            lock,
+            KnownHost {
+                host: host.to_string(),
+                port: params.port,
+                algorithm,
+                fingerprint: fingerprint.to_string(),
+                added: now_secs(),
+            },
+        )?;
+    }
+    let typed = params.secret.clone().filter(|s| !s.is_empty());
+    if params.save_secret
+        && let (Some(id), Some(s)) = (&params.connection_id, typed)
+        && let Err(e) = ssh_secret_set(id.clone(), s)
+    {
+        return Ok(Some(e));
+    }
+    Ok(None)
 }
 
 /// Connect, authenticate and start an interactive shell.
@@ -386,28 +457,10 @@ pub async fn ssh_connect(
             } => (handle, channel, algorithm, fingerprint),
         };
 
-    // Pin a newly confirmed key, and save a typed secret if asked, only
-    // after a successful login.
-    if params.trust_fingerprint.is_some() {
-        save_known(
-            &app,
-            &lock,
-            KnownHost {
-                host: host.clone(),
-                port: params.port,
-                algorithm,
-                fingerprint: fingerprint.clone(),
-                added: now_secs(),
-            },
-        )?;
-    }
-    let typed = params.secret.clone().filter(|s| !s.is_empty());
-    if params.save_secret
-        && let (Some(id), Some(s)) = (&params.connection_id, &typed)
-        && let Err(e) = ssh_secret_set(id.clone(), s.clone())
-    {
+    if let Some(warning) = after_login(&app, &lock, &params, &host, algorithm, &fingerprint)? {
         let _ = on_event.send(SshEvent::Data {
-            b64: base64::engine::general_purpose::STANDARD.encode(format!("\r\n[Net3PO] {e}\r\n")),
+            b64: base64::engine::general_purpose::STANDARD
+                .encode(format!("\r\n[Net3PO] {warning}\r\n")),
         });
     }
 

@@ -24,7 +24,7 @@ Windows and Linux.
 
 **Servers:** [Syslog Server](tools/syslog-server.md) · [TFTP Server](tools/tftp-server.md)
 
-**Remote:** [SSH](tools/ssh.md)
+**Remote:** [SSH](tools/ssh.md) · [SFTP](tools/sftp.md)
 
 **Utilities:** [Subnet Calculator](tools/subnet-calculator.md) · [Timestamp Converter](tools/timestamp-converter.md) · [Hash Calculator](tools/hash-calculator.md) · [MTU Calculator](tools/mtu-calculator.md) · [Regex Builder](tools/regex-builder.md) · [Grep Builder](tools/grep-builder.md) · [Filter Builder](tools/filter-builder.md) · [MAC Vendor Lookup](tools/mac-vendor.md)
 
