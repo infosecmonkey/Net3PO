@@ -98,6 +98,7 @@ The tool behaves the same on macOS, Windows and Linux. The only difference is wh
 
 ## Related tools
 
+- [DNS Benchmark](dns-benchmark.md) to compare resolvers.
 - [DNS Analyzer](dns-analyzer.md) for SPF, DMARC, DKIM, DNSSEC and NS consistency audits.
 - [Email Analyzer](email-analyzer.md) for mail header and authentication work.
 - [Port Scanner](port-scanner.md) to check that TCP 53 or other service ports are reachable.

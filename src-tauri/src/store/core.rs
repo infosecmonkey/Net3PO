@@ -25,6 +25,7 @@ pub const COLLECTIONS: &[&str] = &[
     "settings",
     "rdp_hosts",
     "vnc_hosts",
+    "dns_resolvers",
 ];
 
 /// Largest collection file accepted, on load and on save.
