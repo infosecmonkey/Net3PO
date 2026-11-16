@@ -1,4 +1,4 @@
-# Filter Builder
+# Packet Filter Builder
 
 > Describe the traffic once and get a tcpdump capture filter (BPF), a Wireshark display filter and a FortiGate `diagnose sniffer packet` command, each in its own syntax.
 
@@ -13,7 +13,7 @@
 
 ## Quick start
 
-1. Open **Filter Builder**. It starts with one group holding one empty **Host** condition.
+1. Open **Packet Filter Builder**. It starts with one group holding one empty **Host** condition.
 2. Optionally pick a case from **Start from a scenario...** to replace the conditions.
 3. Fill in each condition, choose its direction, and tick **not** to exclude matching traffic.
 4. Add conditions to the group with **+ add condition...** (all must match), or add alternatives with **+ Add an OR group**.

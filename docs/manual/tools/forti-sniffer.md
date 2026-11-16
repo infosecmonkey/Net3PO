@@ -108,5 +108,5 @@ No differences between macOS, Windows and Linux. Wireshark is not needed to crea
 - [Fortinet Command Builder](forti-builder.md)
 - [PCAP Inspector](pcap-inspector.md)
 - [Debug Flow Parser](debug-flow.md)
-- [Filter Builder](filter-builder.md)
+- [Packet Filter Builder](filter-builder.md)
 - [SSH](ssh.md)

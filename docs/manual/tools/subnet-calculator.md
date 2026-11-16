@@ -152,7 +152,7 @@ Same on macOS, Windows and Linux.
 ## Related tools
 
 - [MTU Calculator](mtu-calculator.md)
-- [Filter Builder](filter-builder.md)
+- [Packet Filter Builder](filter-builder.md)
 - [Config Diff](config-diff.md)
 - [Port Scanner](port-scanner.md)
 - [SNMP Sweep](snmp-sweep.md)

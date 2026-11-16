@@ -138,7 +138,7 @@ export function buildFilterReport(f: Filters): Report {
   return {
     title: "Packet filters",
     subtitle: f.explanation,
-    tool: "Filter Builder",
+    tool: "Packet Filter Builder",
     sections: [
       out("tcpdump / Wireshark capture filter (BPF)", f.bpf),
       out("Wireshark display filter", f.wireshark),

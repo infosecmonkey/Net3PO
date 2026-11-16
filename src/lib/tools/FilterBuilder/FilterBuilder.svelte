@@ -110,7 +110,7 @@
 
 <div class="panel">
   <header>
-    <h1>Filter Builder</h1>
+    <h1>Packet Filter Builder</h1>
     <p class="sub">Build capture filters (BPF), Wireshark display filters and FortiGate sniffer commands from the same conditions. Offline.</p>
   </header>
 
