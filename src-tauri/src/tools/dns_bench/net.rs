@@ -187,7 +187,10 @@ fn framed<S: Read + Write>(s: &mut S, query: &[u8]) -> Result<Vec<u8>, String> {
 fn timeout_text(e: &std::io::Error) -> String {
     match e.kind() {
         std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => "timed out".into(),
-        std::io::ErrorKind::UnexpectedEof => "connection closed".into(),
+        std::io::ErrorKind::UnexpectedEof
+        | std::io::ErrorKind::ConnectionAborted
+        | std::io::ErrorKind::ConnectionReset
+        | std::io::ErrorKind::BrokenPipe => "connection closed".into(),
         _ => e.to_string(),
     }
 }
@@ -247,10 +250,7 @@ mod tests {
         let mut s = tcp(addr).unwrap();
         srv.join().unwrap();
         let e = framed(&mut s, b"abc").unwrap_err();
-        assert!(
-            e.contains("closed") || e.contains("reset") || e.contains("send"),
-            "{e}"
-        );
+        assert!(e.contains("connection closed"), "{e}");
     }
 
     /// Live check against public resolvers; run with `--ignored`.
