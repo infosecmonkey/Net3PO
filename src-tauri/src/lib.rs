@@ -15,6 +15,9 @@ use tools::debug_flow::commands::{flow_parse, flow_read_file};
 use tools::dhcp_monitor::commands::{DhcpRegistry, dhcp_interfaces, dhcp_monitor, dhcp_stop};
 use tools::dig::commands::dig_query;
 use tools::dns_analyzer::commands::dns_analyze;
+use tools::dns_bench::commands::{
+    BenchRegistry, dns_bench_cancel, dns_bench_defaults, dns_bench_run,
+};
 use tools::email_analyzer::commands::{
     email_analyze, email_blocklist_check, email_blocklists, email_ip_owner, email_open,
 };
@@ -84,6 +87,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(ScanRegistry::default())
+        .manage(BenchRegistry::default())
         .manage(PcapRegistry::default())
         .manage(HashRegistry::default())
         .manage(MonitorRegistry::default())
@@ -169,6 +173,9 @@ pub fn run() {
             dns_analyze,
             port_scan,
             port_scan_cancel,
+            dns_bench_defaults,
+            dns_bench_run,
+            dns_bench_cancel,
             syslog_start,
             syslog_stop,
             syslog_save,

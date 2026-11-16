@@ -15,7 +15,8 @@ export type Collection =
   | "wol_devices"
   | "settings"
   | "rdp_hosts"
-  | "vnc_hosts";
+  | "vnc_hosts"
+  | "dns_resolvers";
 
 export interface Loaded<T> {
   items: T[];

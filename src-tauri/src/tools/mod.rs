@@ -7,6 +7,7 @@ pub mod debug_flow;
 pub mod dhcp_monitor;
 pub mod dig;
 pub mod dns_analyzer;
+pub mod dns_bench;
 pub mod email_analyzer;
 pub mod encoder;
 pub mod event_log;
