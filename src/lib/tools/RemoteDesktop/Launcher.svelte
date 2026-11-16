@@ -34,6 +34,27 @@
   let busy = $state(false);
   let form = $state<{ mode: "new" | "edit"; host: Host } | null>(null);
 
+  interface Offer {
+    version: string;
+    types: { id: number; name: string }[];
+    reason: string | null;
+    advice: string[];
+  }
+  let check = $state<{ label: string; offer: Offer | null; error: string; busy: boolean } | null>(null);
+
+  /** VNC only: read the login methods the server offers, without logging in. */
+  async function checkServer(h: Pick<Host, "host" | "port">, label: string) {
+    error = "";
+    status = "";
+    check = { label, offer: null, error: "", busy: true };
+    try {
+      const offer = await invoke<Offer>("vnc_check", { host: h.host, port: h.port });
+      check = { label, offer, error: "", busy: false };
+    } catch (e) {
+      check = { label, offer: null, error: String(e), busy: false };
+    }
+  }
+
   onMount(async () => {
     try {
       hosts = (await loadCollection<Host>(collection)).items;
@@ -115,14 +136,23 @@
   }
 
   /** `[user@]host[:port]`, IPv6 in brackets. */
-  async function quickConnect() {
+  function parseQuick(): { host: string; port: number; user: string } | null {
     const m = quick.trim().match(/^(?:([^@\s]+)@)?(\[[^\]]+\]|[^:\s]+)(?::(\d+))?$/);
     if (!m) {
       error = "Quick connect takes host, host:port or user@host:port.";
-      return;
+      return null;
     }
-    const port = m[3] ? Number(m[3]) : PORT[protocol];
-    await launch({ host: m[2], port, user: m[1] ?? "", fullscreen: false }, m[2]);
+    return { host: m[2], port: m[3] ? Number(m[3]) : PORT[protocol], user: m[1] ?? "" };
+  }
+
+  async function quickConnect() {
+    const q = parseQuick();
+    if (q) await launch({ ...q, fullscreen: false }, q.host);
+  }
+
+  async function quickCheck() {
+    const q = parseQuick();
+    if (q) await checkServer(q, q.host);
   }
 </script>
 
@@ -138,6 +168,9 @@
         onkeydown={(e) => e.key === "Enter" && quickConnect()}
       />
       <button class="small" onclick={quickConnect} disabled={busy}>Go</button>
+      {#if protocol === "vnc"}
+        <button class="small" onclick={quickCheck} disabled={check?.busy} title="Show the login methods the server offers">Check</button>
+      {/if}
     </div>
     <input bind:value={search} placeholder="Search hosts" spellcheck="false" />
     <button class="small" onclick={() => { error = ""; form = { mode: "new", host: blank() }; }}>+ Host</button>
@@ -149,6 +182,9 @@
             <span class="sub mono">{h.user ? `${h.user}@` : ""}{h.host}{h.port !== PORT[protocol] ? `:${h.port}` : ""}</span>
           </button>
           <div class="acts">
+            {#if protocol === "vnc"}
+              <button class="icon" title="Check server: show the login methods it offers" onclick={() => checkServer(h, h.name)} disabled={check?.busy}>?</button>
+            {/if}
             <button class="icon" title="Edit" onclick={() => { error = ""; form = { mode: "edit", host: { ...h } }; }}>e</button>
             <button class="icon" title="Delete" onclick={() => remove(h)}>x</button>
           </div>
@@ -179,6 +215,36 @@
     </p>
     {#if error}<div class="error mono">{error}</div>{/if}
     {#if status}<div class="okbox">{status}</div>{/if}
+
+    {#if check}
+      <div class="check-box">
+        <div class="check-head">
+          <strong>Server check: {check.label}</strong>
+          <span class="spacer"></span>
+          <button class="icon" title="Close" onclick={() => (check = null)}>x</button>
+        </div>
+        {#if check.busy}
+          <p class="hint">Connecting...</p>
+        {:else if check.error}
+          <div class="error mono">{check.error}</div>
+        {:else if check.offer}
+          <p class="hint">VNC protocol {check.offer.version}. Login methods offered:</p>
+          {#if check.offer.types.length}
+            <ul class="types">
+              {#each check.offer.types as t, i (i)}
+                <li><span class="mono">{t.id}</span> {t.name}</li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="hint">None.</p>
+          {/if}
+          {#each check.offer.advice as a, i (i)}
+            <p class="advice">{a}</p>
+          {/each}
+        {/if}
+        <p class="hint">Only the server's greeting is read. Nothing is logged in and no password is sent.</p>
+      </div>
+    {/if}
   </section>
 </div>
 
@@ -455,5 +521,40 @@
     justify-content: flex-end;
     gap: 0.5rem;
     margin-top: 1rem;
+  }
+  .check-box {
+    margin-top: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    background: var(--sidebar-bg);
+    font-size: 0.84rem;
+    max-width: 44rem;
+  }
+
+  .check-head {
+    display: flex;
+    align-items: center;
+  }
+
+  .check-head .spacer {
+    flex: 1;
+  }
+
+  .types {
+    margin: 0.2rem 0 0.5rem;
+    padding-left: 1.1rem;
+  }
+
+  .types .mono {
+    display: inline-block;
+    min-width: 2rem;
+    color: var(--muted);
+  }
+
+  .advice {
+    margin: 0.35rem 0;
+    border-left: 3px solid var(--accent);
+    padding-left: 0.6rem;
   }
 </style>
