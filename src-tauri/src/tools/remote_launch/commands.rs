@@ -9,6 +9,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use super::core::{self, Candidate, Client, Protocol, Target};
+use super::rfb;
 
 /// How long a temporary `.rdp` file is kept for the client to read.
 const RDP_FILE_LIFETIME: Duration = Duration::from_secs(120);
@@ -116,6 +117,31 @@ pub async fn remote_clients() -> Detected {
             vnc_template: core::default_template(Protocol::Vnc).into(),
             os: std::env::consts::OS.into(),
         })
+}
+
+/// Time allowed to connect to a VNC server, and then to read its offer.
+const VNC_CHECK_TIMEOUT: Duration = Duration::from_secs(6);
+
+/// Connect to a VNC server and report the login methods it offers. Only the
+/// opening handshake is read; nothing is selected and no password is sent.
+#[tauri::command]
+pub async fn vnc_check(host: String, port: u16) -> Result<rfb::Offer, String> {
+    let t = core::validate(&Target {
+        host,
+        port,
+        user: String::new(),
+        fullscreen: false,
+    })
+    .map_err(|e| e.to_string())?;
+    let addr = core::host_port(&t.host, t.port);
+    let mut stream = tokio::time::timeout(VNC_CHECK_TIMEOUT, tokio::net::TcpStream::connect(&addr))
+        .await
+        .map_err(|_| format!("timed out connecting to {addr}"))?
+        .map_err(|e| format!("could not connect to {addr}: {e}"))?;
+    tokio::time::timeout(VNC_CHECK_TIMEOUT, rfb::read_offer(&mut stream))
+        .await
+        .map_err(|_| format!("{addr} accepted the connection but sent no VNC greeting in time"))?
+        .map_err(|e| e.to_string())
 }
 
 static RDP_SEQ: AtomicU32 = AtomicU32::new(0);

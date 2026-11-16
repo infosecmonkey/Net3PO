@@ -18,6 +18,19 @@ The VNC tool shows in the sidebar only when a VNC viewer is available: one found
 
 For a one-off session, type `host`, `host:port` or `user@host:port` in quick connect and press Enter or click **Go**.
 
+## Check server
+
+**Check** (next to quick connect) and **?** (on a saved host) connect to the server and list the login methods it offers, with which viewers can use them. Use it when a viewer says "No supported authentication methods" or closes right after connecting.
+
+Only the server's greeting is read: no method is selected, nothing is logged in and no password is sent.
+
+| Offered | Who can log in |
+|---|---|
+| None, or VNC password | Any viewer |
+| Apple macOS login only (types 30 to 36) | macOS Screen Sharing and Remmina. For other viewers, turn on the VNC password on the Mac (see Troubleshooting). |
+| VeNCrypt or TLS only | TigerVNC Viewer and Remmina |
+| RealVNC only | RealVNC Viewer, unless the server is set to VNC password |
+
 ## Inputs and options
 
 | Field | What it means | Default / accepted values |
@@ -44,7 +57,7 @@ For a one-off session, type `host`, `host:port` or `user@host:port` in quick con
 
 ## Online activity and privacy
 
-This tool sends nothing itself; the viewer you open connects to the host. Saved hosts are stored in the app data folder as `vnc_hosts`. See [Privacy](../privacy.md).
+The viewer you open connects to the host. **Check** opens one TCP connection to the host and port, reads the greeting and closes it. Saved hosts are stored in the app data folder as `vnc_hosts`. See [Privacy](../privacy.md).
 
 ## Troubleshooting
 
@@ -53,6 +66,14 @@ This tool sends nothing itself; the viewer you open connects to the host. Saved 
 **Error "No VNC client is set up. Choose one in Settings."** As above.
 
 **The viewer opens on the wrong port.** Enter the TCP port (5900 plus the display number), not the display number.
+
+**The viewer says "No supported authentication methods".** The server offers no login method the viewer supports. Click **Check** to see what it offers. Common cases:
+
+- **macOS target.** Screen Sharing offers only Apple's login by default. On the Mac, open System Settings > General > Sharing, click (i) next to Screen Sharing, turn on **VNC viewers may control screen with password** and set a password. Or use Remmina, or Screen Sharing from another Mac.
+- **RealVNC Server.** Use RealVNC Viewer, or set the server's Authentication to VNC password and Encryption to Prefer off.
+- **TLS-only servers** (wayvnc, GNOME Remote Desktop, TigerVNC with VeNCrypt). Use TigerVNC Viewer or Remmina.
+
+**Check says "not a VNC server".** Something else answers on that port, for example SSH or a web server.
 
 **Errors about the client.** See [RDP troubleshooting](rdp.md#troubleshooting); they are the same.
 
