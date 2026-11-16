@@ -241,5 +241,5 @@ No differences between macOS, Windows and Linux.
 - [SSH](ssh.md)
 - [Debug Flow Parser](debug-flow.md)
 - [FortiGate Sniffer to PCAP](forti-sniffer.md)
-- [Filter Builder](filter-builder.md)
+- [Packet Filter Builder](filter-builder.md)
 - [MTU Calculator](mtu-calculator.md)

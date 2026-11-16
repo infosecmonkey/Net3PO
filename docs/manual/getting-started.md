@@ -28,7 +28,7 @@ its own panel. It runs on macOS, Windows and Linux, needs no account, and sends 
 | Discovery and SNMP | [LLDP / CDP Neighbors](tools/lldp.md), [SNMP Walk](tools/snmp-walk.md), [SNMP Sweep](tools/snmp-sweep.md), [Switch Port Mapper](tools/port-mapper.md), [DHCP Monitor](tools/dhcp-monitor.md) |
 | Servers | [Syslog Server](tools/syslog-server.md), [TFTP Server](tools/tftp-server.md) |
 | Remote | [SSH](tools/ssh.md), [SFTP](tools/sftp.md), [RDP](tools/rdp.md) and [VNC](tools/vnc.md) (shown when a client is installed; see [Settings](tools/settings.md)) |
-| Utilities | [Subnet Calculator](tools/subnet-calculator.md), [Timestamp Converter](tools/timestamp-converter.md), [Hash Calculator](tools/hash-calculator.md), [MTU Calculator](tools/mtu-calculator.md), [Regex Builder](tools/regex-builder.md), [Grep Builder](tools/grep-builder.md), [Filter Builder](tools/filter-builder.md), [MAC Vendor Lookup](tools/mac-vendor.md) |
+| Utilities | [Subnet Calculator](tools/subnet-calculator.md), [Timestamp Converter](tools/timestamp-converter.md), [Hash Calculator](tools/hash-calculator.md), [MTU Calculator](tools/mtu-calculator.md), [Regex Builder](tools/regex-builder.md), [Grep Builder](tools/grep-builder.md), [Packet Filter Builder](tools/filter-builder.md), [MAC Vendor Lookup](tools/mac-vendor.md) |
 | Fortinet | [Fortinet Command Builder](tools/forti-builder.md), [FortiGate Sniffer to PCAP](tools/forti-sniffer.md), [Debug Flow Parser](tools/debug-flow.md) |
 
 ## A typical workflow

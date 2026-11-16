@@ -91,6 +91,6 @@ The same on macOS, Windows and Linux. **Open in Wireshark** uses the operating s
 ## Related tools
 
 - [FortiGate Sniffer to PCAP](forti-sniffer.md) to convert sniffer text and save the `.pcap`.
-- [Filter Builder](filter-builder.md) to build capture and display filters.
+- [Packet Filter Builder](filter-builder.md) to build capture and display filters.
 - [IOC Extractor](ioc-extractor.md) for indicators in text exports.
 - [MAC Vendor Lookup](mac-vendor.md) for vendor names behind MAC addresses.

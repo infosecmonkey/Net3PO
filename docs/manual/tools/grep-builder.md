@@ -126,7 +126,7 @@ The app works the same on every OS, but the command is for a POSIX shell with GN
 ## Related tools
 
 - [Regex Builder](regex-builder.md)
-- [Filter Builder](filter-builder.md)
+- [Packet Filter Builder](filter-builder.md)
 - [Syslog Server](syslog-server.md)
 - [Event Log](event-log.md)
 - [SSH](ssh.md)

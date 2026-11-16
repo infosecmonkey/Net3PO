@@ -6,7 +6,7 @@ nothing anywhere unless you click a button that does a network job.
 ## What goes on the network, and when
 
 - **Offline tools never use the network:** Subnet Calculator, Timestamp Converter, Hash
-  Calculator, MTU Calculator, Regex Builder, Grep Builder, Filter Builder, MAC Vendor Lookup
+  Calculator, MTU Calculator, Regex Builder, Grep Builder, Packet Filter Builder, MAC Vendor Lookup
   (the vendor database is bundled), Config Diff, Script Decoder, Encoder Workbench, IOC
   Extractor, PCAP Inspector, Windows Event Log, JWT / SAML Inspector, Debug Flow Parser,
   FortiGate Sniffer to PCAP, the Fortinet Command Builder and Network Snapshot (which reads

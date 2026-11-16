@@ -104,7 +104,7 @@ Same on macOS, Windows and Linux.
 ## Related tools
 
 - [Grep Builder](grep-builder.md)
-- [Filter Builder](filter-builder.md)
+- [Packet Filter Builder](filter-builder.md)
 - [IOC Extractor](ioc-extractor.md)
 - [Syslog Server](syslog-server.md)
 - [Event Log](event-log.md)

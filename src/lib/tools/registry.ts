@@ -77,7 +77,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "filter-builder",
     icon: "filter",
-    name: "Filter Builder",
+    name: "Packet Filter Builder",
     category: "Utilities",
     enabled: true,
     load: () => import("./FilterBuilder/FilterBuilder.svelte"),

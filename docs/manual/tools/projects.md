@@ -61,7 +61,7 @@ Project "Branch 12 VPN drops", Notes: "Ticket CHG-1042. Site tunnel to 203.0.113
 
 1. [MTU Calculator](mtu-calculator.md): "MTU: IPsec ESP" (inner MTU 1446)
 2. [Traceroute](traceroute.md) to 203.0.113.1
-3. [Filter Builder](filter-builder.md): sniffer command for the tunnel peer
+3. [Packet Filter Builder](filter-builder.md): sniffer command for the tunnel peer
 
 Move the traceroute to the top with its up arrow, add the note "Path MTU test from the branch side" to it, and export as PDF. The PDF starts with an **Overview** (project name, number of results and notes, your project notes, and a contents table with #, Result, Tool and Added), followed by one part per result in your order: its number and title, the tool and time added, the result note, then that tool's report sections. Each tool's notes follow the last result from that tool. Tools that have notes but no saved result get a "Notes only, no saved output" part at the end.
 
