@@ -35,6 +35,8 @@ export interface Detected {
   vnc: DetectedClient[];
   rdpTemplate: string;
   vncTemplate: string;
+  /** "macos", "windows", "linux", ... */
+  os: string;
 }
 
 /** What the Rust launcher takes. */

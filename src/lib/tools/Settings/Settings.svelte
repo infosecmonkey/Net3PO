@@ -1,6 +1,7 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { detectClients, saveSettings, settings, type Protocol } from "$lib/settings.svelte";
+  import { recommended } from "./recommended";
 
   let detecting = $state(false);
   let saved = $state("");
@@ -40,6 +41,18 @@
     }
   }
 
+  let copied = $state("");
+
+  async function copy(command: string) {
+    try {
+      await navigator.clipboard.writeText(command);
+      copied = command;
+      setTimeout(() => (copied = ""), 1500);
+    } catch {
+      copied = "";
+    }
+  }
+
   function resetArgs(p: Protocol) {
     const d = settings.detected;
     settings.value.remote[p].args = (p === "rdp" ? d?.rdpTemplate : d?.vncTemplate) ?? (p === "rdp" ? "{file}" : "{host}::{port}");
@@ -71,6 +84,7 @@
     {#each ["rdp", "vnc"] as const as p (p)}
       {@const s = settings.value.remote[p]}
       {@const found = settings.detected?.[p] ?? []}
+      {@const recs = recommended(settings.detected?.os, p)}
       <div class="card">
         <h3>{LABELS[p].title}</h3>
         <div class="modes" role="radiogroup" aria-label={LABELS[p].title}>
@@ -84,10 +98,8 @@
             <p class="hint">Looking for clients...</p>
           {:else if found.length === 0}
             <p class="warn-text">
-              None found. {p === "rdp"
-                ? "Install Windows App (macOS), or Remmina or FreeRDP (Linux); Windows has Remote Desktop Connection built in."
-                : "Install TigerVNC, RealVNC, TightVNC or UltraVNC (Windows), or Remmina or TigerVNC (Linux); macOS has Screen Sharing built in."}
-              Or choose a custom program.
+              None found. Install one of the recommended clients below, then click Detect again, or choose a
+              custom program.
             </p>
           {:else}
             <div class="choices">
@@ -135,6 +147,29 @@
         {:else}
           <p class="hint">The {LABELS[p].tool} tool is hidden.</p>
         {/if}
+
+        <details class="recs" open={s.mode === "auto" && settings.detected !== null && found.length === 0}>
+          <summary>Recommended {LABELS[p].tool} clients for this OS</summary>
+          <ul>
+            {#each recs as r (r.name)}
+              <li>
+                <strong>{r.name}</strong>
+                <span class="note-text">{r.note}</span>
+                {#each r.install as i (i.label)}
+                  <span class="cmd">
+                    <span class="label">{i.label}</span>
+                    <code class="mono">{i.command}</code>
+                    <button class="small" onclick={() => copy(i.command)}>{copied === i.command ? "Copied" : "Copy"}</button>
+                  </span>
+                {/each}
+              </li>
+            {/each}
+          </ul>
+          <p class="hint">
+            Net3PO does not install or download these. A client installed somewhere Net3PO does not look
+            (for example a Flatpak) can be set as a custom program.
+          </p>
+        </details>
       </div>
     {/each}
   </section>
@@ -296,6 +331,58 @@
 
   button:disabled {
     opacity: 0.5;
+  }
+
+  .recs {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .recs summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .recs ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .recs li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .note-text {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .cmd .label {
+    color: var(--muted);
+    font-size: 0.74rem;
+    min-width: 8.5rem;
+  }
+
+  .cmd code {
+    font-size: 0.76rem;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
   }
 
   .error {

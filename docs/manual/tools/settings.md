@@ -16,6 +16,16 @@ Chooses the program the [RDP](rdp.md) and [VNC](vnc.md) tools open. Each has thr
 
 **Detect again** looks for clients again, for example after installing one.
 
+**Recommended clients for this OS** lists the clients Net3PO works with on the current OS, with install commands to copy where there is a package. It opens on its own when no client is found. Net3PO never installs or downloads a client.
+
+| OS | RDP | VNC |
+|---|---|---|
+| Windows | Remote Desktop Connection (built in) | TigerVNC, RealVNC, TightVNC, UltraVNC |
+| macOS | Windows App (Mac App Store) | Screen Sharing (built in), RealVNC |
+| Linux | Remmina (recommended), FreeRDP, KRDC | Remmina (recommended), TigerVNC |
+
+On Debian and Ubuntu, Remmina's RDP and VNC support are separate packages (`remmina-plugin-rdp`, `remmina-plugin-vnc`); without them Remmina opens but cannot connect. A client Net3PO does not find, such as a Flatpak, can be set as a custom program.
+
 ### Argument templates
 
 The template is split on spaces into arguments, then placeholders are filled in, so a value with spaces stays one argument.

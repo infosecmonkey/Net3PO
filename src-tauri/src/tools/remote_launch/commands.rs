@@ -22,6 +22,9 @@ pub struct Detected {
     /// Default custom argument templates.
     pub rdp_template: String,
     pub vnc_template: String,
+    /// `std::env::consts::OS`, so Settings can show the clients
+    /// recommended for this OS.
+    pub os: String,
 }
 
 /// Which client to use, from Settings.
@@ -97,6 +100,7 @@ pub fn detect() -> Detected {
         vnc,
         rdp_template: core::default_template(Protocol::Rdp).into(),
         vnc_template: core::default_template(Protocol::Vnc).into(),
+        os: std::env::consts::OS.into(),
     }
 }
 
@@ -110,6 +114,7 @@ pub async fn remote_clients() -> Detected {
             vnc: Vec::new(),
             rdp_template: core::default_template(Protocol::Rdp).into(),
             vnc_template: core::default_template(Protocol::Vnc).into(),
+            os: std::env::consts::OS.into(),
         })
 }
 
