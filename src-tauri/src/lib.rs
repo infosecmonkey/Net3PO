@@ -27,6 +27,7 @@ use tools::event_log::commands::{
     EventLogRegistry, evtlog_cancel, evtlog_close, evtlog_export_rows, evtlog_load, evtlog_query,
     evtlog_record,
 };
+use tools::fgt_session::commands::session_parse;
 use tools::fgt_sniffer::commands::{fgt_parse, fgt_read_file, fgt_save};
 use tools::filter_builder::commands::filter_build;
 use tools::fortinet_builder::commands::{
@@ -204,6 +205,7 @@ pub fn run() {
             dhcp_monitor,
             flow_parse,
             flow_read_file,
+            session_parse,
             dhcp_stop,
             hash_text,
             hash_file,

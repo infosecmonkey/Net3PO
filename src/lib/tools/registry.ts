@@ -339,6 +339,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./FgtSniffer/FgtSniffer.svelte"),
   },
   {
+    id: "session-list",
+    icon: "list-tree",
+    name: "Session List Parser",
+    category: "Fortinet",
+    enabled: true,
+    load: () => import("./SessionList/SessionList.svelte"),
+  },
+  {
     id: "debug-flow",
     icon: "workflow",
     name: "Debug Flow Parser",
@@ -435,7 +443,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh", "sftp", "rdp", "vnc"] },
   { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor", "obfuscator"] },
-  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
+  { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow", "session-list"] },
 ];
 
 /** Tools grouped for the sidebar, in LAYOUT order. */

@@ -30,4 +30,4 @@ Windows and Linux.
 
 **Utilities:** [Subnet Calculator](tools/subnet-calculator.md) · [Timestamp Converter](tools/timestamp-converter.md) · [Hash Calculator](tools/hash-calculator.md) · [MTU Calculator](tools/mtu-calculator.md) · [Regex Builder](tools/regex-builder.md) · [Grep Builder](tools/grep-builder.md) · [Packet Filter Builder](tools/filter-builder.md) · [MAC Vendor Lookup](tools/mac-vendor.md) · [Obfuscator](tools/obfuscator.md)
 
-**Fortinet:** [Fortinet Command Builder](tools/forti-builder.md) · [FortiGate Sniffer to PCAP](tools/forti-sniffer.md) · [Debug Flow Parser](tools/debug-flow.md)
+**Fortinet:** [Fortinet Command Builder](tools/forti-builder.md) · [FortiGate Sniffer to PCAP](tools/forti-sniffer.md) · [Debug Flow Parser](tools/debug-flow.md) · [Session List Parser](tools/session-list.md)

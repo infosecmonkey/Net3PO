@@ -12,6 +12,7 @@ pub mod dns_bench;
 pub mod email_analyzer;
 pub mod encoder;
 pub mod event_log;
+pub mod fgt_session;
 pub mod fgt_sniffer;
 pub mod filter_builder;
 pub mod fortinet_builder;
