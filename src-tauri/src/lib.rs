@@ -59,6 +59,7 @@ use tools::sftp::commands::{
     SftpRegistry, sftp_cancel, sftp_close, sftp_connect, sftp_download, sftp_list, sftp_mkdir,
     sftp_remove, sftp_rename, sftp_upload,
 };
+use tools::shell_explain::commands::shell_explain;
 use tools::snmp_sweep::commands::{SweepRegistry, snmp_sweep, snmp_sweep_cancel};
 use tools::snmp_walk::commands::{
     MibState, SnmpRegistry, snmp_load_mib, snmp_mib_info, snmp_walk, snmp_walk_cancel,
@@ -159,6 +160,7 @@ pub fn run() {
             remote_launch,
             vnc_check,
             script_decode,
+            shell_explain,
             script_read_file,
             project_list,
             project_create,

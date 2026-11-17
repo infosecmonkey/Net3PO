@@ -22,8 +22,6 @@ nothing anywhere unless you click a button that does a network job.
 - **Optional online lookups** are separate buttons and say what they contact. For example the
   Email Header Analyzer can look up a sending IP in the regional internet registry (RDAP);
   without the click, header analysis stays offline.
-  Script Decoder and Encoder Workbench have an **explainshell.com** button that opens a
-  command on explainshell.com in your browser, after a confirm.
 - **Links in tokens are never followed.** For example the JWT inspector shows `jku` and `x5u`
   URLs but never fetches them.
 
