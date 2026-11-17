@@ -165,6 +165,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./TlsInspector/TlsInspector.svelte"),
   },
   {
+    id: "cert-converter",
+    icon: "file-badge",
+    name: "Certificate Converter",
+    category: "Analysis",
+    enabled: true,
+    load: () => import("./CertConverter/CertConverter.svelte"),
+  },
+  {
     id: "jwt-saml",
     icon: "key-round",
     name: "JWT / SAML Inspector",
@@ -413,7 +421,7 @@ const TOOLS: ToolDef[] = [
  */
 const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Workspace", tools: ["projects"] },
-  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "jwt-saml", "event-log", "pcap-inspector", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
+  { category: "Analysis", tools: ["dns-analyzer", "email-analyzer", "tls-inspector", "cert-converter", "jwt-saml", "event-log", "pcap-inspector", "ioc-extractor", "config-diff", "script-decoder", "encoder-workbench"] },
   { category: "Troubleshooting", tools: ["dig", "dns-benchmark", "ntp-checker", "port-scanner", "traceroute", "http-troubleshooter", "socket-tools", "conn-monitor", "iperf", "net-snapshot", "wake-on-lan"] },
   { category: "Discovery and SNMP", tools: ["lldp", "snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },

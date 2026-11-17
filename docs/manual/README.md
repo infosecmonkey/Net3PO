@@ -16,7 +16,7 @@ Windows and Linux.
 
 **Workspace:** [Projects](tools/projects.md)
 
-**Analysis:** [DNS Analyzer](tools/dns-analyzer.md) · [Email Header Analyzer](tools/email-analyzer.md) · [TLS Inspector](tools/tls-inspector.md) · [JWT / SAML Inspector](tools/jwt-saml.md) · [Windows Event Log](tools/event-log.md) · [PCAP Inspector](tools/pcap-inspector.md) · [IOC Extractor](tools/ioc-extractor.md) · [Config Diff](tools/config-diff.md) · [Script Decoder](tools/script-decoder.md) · [Encoder Workbench](tools/encoder-workbench.md)
+**Analysis:** [DNS Analyzer](tools/dns-analyzer.md) · [Email Header Analyzer](tools/email-analyzer.md) · [TLS Inspector](tools/tls-inspector.md) · [Certificate Converter](tools/cert-converter.md) · [JWT / SAML Inspector](tools/jwt-saml.md) · [Windows Event Log](tools/event-log.md) · [PCAP Inspector](tools/pcap-inspector.md) · [IOC Extractor](tools/ioc-extractor.md) · [Config Diff](tools/config-diff.md) · [Script Decoder](tools/script-decoder.md) · [Encoder Workbench](tools/encoder-workbench.md)
 
 **Troubleshooting:** [Dig](tools/dig.md) · [DNS Benchmark](tools/dns-benchmark.md) · [NTP Checker](tools/ntp-checker.md) · [Port Scanner](tools/port-scanner.md) · [Visual Traceroute](tools/traceroute.md) · [HTTP Troubleshooter](tools/http-troubleshooter.md) · [Socket Tools](tools/socket-tools.md) · [Connectivity Monitor](tools/conn-monitor.md) · [Throughput Tester](tools/iperf.md) · [Network Snapshot](tools/net-snapshot.md) · [Wake-on-LAN](tools/wake-on-lan.md)
 

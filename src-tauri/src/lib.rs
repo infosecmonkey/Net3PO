@@ -9,6 +9,7 @@ use projects::commands::{
 };
 use report::commands::{report_export, report_redact_preview};
 use store::commands::{StoreLock, store_load, store_save};
+use tools::cert_convert::commands::{cert_export, cert_inspect, cert_read_file};
 use tools::config_diff::commands::{diff_compare, diff_read_file, diff_save};
 use tools::conn_monitor::commands::{MonitorRegistry, mon_save, mon_start, mon_stop};
 use tools::debug_flow::commands::{flow_parse, flow_read_file};
@@ -173,6 +174,9 @@ pub fn run() {
             dns_analyze,
             port_scan,
             port_scan_cancel,
+            cert_read_file,
+            cert_inspect,
+            cert_export,
             dns_bench_defaults,
             dns_bench_run,
             dns_bench_cancel,

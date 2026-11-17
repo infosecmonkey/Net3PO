@@ -1,6 +1,7 @@
 //! Tool modules. Each tool keeps pure logic in `core.rs` and Tauri commands in
 //! `commands.rs`, registered in `lib.rs`.
 
+pub mod cert_convert;
 pub mod config_diff;
 pub mod conn_monitor;
 pub mod debug_flow;

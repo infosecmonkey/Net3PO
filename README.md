@@ -8,7 +8,7 @@ needs no admin rights for the app itself, and sends no telemetry.
 
 | Category | Tools |
 | --- | --- |
-| Offline | Subnet Calculator (IPv4/IPv6, splitting), Regex Builder with networking recipes, Grep Builder (multi-pattern pipelines, GNU/BSD), MAC Vendor Lookup, Config Diff |
+| Offline | Subnet Calculator (IPv4/IPv6, splitting), Regex Builder with networking recipes, Grep Builder (multi-pattern pipelines, GNU/BSD), MAC Vendor Lookup, Config Diff, Certificate Converter (PEM, DER, P7B, PFX; chain and key matching) |
 | Network | Dig, DNS Benchmark (UDP, TCP, DoT, DoH; DNSSEC and NXDOMAIN checks), DNS Analyzer (SPF, DMARC, DKIM, MX, DNSSEC, NS), Port Scanner (TCP connect), Syslog Server, TFTP Server |
 | SNMP | SNMP Walk (v1, v2c, v3), SNMP Sweep, Switch Port Mapper |
 | Advanced | DHCP Monitor (rogue server detection), Visual Traceroute with Path MTU |
