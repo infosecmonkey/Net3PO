@@ -3,17 +3,17 @@
 //! cap; results are cached for the life of the app. Nothing goes online.
 
 use std::collections::HashMap;
-use std::io::Read;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
-use std::time::{Duration, Instant};
 
 use super::core::ManLookup;
 use super::db::{self, Doc, Opt};
 
 /// Longest `man` may run for one page.
-const TIMEOUT: Duration = Duration::from_secs(4);
+#[cfg(not(windows))]
+const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(4);
 /// Most output read from one page.
+#[cfg(not(windows))]
 const MAX_OUTPUT: u64 = 4 * 1024 * 1024;
 /// Most pages remembered.
 const MAX_CACHE: usize = 512;
@@ -79,7 +79,9 @@ fn fetch(_name: &str) -> Option<String> {
 
 #[cfg(not(windows))]
 fn fetch(name: &str) -> Option<String> {
+    use std::io::Read;
     use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
     let mut child = Command::new("man")
         .arg(name)
         .env("MANPAGER", "cat")
