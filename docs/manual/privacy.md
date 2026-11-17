@@ -7,7 +7,7 @@ nothing anywhere unless you click a button that does a network job.
 
 - **Offline tools never use the network:** Subnet Calculator, Timestamp Converter, Hash
   Calculator, MTU Calculator, Regex Builder, Grep Builder, Packet Filter Builder, MAC Vendor Lookup
-  (the vendor database is bundled), Config Diff, Script Decoder, Encoder Workbench, IOC
+  (the vendor database is bundled), Obfuscator, Config Diff, Script Decoder, Encoder Workbench, IOC
   Extractor, PCAP Inspector, Windows Event Log, JWT / SAML Inspector, Certificate Converter, Debug Flow Parser,
   FortiGate Sniffer to PCAP, the Fortinet Command Builder and Network Snapshot (which reads
   local configuration with the OS's own commands).
@@ -36,6 +36,7 @@ nothing anywhere unless you click a button that does a network job.
 | Network snapshots | App data folder, `snapshots/` |
 | Tool history and settings (for example recent targets) | App data folder |
 | Unsaved note draft, sidebar layout, redaction settings | App's local web storage |
+| Obfuscator categories, rules and exclusions (never its mapping, which stays in memory) | App data folder (`obfuscator_settings`) |
 
 App data folder:
 

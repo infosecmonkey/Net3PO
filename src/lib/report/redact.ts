@@ -17,11 +17,16 @@ export interface RedactOptions {
   emails: boolean;
   usernames: boolean;
   secrets: boolean;
+  /** Text tools only; report export leaves these off. */
+  macs?: boolean;
+  serials?: boolean;
+  certificates?: boolean;
+  fakeAddresses?: boolean;
   rules: RedactRule[];
   exclusions: string[];
 }
 
-export type RedactKind = "custom" | "secret" | "ip" | "host" | "user";
+export type RedactKind = "custom" | "secret" | "ip" | "host" | "user" | "mac" | "serial";
 
 export interface MappingEntry {
   kind: RedactKind;
@@ -120,4 +125,6 @@ export const KIND_LABEL: Record<RedactKind, string> = {
   ip: "IP",
   host: "Host",
   user: "User",
+  mac: "MAC",
+  serial: "Serial",
 };

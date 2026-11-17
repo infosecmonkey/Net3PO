@@ -47,6 +47,7 @@ use tools::net_snapshot::commands::{
     snap_take,
 };
 use tools::ntp_check::commands::ntp_check;
+use tools::obfuscator::commands::{obfuscate_restore, obfuscate_text};
 use tools::pcap_inspector::commands::{
     PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
 };
@@ -161,6 +162,8 @@ pub fn run() {
             vnc_check,
             script_decode,
             shell_explain,
+            obfuscate_text,
+            obfuscate_restore,
             script_read_file,
             project_list,
             project_create,
