@@ -11,14 +11,14 @@
     type ConnectOutcome,
     type ConnectParams,
     type SshConnection,
-    type SshGroup,
   } from "$lib/ssh/sessions.svelte";
+  import GroupDialog from "$lib/components/GroupDialog.svelte";
+  import GroupedList from "$lib/components/GroupedList.svelte";
+  import { groupName, groups, groupTree, loadGroups, sortedGroups, UNGROUPED } from "$lib/groups.svelte";
   import TermView from "./TermView.svelte";
 
-  let groups = $state<SshGroup[]>([]);
   let connections = $state<SshConnection[]>([]);
   let search = $state("");
-  let collapsed = $state<Record<string, boolean>>({});
   let error = $state("");
   let busy = $state(false);
   let quick = $state("");
@@ -33,8 +33,7 @@
   }
   let form = $state<Form | null>(null);
 
-  // Group editor.
-  let groupForm = $state<{ id: string | null; name: string } | null>(null);
+  let newGroup = $state(false);
 
   // Password or passphrase prompt before connecting.
   interface Prompt {
@@ -56,11 +55,10 @@
   }
   let hostKey = $state<HostKey | null>(null);
 
-  const UNGROUPED = "__ungrouped";
-
   onMount(async () => {
     try {
-      groups = (await loadCollection<SshGroup>("ssh_groups")).items;
+      await loadGroups();
+      if (groups.error) error = groups.error;
       connections = (await loadCollection<SshConnection>("ssh_connections")).items;
     } catch (e) {
       error = String(e);
@@ -69,7 +67,6 @@
 
   async function persist() {
     try {
-      await saveCollection("ssh_groups", groups);
       await saveCollection("ssh_connections", connections);
     } catch (e) {
       error = String(e);
@@ -80,17 +77,7 @@
     const q = search.trim().toLowerCase();
     const match = (c: SshConnection) =>
       !q || `${c.name} ${c.host} ${c.user} ${c.notes}`.toLowerCase().includes(q);
-    const sorted = [...groups].sort((a, b) => a.name.localeCompare(b.name));
-    const out = sorted.map((g) => ({
-      id: g.id,
-      name: g.name,
-      items: connections.filter((c) => c.groupId === g.id && match(c)).sort((a, b) => a.name.localeCompare(b.name)),
-    }));
-    const loose = connections
-      .filter((c) => (!c.groupId || !groups.some((g) => g.id === c.groupId)) && match(c))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    if (loose.length || !groups.length) out.push({ id: UNGROUPED, name: "Ungrouped", items: loose });
-    return q ? out.filter((g) => g.items.length > 0) : out;
+    return groupTree(connections, match, { searching: !!q, keepEmpty: true });
   });
 
   function blank(groupId: string | null): SshConnection {
@@ -156,32 +143,9 @@
     await persist();
   }
 
-  async function saveGroup() {
-    if (!groupForm) return;
-    const name = groupForm.name.trim();
-    if (!name) return;
-    if (groupForm.id) {
-      const g = groups.find((x) => x.id === groupForm!.id);
-      if (g) g.name = name;
-    } else {
-      groups.push({ id: crypto.randomUUID(), name });
-    }
-    groupForm = null;
-    await persist();
-  }
-
-  async function deleteGroup(id: string) {
-    const g = groups.find((x) => x.id === id);
-    if (!g) return;
-    const n = connections.filter((c) => c.groupId === id).length;
-    const ok = await confirm(`Delete group "${g.name}"? Its ${n} connection${n === 1 ? "" : "s"} move to Ungrouped.`, {
-      title: "Delete group",
-      kind: "warning",
-    });
-    if (!ok) return;
-    groups = groups.filter((x) => x.id !== id);
+  /** A group was deleted: its connections are now ungrouped. */
+  function groupDeleted(id: string) {
     for (const c of connections) if (c.groupId === id) c.groupId = null;
-    await persist();
   }
 
   async function browseKey() {
@@ -273,10 +237,6 @@
     };
     await start(c, false);
   }
-
-  function groupName(id: string | null): string {
-    return groups.find((g) => g.id === id)?.name ?? "Ungrouped";
-  }
 </script>
 
 <div class="panel">
@@ -295,45 +255,23 @@
     <input class="search" bind:value={search} placeholder="Search connections" spellcheck="false" />
     <div class="aside-actions">
       <button class="small" onclick={() => newConnection(null)}>+ Connection</button>
-      <button class="small" onclick={() => (groupForm = { id: null, name: "" })}>+ Group</button>
+      <button class="small" onclick={() => (newGroup = true)}>+ Group</button>
     </div>
 
-    <div class="tree">
-      {#each tree as g (g.id)}
-        <div class="group">
-          <div class="group-head">
-            <button class="twisty" onclick={() => (collapsed[g.id] = !collapsed[g.id])}>
-              <span class="chev">{collapsed[g.id] ? "+" : "-"}</span>
-              <span class="gname">{g.name}</span>
-              <span class="count">{g.items.length}</span>
-            </button>
-            {#if g.id !== UNGROUPED}
-              <div class="row-actions">
-                <button class="icon" title="Add connection" onclick={() => newConnection(g.id)}>+</button>
-                <button class="icon" title="Rename group" onclick={() => (groupForm = { id: g.id, name: g.name })}>e</button>
-                <button class="icon" title="Delete group" onclick={() => deleteGroup(g.id)}>x</button>
-              </div>
-            {/if}
+    <GroupedList scope="ssh" branches={tree} onadd={(id) => newConnection(id)} ondeleted={groupDeleted} emptyText="No connections.">
+      {#snippet row(c: SshConnection)}
+        <div class="conn">
+          <button class="conn-main" onclick={() => start(c)} disabled={busy} title={c.notes || `${c.user}@${c.host}:${c.port}`}>
+            <span class="cname">{c.name}</span>
+            <span class="chost">{c.user}@{c.host}{c.port !== 22 ? `:${c.port}` : ""}</span>
+          </button>
+          <div class="row-actions">
+            <button class="icon" title="Edit" onclick={() => editConnection(c)}>e</button>
+            <button class="icon" title="Delete" onclick={() => deleteConnection(c)}>x</button>
           </div>
-          {#if !collapsed[g.id]}
-            {#each g.items as c (c.id)}
-              <div class="conn">
-                <button class="conn-main" onclick={() => start(c)} disabled={busy} title={c.notes || `${c.user}@${c.host}:${c.port}`}>
-                  <span class="cname">{c.name}</span>
-                  <span class="chost">{c.user}@{c.host}{c.port !== 22 ? `:${c.port}` : ""}</span>
-                </button>
-                <div class="row-actions">
-                  <button class="icon" title="Edit" onclick={() => editConnection(c)}>e</button>
-                  <button class="icon" title="Delete" onclick={() => deleteConnection(c)}>x</button>
-                </div>
-              </div>
-            {:else}
-              {#if !search}<p class="hint indent">No connections.</p>{/if}
-            {/each}
-          {/if}
         </div>
-      {/each}
-    </div>
+      {/snippet}
+    </GroupedList>
   </aside>
 
   <section class="main">
@@ -386,7 +324,7 @@
           Group
           <select bind:value={form.conn.groupId}>
             <option value={null}>Ungrouped</option>
-            {#each groups as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
+            {#each sortedGroups() as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
           </select>
         </label>
         <label class="wide">Host <input class="mono" bind:value={form.conn.host} placeholder="10.0.0.1 or fw01.example.com" spellcheck="false" autocapitalize="off" /></label>
@@ -426,18 +364,8 @@
   </div>
 {/if}
 
-{#if groupForm}
-  <div class="overlay" role="presentation" onclick={(e) => e.target === e.currentTarget && (groupForm = null)}>
-    <div class="dialog small-dialog" role="dialog" aria-modal="true" aria-label="Group">
-      <h2>{groupForm.id ? "Rename group" : "New group"}</h2>
-      <!-- svelte-ignore a11y_autofocus -->
-      <input bind:value={groupForm.name} placeholder="CustomerA" autofocus onkeydown={(e) => e.key === "Enter" && saveGroup()} />
-      <div class="dialog-actions">
-        <button class="small" onclick={() => (groupForm = null)}>Cancel</button>
-        <button class="primary" onclick={saveGroup}>Save</button>
-      </div>
-    </div>
-  </div>
+{#if newGroup}
+  <GroupDialog group={null} onclose={() => (newGroup = false)} />
 {/if}
 
 {#if prompt}
@@ -594,13 +522,7 @@
     color: #fff;
   }
 
-  .tree {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
 
-  .group-head,
   .conn {
     display: flex;
     align-items: center;
@@ -612,37 +534,12 @@
     gap: 0.15rem;
   }
 
-  .group-head:hover .row-actions,
   .conn:hover .row-actions {
     display: flex;
   }
 
-  .twisty {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: none;
-    border: none;
-    color: var(--fg);
-    padding: 0.3rem 0.2rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-align: left;
-  }
 
-  .chev {
-    width: 0.8rem;
-    color: var(--muted);
-  }
 
-  .count {
-    margin-left: auto;
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 0.72rem;
-  }
 
   .conn-main {
     flex: 1 1 auto;
@@ -769,9 +666,6 @@
     margin: 0.3rem 0;
   }
 
-  .indent {
-    padding-left: 1.4rem;
-  }
 
   .busy {
     padding: 0 1rem;

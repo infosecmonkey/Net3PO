@@ -13,7 +13,7 @@
 
 ## Quick start
 
-1. Click **+ Group** and name it (for example `Site A`). Groups are optional.
+1. Click **+ Group** and name it (for example `Site A`). Groups are optional, and shared with SFTP, RDP and VNC.
 2. Click **+ Connection** (or the **+** on a group row).
 3. Fill in **Name**, **Host** (for example `192.0.2.1` or `fw1.example.com`), **Port**, **User** and **Authentication**.
 4. For password auth, type the password and leave **Save in OS keychain** ticked, or leave it empty to be asked on each connect. For key auth, pick the **Key file** and enter the passphrase if it has one.
@@ -33,7 +33,7 @@ Connection list (left side):
 | Quick connect box | `user@host` or `user@host:port` (IPv6 in brackets, for example `admin@[2001:db8::1]:2222`). Password auth only. Nothing is saved except the pinned host key. |
 | Search connections | Filters by name, host, user and notes. |
 | + Connection, + Group | Create a connection or a group. |
-| Group row | Collapse or expand (`+` / `-`), with a count. Row buttons: **+** add a connection to this group, **e** rename, **x** delete (its connections move to Ungrouped). |
+| Group row | Collapse or expand (`+` / `-`), with a count. Row buttons: **+** add a connection to this group, **e** rename, **x** delete (its members in every tool move to Ungrouped). |
 | Connection row | Click to connect. Hover shows notes, or `user@host:port`. Row buttons: **e** edit, **x** delete (also removes its saved secret from the keychain). |
 
 Connection editor:

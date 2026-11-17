@@ -23,11 +23,16 @@ For a one-off session, type `host`, `host:port` or `user@host:port` in the box a
 | Field | What it means | Default / accepted values |
 |---|---|---|
 | Name | Label in the list. If empty, the host is used. | Empty |
+| Group | Shared group to file it under. **+ Group** creates one. | Ungrouped |
 | Host | Host name, IPv4 or IPv6 address. | Required |
 | Port | RDP port. | 3389; 1 to 65535 |
 | User | Optional user name, including a domain (`CORP\jane` or `jane@corp.example.com`). | Empty |
 | Full screen | Start the session full screen (clients that read `.rdp` files, and FreeRDP). | Off |
 | Notes | Free text. Searchable. | Empty |
+
+The list shows hosts under their group, collapsible with `+` / `-`. Hover a group for **+** (add a host to it), **e** (rename) and **x** (delete). Groups without hosts in this tool are hidden.
+
+Groups are shared by SSH, SFTP, RDP and VNC: a group such as a customer or site holds that site's SSH connections, RDP hosts and VNC hosts. Create, rename or delete a group in any of these tools and the others follow. Deleting a group moves its members in every tool to Ungrouped.
 
 The line **Client:** shows which program will open; **Change in Settings** goes to [Settings](settings.md).
 
@@ -49,7 +54,7 @@ The temporary `.rdp` file holds only the address, user, screen mode and "prompt 
 
 ## Online activity and privacy
 
-This tool sends nothing itself; the client you open connects to the host. Saved hosts (name, host, port, user, full screen, notes) are stored in the app data folder as `rdp_hosts`. See [Privacy](../privacy.md).
+This tool sends nothing itself; the client you open connects to the host. Saved hosts (name, group, host, port, user, full screen, notes) are stored in the app data folder as `rdp_hosts`; groups as `ssh_groups`. See [Privacy](../privacy.md).
 
 ## Platform notes
 

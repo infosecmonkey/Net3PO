@@ -27,7 +27,7 @@ For a one-off login, type `user@host` or `user@host:port` in the box at the top 
 |---|---|
 | Quick connect box | `user@host` or `user@host:port` (IPv6 in brackets). Password auth only. Nothing is saved except the pinned host key. |
 | Search connections | Filters by name, host, user and group. |
-| Connection row | Click to connect. Connections are edited in the SSH tool. |
+| Connection list | Saved connections under their groups, collapsible with `+` / `-`. Click one to connect. Connections and groups are edited in the SSH tool (groups also in RDP and VNC). |
 | Path box | The current folder. Type a path and press Enter to jump there. |
 | Up, Refresh | Parent folder; reload the listing (also Backspace and F5). |
 | Upload... | Pick local files to send to the current folder. |

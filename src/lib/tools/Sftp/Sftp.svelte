@@ -3,7 +3,9 @@
   import { invoke } from "@tauri-apps/api/core";
   import { confirm, open } from "@tauri-apps/plugin-dialog";
   import { loadCollection } from "$lib/store";
-  import type { ConnectOutcome, ConnectParams, SshConnection, SshGroup } from "$lib/ssh/sessions.svelte";
+  import type { ConnectOutcome, ConnectParams, SshConnection } from "$lib/ssh/sessions.svelte";
+  import GroupedList from "$lib/components/GroupedList.svelte";
+  import { groupName, groups, groupTree, loadGroups } from "$lib/groups.svelte";
   import {
     cancel,
     clearFinished,
@@ -17,7 +19,6 @@
     type Entry,
   } from "./state.svelte";
 
-  let groups = $state<SshGroup[]>([]);
   let connections = $state<SshConnection[]>([]);
   let search = $state("");
   let quick = $state("");
@@ -48,7 +49,7 @@
 
   onMount(async () => {
     try {
-      groups = (await loadCollection<SshGroup>("ssh_groups")).items;
+      await loadGroups();
       connections = (await loadCollection<SshConnection>("ssh_connections")).items;
     } catch (e) {
       error = String(e);
@@ -59,15 +60,11 @@
     pathInput = sftp.listing?.path ?? "";
   });
 
-  function groupName(id: string | null): string {
-    return groups.find((g) => g.id === id)?.name ?? "Ungrouped";
-  }
-
-  let shown = $derived.by(() => {
+  let tree = $derived.by(() => {
     const q = search.trim().toLowerCase();
-    return connections
-      .filter((c) => !q || `${c.name} ${c.host} ${c.user} ${groupName(c.groupId)}`.toLowerCase().includes(q))
-      .sort((a, b) => groupName(a.groupId).localeCompare(groupName(b.groupId)) || a.name.localeCompare(b.name));
+    const match = (c: SshConnection) =>
+      !q || `${c.name} ${c.host} ${c.user} ${groupName(c.groupId)}`.toLowerCase().includes(q);
+    return groupTree(connections, match, { searching: !!q, keepEmpty: false });
   });
 
   function params(c: SshConnection, saved: boolean, secret?: string, save?: boolean, trust?: string): ConnectParams {
@@ -312,17 +309,21 @@
       <button class="small" onclick={quickConnect} disabled={busy}>Go</button>
     </div>
     <input class="search" bind:value={search} placeholder="Search connections" spellcheck="false" />
-    <div class="conns">
-      {#each shown as c (c.id)}
-        <button class="conn" onclick={() => start(c)} disabled={busy} title={c.notes || `${c.user}@${c.host}:${c.port}`}>
-          <span class="cname">{c.name}</span>
-          <span class="chost">{c.user}@{c.host}{c.port !== 22 ? `:${c.port}` : ""} · {groupName(c.groupId)}</span>
-        </button>
-      {:else}
-        <p class="hint">{connections.length ? "No matches." : "No saved connections yet."}</p>
-      {/each}
-    </div>
-    <p class="hint">Saved connections, passwords and pinned host keys are shared with the SSH tool. Add or edit them there.</p>
+    {#if groups.list.length || connections.length}
+      <GroupedList scope="sftp" branches={tree} manage={false} emptyText={search ? "No matches." : "No saved connections yet."}>
+        {#snippet row(c: SshConnection)}
+          <div class="conn">
+            <button class="conn-main" onclick={() => start(c)} disabled={busy} title={c.notes || `${c.user}@${c.host}:${c.port}`}>
+              <span class="cname">{c.name}</span>
+              <span class="chost">{c.user}@{c.host}{c.port !== 22 ? `:${c.port}` : ""}</span>
+            </button>
+          </div>
+        {/snippet}
+      </GroupedList>
+    {:else}
+      <p class="hint">No saved connections yet.</p>
+    {/if}
+    <p class="hint">Saved connections, groups, passwords and pinned host keys are shared with the SSH tool. Add or edit them there.</p>
   </aside>
 
   <section class="main">
@@ -599,43 +600,10 @@
     text-decoration: underline;
   }
 
-  .conns {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
 
-  .conn {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    padding: 0.3rem 0.5rem;
-    color: var(--fg);
-    cursor: pointer;
-    text-align: left;
-    min-width: 0;
-  }
 
-  .conn:hover:not(:disabled) {
-    background: var(--hover);
-  }
 
-  .cname {
-    font-size: 0.82rem;
-  }
 
-  .chost {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    color: var(--muted);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   .main {
     display: flex;

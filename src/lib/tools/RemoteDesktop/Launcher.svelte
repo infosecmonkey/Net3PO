@@ -6,6 +6,9 @@
   import { selectOnFocus } from "$lib/actions/selectOnFocus";
   import { nav } from "$lib/nav.svelte";
   import { clientChoice, clientName, type Protocol } from "$lib/settings.svelte";
+  import GroupDialog from "$lib/components/GroupDialog.svelte";
+  import GroupedList from "$lib/components/GroupedList.svelte";
+  import { groupName, groupTree, loadGroups, sortedGroups, UNGROUPED } from "$lib/groups.svelte";
 
   interface Props {
     protocol: Protocol;
@@ -14,6 +17,8 @@
 
   interface Host {
     id: string;
+    /** Shared connection group; missing on hosts saved before groups. */
+    groupId?: string | null;
     name: string;
     host: string;
     port: number;
@@ -33,6 +38,7 @@
   let status = $state("");
   let busy = $state(false);
   let form = $state<{ mode: "new" | "edit"; host: Host } | null>(null);
+  let newGroup = $state(false);
 
   interface Offer {
     version: string;
@@ -57,6 +63,7 @@
 
   onMount(async () => {
     try {
+      await loadGroups();
       hosts = (await loadCollection<Host>(collection)).items;
     } catch (e) {
       error = String(e);
@@ -71,15 +78,19 @@
     }
   }
 
-  const shown = $derived.by(() => {
+  const tree = $derived.by(() => {
     const q = search.trim().toLowerCase();
-    return hosts
-      .filter((h) => !q || `${h.name} ${h.host} ${h.user} ${h.notes}`.toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const match = (h: Host) =>
+      !q || `${h.name} ${h.host} ${h.user} ${h.notes} ${groupName(h.groupId)}`.toLowerCase().includes(q);
+    return groupTree(hosts, match, { searching: !!q, keepEmpty: false });
   });
 
-  function blank(): Host {
-    return { id: crypto.randomUUID(), name: "", host: "", port: PORT[protocol], user: "", fullscreen: false, notes: "" };
+  function groupDeleted(id: string) {
+    for (const h of hosts) if (h.groupId === id) h.groupId = null;
+  }
+
+  function blank(groupId: string | null = null): Host {
+    return { id: crypto.randomUUID(), groupId: groupId === UNGROUPED ? null : groupId, name: "", host: "", port: PORT[protocol], user: "", fullscreen: false, notes: "" };
   }
 
   async function saveForm() {
@@ -173,26 +184,31 @@
       {/if}
     </div>
     <input bind:value={search} placeholder="Search hosts" spellcheck="false" />
-    <button class="small" onclick={() => { error = ""; form = { mode: "new", host: blank() }; }}>+ Host</button>
-    <div class="list">
-      {#each shown as h (h.id)}
-        <div class="row">
-          <button class="main-btn" onclick={() => launch(h, h.name)} disabled={busy} title={h.notes || `${h.host}:${h.port}`}>
-            <span class="name">{h.name}</span>
-            <span class="sub mono">{h.user ? `${h.user}@` : ""}{h.host}{h.port !== PORT[protocol] ? `:${h.port}` : ""}</span>
-          </button>
-          <div class="acts">
-            {#if protocol === "vnc"}
-              <button class="icon" title="Check server: show the login methods it offers" onclick={() => checkServer(h, h.name)} disabled={check?.busy}>?</button>
-            {/if}
-            <button class="icon" title="Edit" onclick={() => { error = ""; form = { mode: "edit", host: { ...h } }; }}>e</button>
-            <button class="icon" title="Delete" onclick={() => remove(h)}>x</button>
-          </div>
-        </div>
-      {:else}
-        <p class="hint">{hosts.length ? "No matches." : "No saved hosts yet."}</p>
-      {/each}
+    <div class="aside-actions">
+      <button class="small" onclick={() => { error = ""; form = { mode: "new", host: blank() }; }}>+ Host</button>
+      <button class="small" onclick={() => (newGroup = true)}>+ Group</button>
     </div>
+    {#if hosts.length}
+      <GroupedList scope={protocol} branches={tree} onadd={(id) => { error = ""; form = { mode: "new", host: blank(id) }; }} ondeleted={groupDeleted} emptyText="No matches.">
+        {#snippet row(h: Host)}
+          <div class="conn">
+            <button class="conn-main" onclick={() => launch(h, h.name)} disabled={busy} title={h.notes || `${h.host}:${h.port}`}>
+              <span class="cname">{h.name}</span>
+              <span class="chost">{h.user ? `${h.user}@` : ""}{h.host}{h.port !== PORT[protocol] ? `:${h.port}` : ""}</span>
+            </button>
+            <div class="row-actions">
+              {#if protocol === "vnc"}
+                <button class="icon" title="Check server: show the login methods it offers" onclick={() => checkServer(h, h.name)} disabled={check?.busy}>?</button>
+              {/if}
+              <button class="icon" title="Edit" onclick={() => { error = ""; form = { mode: "edit", host: { ...h, groupId: h.groupId ?? null } }; }}>e</button>
+              <button class="icon" title="Delete" onclick={() => remove(h)}>x</button>
+            </div>
+          </div>
+        {/snippet}
+      </GroupedList>
+    {:else}
+      <p class="hint">No saved hosts yet.</p>
+    {/if}
   </aside>
 
   <section class="content">
@@ -248,12 +264,23 @@
   </section>
 </div>
 
+{#if newGroup}
+  <GroupDialog group={null} onclose={() => (newGroup = false)} />
+{/if}
+
 {#if form}
   <div class="overlay" role="presentation" onclick={(e) => e.target === e.currentTarget && (form = null)}>
     <div class="dialog" role="dialog" aria-modal="true" aria-label="Host">
       <h2>{form.mode === "new" ? "New host" : "Edit host"}</h2>
       <div class="grid">
-        <label class="wide">Name <input bind:value={form.host.name} placeholder={protocol === "rdp" ? "Jump server" : "Lab appliance"} /></label>
+        <label>Name <input bind:value={form.host.name} placeholder={protocol === "rdp" ? "Jump server" : "Lab appliance"} /></label>
+        <label>
+          Group
+          <select bind:value={form.host.groupId}>
+            <option value={null}>Ungrouped</option>
+            {#each sortedGroups() as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
+          </select>
+        </label>
         <label class="wide">Host <input class="mono" bind:value={form.host.host} placeholder="192.0.2.10 or host.example.com" spellcheck="false" autocapitalize="off" /></label>
         <label>Port <input class="mono" type="number" min="1" max="65535" bind:value={form.host.port} use:selectOnFocus /></label>
         <label>User <input class="mono" bind:value={form.host.user} placeholder={protocol === "rdp" ? "CORP\\jane (optional)" : "optional"} spellcheck="false" autocapitalize="off" /></label>
@@ -303,6 +330,7 @@
   }
 
   input,
+  select,
   textarea {
     box-sizing: border-box;
     width: 100%;
@@ -316,6 +344,7 @@
   }
 
   input:focus,
+  select:focus,
   textarea:focus {
     outline: none;
     border-color: var(--accent);
@@ -329,6 +358,11 @@
   .quick {
     display: flex;
     gap: 0.3rem;
+  }
+
+  .aside-actions {
+    display: flex;
+    gap: 0.4rem;
   }
 
   .quick input {
@@ -383,58 +417,13 @@
     margin-left: 0.4rem;
   }
 
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
 
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
-  }
 
-  .acts {
-    display: none;
-    gap: 0.15rem;
-  }
 
-  .row:hover .acts {
-    display: flex;
-  }
 
-  .main-btn {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    padding: 0.3rem 0.5rem;
-    color: var(--fg);
-    cursor: pointer;
-    text-align: left;
-  }
 
-  .main-btn:hover:not(:disabled) {
-    background: var(--hover);
-  }
 
-  .name {
-    font-size: 0.82rem;
-  }
 
-  .sub {
-    font-size: 0.7rem;
-    color: var(--muted);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   .hint {
     font-size: 0.8rem;
