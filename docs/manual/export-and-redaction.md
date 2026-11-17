@@ -59,3 +59,9 @@ your organization, for example to a vendor TAC case or a public forum.
 
 Redaction finds values by pattern and by context (for example a `password=` field). It cannot
 know every internal name. Always read the preview, and add rules for anything it missed.
+
+## Redacting pasted text
+
+To redact text that is not a tool report, such as a config or a log you want to paste into an
+AI assistant, use the [Obfuscator](tools/obfuscator.md). It uses the same engine, adds MAC
+addresses, serial numbers and fake addresses that keep subnets, and can map the reply back.

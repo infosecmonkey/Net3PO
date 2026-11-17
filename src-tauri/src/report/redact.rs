@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::core::{Block, Report};
+use super::fake::{self, FakeKey};
 
 /// Most manual rules accepted.
 const MAX_RULES: usize = 200;
@@ -26,6 +27,10 @@ const MAX_RULE_LEN: usize = 500;
 const RULE_REGEX_SIZE: usize = 1 << 20;
 /// Most mapping entries returned for preview.
 const MAX_PREVIEW: usize = 5000;
+/// Largest text accepted by `redact_text`.
+pub const MAX_TEXT: usize = 5 * 1024 * 1024;
+/// Most mapping entries carried by one text session.
+pub const MAX_SESSION: usize = 200_000;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum RedactError {
@@ -39,6 +44,10 @@ pub enum RedactError {
     EmptyRule(usize),
     #[error("rule {0} is not a valid regular expression: {1}")]
     BadRegex(usize, String),
+    #[error("the text is larger than {} MB", MAX_TEXT / (1024 * 1024))]
+    TextTooLarge,
+    #[error("the session holds too many values (limit {MAX_SESSION}); start a new session")]
+    SessionFull,
 }
 
 /// A manual find-and-replace rule.
@@ -62,6 +71,15 @@ pub struct RedactOptions {
     pub usernames: bool,
     pub secrets: bool,
     pub rules: Vec<Rule>,
+    /// MAC addresses.
+    pub macs: bool,
+    /// Device serial numbers (Fortinet formats and `serial: x` fields).
+    pub serials: bool,
+    /// Remove certificate blocks (they name the organization).
+    pub certificates: bool,
+    /// Replace IPs and MACs with keyed fake addresses that keep subnets and
+    /// vendor prefixes, instead of numbered tokens. Needs a session key.
+    pub fake_addresses: bool,
     /// Values never replaced, case-insensitive. A domain also covers its
     /// subdomains (`example.com` keeps `mx.example.com`); an IPv4 entry may
     /// be a CIDR (`192.0.2.0/24`).
@@ -77,12 +95,16 @@ impl Default for RedactOptions {
             usernames: true,
             secrets: true,
             rules: Vec::new(),
+            macs: false,
+            serials: false,
+            certificates: false,
+            fake_addresses: false,
             exclusions: Vec::new(),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
 pub enum Kind {
     Custom,
@@ -90,6 +112,8 @@ pub enum Kind {
     Ip,
     Host,
     User,
+    Mac,
+    Serial,
 }
 
 impl Kind {
@@ -100,12 +124,14 @@ impl Kind {
             Self::Ip => "IP",
             Self::Host => "HOST",
             Self::User => "USER",
+            Self::Mac => "MAC",
+            Self::Serial => "SERIAL",
         }
     }
 }
 
 /// One original value and its replacement, for the preview.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MappingEntry {
     pub kind: Kind,
@@ -136,6 +162,10 @@ fn re(p: &str) -> Regex {
 
 static TOKEN: LazyLock<Regex> = LazyLock::new(|| re(r"^\[[A-Z]+-\d+\]$"));
 
+/// Text that already holds a replacement somewhere inside.
+static HAS_TOKEN: LazyLock<Regex> =
+    LazyLock::new(|| re(r"\[[A-Z]+-\d+\]|\[(?:PRIVATE KEY|CERTIFICATE) REMOVED\]"));
+
 static PRIVATE_KEY: LazyLock<Regex> = LazyLock::new(|| {
     re(
         r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----",
@@ -164,6 +194,49 @@ static SECRET_STANDALONE: LazyLock<Regex> = LazyLock::new(|| {
     )
 });
 
+static CERTIFICATE: LazyLock<Regex> = LazyLock::new(|| {
+    re(
+        r"-----BEGIN [A-Z0-9 ]*CERTIFICATE(?: REQUEST)?-----[\s\S]*?-----END [A-Z0-9 ]*CERTIFICATE(?: REQUEST)?-----",
+    )
+});
+
+/// FortiOS shows every stored secret as `set <name> ENC <value>`.
+static FORTI_ENC: LazyLock<Regex> =
+    LazyLock::new(|| re(r#"(?m)(\bset\s+[a-z0-9-]+\s+ENC\s+)("[^"\r\n]*"|\S+)"#));
+
+/// `set hostname "x"`, `hostname x`, `sysname x`, `Hostname: x`.
+static HOST_CMD: LazyLock<Regex> = LazyLock::new(|| {
+    re(
+        r#"(?im)^([ \t]*(?:(?:set[ \t]+)?host-?name|sysname|switchname)(?:[ \t]*[:=][ \t]*|[ \t]+))("[^"\r\n]+"|[^\s"]+)"#,
+    )
+});
+
+/// Config lines that name an account: `set username x`, LDAP bind users.
+static SET_USER: LazyLock<Regex> = LazyLock::new(|| {
+    re(
+        r#"(?im)^([ \t]*set[ \t]+(?:username|admin-username|ldap-username|bind-user|sso-username)[ \t]+)("[^"\r\n]*"|\S+)"#,
+    )
+});
+
+/// MAC addresses: `00:11:22:33:44:55`, `00-11-22-33-44-55`, `0011.2233.4455`.
+pub(crate) static MAC: LazyLock<Regex> = LazyLock::new(|| {
+    re(
+        r"(?i)\b(?:[0-9a-f]{2}(?::[0-9a-f]{2}){5}|[0-9a-f]{2}(?:-[0-9a-f]{2}){5}|[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4})\b",
+    )
+});
+
+/// Fortinet serial numbers (`FGT60F...`, `FGVM...`, `FAP...`, FortiSwitch `S124...`).
+static SERIAL: LazyLock<Regex> = LazyLock::new(|| {
+    re(r"\b(?:F[A-Z][A-Z0-9]{6,14}[0-9]{6}|S[0-9]{3}[A-Z][A-Z0-9]{3,10}[0-9]{6})\b")
+});
+
+/// `Serial-Number: x`, `serial=x`, `S/N: x`.
+static SERIAL_KV: LazyLock<Regex> = LazyLock::new(|| {
+    re(
+        r#"(?i)\b(serial(?:[ _-]?(?:number|no|num))?|s/n)(\s*[:=]\s*)("[^"\r\n]*"|[A-Za-z0-9][A-Za-z0-9-]{4,63})"#,
+    )
+});
+
 static EMAIL: LazyLock<Regex> = LazyLock::new(|| {
     re(
         r"(?i)\b([a-z0-9][a-z0-9._%+-]{0,63})@([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)+)\b",
@@ -172,10 +245,11 @@ static EMAIL: LazyLock<Regex> = LazyLock::new(|| {
 
 /// A run of digits and dots; checked afterwards for exactly four octets, so
 /// OIDs (1.3.6.1.2.1) and versions (1.2.3) are left alone.
-static V4_RUN: LazyLock<Regex> = LazyLock::new(|| re(r"[0-9][0-9.]*[0-9]"));
+pub(crate) static V4_RUN: LazyLock<Regex> = LazyLock::new(|| re(r"[0-9][0-9.]*[0-9]"));
 
 /// Candidate IPv6 text; parsed afterwards. MACs and times do not parse.
-static V6_RUN: LazyLock<Regex> = LazyLock::new(|| re(r"(?i)[0-9a-f:]*:[0-9a-f:]*[0-9a-f.]*"));
+pub(crate) static V6_RUN: LazyLock<Regex> =
+    LazyLock::new(|| re(r"(?i)[0-9a-f:]*:[0-9a-f:]*[0-9a-f.]*"));
 
 static HOSTNAME: LazyLock<Regex> = LazyLock::new(|| {
     re(
@@ -315,10 +389,18 @@ const BUILTIN_USERS: &[&str] = &[
     "null",
     "nt authority",
     "localsystem",
+    "admin",
+    "root",
 ];
+
+/// FortiOS sections whose `edit` names are accounts.
+const USER_SECTIONS: &[&str] = &["system admin", "user local", "system snmp user"];
 
 fn looks_like_host(s: &str) -> bool {
     let s = s.trim_end_matches('.');
+    if MAC.is_match(s) && MAC.find(s).is_some_and(|m| m.len() == s.len()) {
+        return false;
+    }
     let Some(tld) = s.rsplit('.').next() else {
         return false;
     };
@@ -382,6 +464,49 @@ struct Redactor<'a> {
     replacements: usize,
     emails: usize,
     private_keys: usize,
+    certificates: usize,
+    /// Set for fake addresses.
+    key: Option<FakeKey>,
+}
+
+/// The lookup key for an original value.
+fn norm(kind: Kind, original: &str) -> String {
+    match kind {
+        Kind::Secret | Kind::Custom => original.to_string(),
+        Kind::Mac => original
+            .chars()
+            .filter(char::is_ascii_hexdigit)
+            .collect::<String>()
+            .to_ascii_lowercase(),
+        _ => original.trim_end_matches('.').to_lowercase(),
+    }
+}
+
+fn fake_ip(key: &FakeKey, s: &str) -> Option<String> {
+    if let Ok(v4) = s.parse::<Ipv4Addr>() {
+        return Some(fake::fake_v4(key, v4).to_string());
+    }
+    s.parse::<Ipv6Addr>()
+        .ok()
+        .map(|v6| fake::fake_v6(key, v6).to_string())
+}
+
+/// Split a FortiOS value list (`"a" "b c" d`) keeping each item's quotes.
+fn forti_items(rest: &str) -> Vec<(bool, &str)> {
+    let mut out = Vec::new();
+    let mut s = rest.trim();
+    while !s.is_empty() {
+        if let Some(r) = s.strip_prefix('"') {
+            let end = r.find('"').unwrap_or(r.len());
+            out.push((true, &r[..end]));
+            s = r.get(end + 1..).unwrap_or("").trim_start();
+        } else {
+            let end = s.find(char::is_whitespace).unwrap_or(s.len());
+            out.push((false, &s[..end]));
+            s = s[end..].trim_start();
+        }
+    }
+    out
 }
 
 impl<'a> Redactor<'a> {
@@ -435,7 +560,37 @@ impl<'a> Redactor<'a> {
             replacements: 0,
             emails: 0,
             private_keys: 0,
+            certificates: 0,
+            key: None,
         })
+    }
+
+    /// Continue a text session: earlier values keep their replacements.
+    fn seed(&mut self, entries: &[MappingEntry]) {
+        for e in entries {
+            let key = if e.kind == Kind::Custom && !TOKEN.is_match(&e.token) {
+                format!("{}\u{0}{}", e.original, e.token)
+            } else {
+                norm(e.kind, &e.original)
+            };
+            if self.map.contains_key(&(e.kind, key.clone())) {
+                continue;
+            }
+            if let Some(n) = e
+                .token
+                .strip_prefix(&format!("[{}-", e.kind.prefix()))
+                .and_then(|t| t.strip_suffix(']'))
+                .and_then(|t| t.parse::<usize>().ok())
+            {
+                let c = self.counters.entry(e.kind).or_insert(0);
+                *c = (*c).max(n);
+            }
+            self.map.insert((e.kind, key), self.entries.len());
+            self.entries.push(MappingEntry {
+                count: 0,
+                ..e.clone()
+            });
+        }
     }
 
     fn excluded(&self, kind: Kind, value: &str) -> bool {
@@ -453,21 +608,31 @@ impl<'a> Redactor<'a> {
     /// The token for `original`, or None when it is excluded or already a token.
     fn token(&mut self, kind: Kind, original: &str) -> Option<String> {
         let original = original.trim();
-        if original.is_empty() || TOKEN.is_match(original) || self.excluded(kind, original) {
+        if original.is_empty() || HAS_TOKEN.is_match(original) || self.excluded(kind, original) {
             return None;
         }
-        let key = match kind {
-            Kind::Secret | Kind::Custom => original.to_string(),
-            _ => original.trim_end_matches('.').to_lowercase(),
-        };
-        self.replacements += 1;
+        let key = norm(kind, original);
         if let Some(&i) = self.map.get(&(kind, key.clone())) {
+            self.replacements += 1;
             self.entries[i].count += 1;
             return Some(self.entries[i].token.clone());
         }
-        let n = self.counters.entry(kind).or_insert(0);
-        *n += 1;
-        let token = format!("[{}-{}]", kind.prefix(), n);
+        let fake = match (kind, &self.key) {
+            (Kind::Ip, Some(k)) => fake_ip(k, original),
+            (Kind::Mac, Some(k)) => fake::fake_mac(k, original),
+            _ => None,
+        };
+        let token = match fake {
+            // Protocol constants and documentation addresses stay as they are.
+            Some(f) if f.eq_ignore_ascii_case(original) => return None,
+            Some(f) => f,
+            None => {
+                let n = self.counters.entry(kind).or_insert(0);
+                *n += 1;
+                format!("[{}-{}]", kind.prefix(), n)
+            }
+        };
+        self.replacements += 1;
         self.map.insert((kind, key), self.entries.len());
         self.entries.push(MappingEntry {
             kind,
@@ -547,8 +712,18 @@ impl<'a> Redactor<'a> {
                     "[PRIVATE KEY REMOVED]".to_string()
                 })
                 .into_owned();
+            out = FORTI_ENC
+                .replace_all(&out, |c: &Captures| {
+                    let v = c[2].trim_matches('"');
+                    format!("{}{}", &c[1], self.token_or(Kind::Secret, v))
+                })
+                .into_owned();
             out = SECRET_CONFIG
                 .replace_all(&out, |c: &Captures| {
+                    // Already replaced (a removed key block or a token).
+                    if c[4].trim_start_matches('"').starts_with('[') {
+                        return c[0].to_string();
+                    }
                     format!(
                         "{}{}{}{}",
                         &c[1],
@@ -569,6 +744,51 @@ impl<'a> Redactor<'a> {
                 .into_owned();
             out = SECRET_STANDALONE
                 .replace_all(&out, |c: &Captures| self.token_or(Kind::Secret, &c[0]))
+                .into_owned();
+        }
+
+        if self.opts.certificates {
+            out = CERTIFICATE
+                .replace_all(&out, |_: &Captures| {
+                    self.certificates += 1;
+                    self.replacements += 1;
+                    "[CERTIFICATE REMOVED]".to_string()
+                })
+                .into_owned();
+        }
+
+        out = self.forti_context(&out);
+
+        if self.opts.usernames {
+            out = SET_USER
+                .replace_all(&out, |c: &Captures| {
+                    let quoted = c[2].starts_with('"');
+                    let v = c[2].trim_matches('"');
+                    match self.whole(Kind::User, v) {
+                        Some(t) if quoted => format!("{}\"{t}\"", &c[1]),
+                        Some(t) => format!("{}{t}", &c[1]),
+                        None => c[0].to_string(),
+                    }
+                })
+                .into_owned();
+        }
+
+        if self.opts.hostnames {
+            out = self.host_commands(&out);
+        }
+
+        if self.opts.serials {
+            out = SERIAL_KV
+                .replace_all(&out, |c: &Captures| {
+                    let v = c[3].trim_matches('"');
+                    if !v.bytes().any(|b| b.is_ascii_digit()) {
+                        return c[0].to_string();
+                    }
+                    format!("{}{}{}", &c[1], &c[2], self.token_or(Kind::Serial, v))
+                })
+                .into_owned();
+            out = SERIAL
+                .replace_all(&out, |c: &Captures| self.token_or(Kind::Serial, &c[0]))
                 .into_owned();
         }
 
@@ -616,6 +836,12 @@ impl<'a> Redactor<'a> {
                 .into_owned();
         }
 
+        if self.opts.macs {
+            out = MAC
+                .replace_all(&out, |c: &Captures| self.token_or(Kind::Mac, &c[0]))
+                .into_owned();
+        }
+
         if self.opts.usernames {
             out = USER_KV
                 .replace_all(&out, |c: &Captures| {
@@ -652,6 +878,100 @@ impl<'a> Redactor<'a> {
                     } else {
                         m.to_string()
                     }
+                })
+                .into_owned();
+        }
+        out
+    }
+
+    /// FortiOS config context: account names under `config system admin`
+    /// and `config user local`, group members, SNMP community names.
+    fn forti_context(&mut self, s: &str) -> String {
+        if !(self.opts.usernames || self.opts.secrets) || !s.contains("config ") {
+            return s.to_string();
+        }
+        let mut stack: Vec<String> = Vec::new();
+        let mut out = String::with_capacity(s.len());
+        for line in s.split_inclusive('\n') {
+            let body = line.trim_end_matches(['\r', '\n']);
+            let eol = &line[body.len()..];
+            let t = body.trim_start();
+            let indent = &body[..body.len() - t.len()];
+            let lower = t.to_ascii_lowercase();
+            let mut new = None;
+            if let Some(rest) = lower.strip_prefix("config ") {
+                stack.push(rest.split_whitespace().collect::<Vec<_>>().join(" "));
+            } else if lower == "end" {
+                stack.pop();
+            } else if let Some(top) = stack.last() {
+                let users = self.opts.usernames;
+                if users && USER_SECTIONS.contains(&top.as_str()) && lower.starts_with("edit ") {
+                    new = self.forti_values(indent, &t[..5], &t[5..], Kind::User);
+                } else if users && top == "user group" && lower.starts_with("set member ") {
+                    new = self.forti_values(indent, &t[..11], &t[11..], Kind::User);
+                } else if self.opts.secrets
+                    && top == "system snmp community"
+                    && lower.starts_with("set name ")
+                {
+                    new = self.forti_values(indent, &t[..9], &t[9..], Kind::Secret);
+                }
+            }
+            out.push_str(new.as_deref().unwrap_or(body));
+            out.push_str(eol);
+        }
+        out
+    }
+
+    fn forti_values(&mut self, indent: &str, kw: &str, rest: &str, kind: Kind) -> Option<String> {
+        let mut changed = false;
+        let mut parts = Vec::new();
+        for (quoted, v) in forti_items(rest) {
+            let t = self.whole(kind, v);
+            changed |= t.is_some();
+            let v = t.unwrap_or_else(|| v.to_string());
+            parts.push(if quoted { format!("\"{v}\"") } else { v });
+        }
+        changed.then(|| format!("{indent}{kw}{}", parts.join(" ")))
+    }
+
+    /// Device names from hostname commands, then every other place the same
+    /// name appears (prompts, log prefixes).
+    fn host_commands(&mut self, s: &str) -> String {
+        let mut learned: Vec<(String, String)> = Vec::new();
+        let out = HOST_CMD
+            .replace_all(s, |c: &Captures| {
+                let quoted = c[2].starts_with('"');
+                let v = c[2].trim_matches('"');
+                match self.whole(Kind::Host, v) {
+                    Some(t) => {
+                        learned.push((v.to_string(), t.clone()));
+                        if quoted {
+                            format!("{}\"{t}\"", &c[1])
+                        } else {
+                            format!("{}{t}", &c[1])
+                        }
+                    }
+                    None => c[0].to_string(),
+                }
+            })
+            .into_owned();
+        let mut out = out;
+        for (name, token) in learned {
+            let edges = name.starts_with(|c: char| c.is_ascii_alphanumeric())
+                && name.ends_with(|c: char| c.is_ascii_alphanumeric());
+            if name.len() < 3 || !edges || name.bytes().all(|b| b.is_ascii_digit()) {
+                continue;
+            }
+            let Ok(re) = RegexBuilder::new(&format!(r"\b{}\b", regex::escape(&name)))
+                .case_insensitive(true)
+                .build()
+            else {
+                continue;
+            };
+            out = re
+                .replace_all(&out, |_: &Captures| {
+                    self.token_or(Kind::Host, &name);
+                    token.clone()
                 })
                 .into_owned();
         }
@@ -745,6 +1065,57 @@ pub fn redact(report: &Report, opts: &RedactOptions) -> Result<Redacted, RedactE
     })
 }
 
+/// Result of redacting free text in a session.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RedactedText {
+    pub text: String,
+    /// The session key, new when none (or an invalid one) was given.
+    pub key: String,
+    /// Every value in the session, earlier ones included (count 0 when not
+    /// seen this time). Stays in memory in the app; never written to disk.
+    pub mapping: Vec<MappingEntry>,
+    pub replacements: usize,
+    pub emails: usize,
+    pub private_keys: usize,
+    pub certificates: usize,
+}
+
+/// Redact free text. `seed` carries the session so far, so values seen in
+/// earlier pastes keep their replacements; `key` drives fake addresses.
+pub fn redact_text(
+    text: &str,
+    opts: &RedactOptions,
+    key: &str,
+    seed: &[MappingEntry],
+) -> Result<RedactedText, RedactError> {
+    if text.len() > MAX_TEXT {
+        return Err(RedactError::TextTooLarge);
+    }
+    if seed.len() > MAX_SESSION {
+        return Err(RedactError::SessionFull);
+    }
+    let key = FakeKey::from_hex(key).unwrap_or_else(FakeKey::generate);
+    let mut r = Redactor::new(opts)?;
+    if opts.fake_addresses {
+        r.key = Some(key.clone());
+    }
+    r.seed(seed);
+    let out = r.text(text);
+    if r.entries.len() > MAX_SESSION {
+        return Err(RedactError::SessionFull);
+    }
+    Ok(RedactedText {
+        text: out,
+        key: key.to_hex(),
+        mapping: r.entries,
+        replacements: r.replacements,
+        emails: r.emails,
+        private_keys: r.private_keys,
+        certificates: r.certificates,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -764,6 +1135,7 @@ mod tests {
     fn built_in_patterns_compile() {
         for p in [
             &*TOKEN,
+            &*HAS_TOKEN,
             &*PRIVATE_KEY,
             &*SECRET_KV,
             &*SECRET_CONFIG,
@@ -888,6 +1260,8 @@ mod tests {
         );
         assert_eq!(one("NT AUTHORITY\\SYSTEM"), "NT AUTHORITY\\SYSTEM");
         assert_eq!(one("user=SYSTEM"), "user=SYSTEM");
+        // An email in a user field keeps its email tokens.
+        assert_eq!(one("user=alice@acme.com"), "user=[USER-1]@[HOST-1]");
     }
 
     #[test]
@@ -1134,5 +1508,157 @@ mod tests {
             Redactor::new(&long),
             Err(RedactError::RuleTooLong(1))
         ));
+    }
+
+    fn text_opts() -> RedactOptions {
+        RedactOptions {
+            macs: true,
+            serials: true,
+            certificates: true,
+            fake_addresses: true,
+            ..all()
+        }
+    }
+
+    const KEY: &str = "0101010101010101010101010101010101010101010101010101010101010101";
+
+    #[test]
+    fn fortios_config_text() {
+        let cfg = "\
+FW-LAB01 # show full-configuration
+config system global
+    set hostname \"FW-LAB01\"
+    set admin-sport 8443
+end
+config system admin
+    edit \"admin\"
+        set password ENC SH2aaaabbbbcccc
+    next
+    edit \"jdoe\"
+        set password ENC SH2ddddeeeeffff
+    next
+end
+config user local
+    edit \"svc-backup\"
+        set passwd ENC Zm9vYmFy
+    next
+end
+config user group
+    edit \"vpn-users\"
+        set member \"svc-backup\" \"jdoe\"
+    next
+end
+config system snmp community
+    edit 1
+        set name \"n0tpublic\"
+    next
+end
+config vpn certificate local
+    edit \"srv\"
+        set private-key \"-----BEGIN ENCRYPTED PRIVATE KEY-----
+QUJD
+-----END ENCRYPTED PRIVATE KEY-----\"
+        set certificate \"-----BEGIN CERTIFICATE-----
+REVG
+-----END CERTIFICATE-----\"
+    next
+end
+Serial-Number: FGT60FTK21000123
+config system interface
+    edit \"port1\"
+        set ip 10.20.30.1 255.255.255.0
+        set macaddr 00:09:0f:aa:bb:cc
+    next
+end
+";
+        let r = redact_text(cfg, &text_opts(), KEY, &[]).unwrap();
+        let out = &r.text;
+        for leaked in [
+            "FW-LAB01",
+            "SH2aaaa",
+            "SH2dddd",
+            "jdoe",
+            "svc-backup",
+            "Zm9vYmFy",
+            "n0tpublic",
+            "QUJD",
+            "REVG",
+            "FGT60FTK21000123",
+            "10.20.30.1",
+            "aa:bb:cc",
+        ] {
+            assert!(!out.contains(leaked), "{leaked} leaked:\n{out}");
+        }
+        assert!(out.contains("[HOST-1] # show full-configuration"), "{out}");
+        assert!(out.contains("set hostname \"[HOST-1]\""));
+        assert!(out.contains("edit \"admin\""));
+        assert!(out.contains("set password ENC [SECRET-1]"));
+        assert!(
+            out.contains("set member \"[USER-2]\" \"[USER-1]\""),
+            "{out}"
+        );
+        assert!(out.contains("set name \"[SECRET-"));
+        assert!(
+            out.contains("set private-key \"[PRIVATE KEY REMOVED]\""),
+            "{out}"
+        );
+        assert!(out.contains("[CERTIFICATE REMOVED]"));
+        assert!(out.contains("Serial-Number: [SERIAL-1]"));
+        assert!(out.contains("set ip 10.") && out.contains(".1 255.255.255.0"));
+        assert!(out.contains("set macaddr 00:09:0f:"));
+        assert!(out.contains("set admin-sport 8443"));
+        assert_eq!(r.certificates, 1);
+        assert_eq!(r.private_keys, 1);
+        assert_eq!(r.key, KEY);
+    }
+
+    #[test]
+    fn sessions_carry_over() {
+        let a = redact_text(
+            "ping 10.9.8.7 as alice@acme.com, password=x1",
+            &text_opts(),
+            "",
+            &[],
+        )
+        .unwrap();
+        assert_eq!(a.key.len(), 64);
+        let b = redact_text(
+            "10.9.8.7 again, bob@acme.com, password=x2",
+            &text_opts(),
+            &a.key,
+            &a.mapping,
+        )
+        .unwrap();
+        let fake = a.mapping.iter().find(|m| m.kind == Kind::Ip).unwrap();
+        assert!(b.text.starts_with(&fake.token), "{}", b.text);
+        assert!(b.text.contains("[USER-2]@[HOST-1]"), "{}", b.text);
+        assert!(b.text.contains("password=[SECRET-2]"));
+        // Earlier values stay in the mapping with a zero count this time.
+        let x1 = b.mapping.iter().find(|m| m.original == "x1").unwrap();
+        assert_eq!(x1.count, 0);
+        // Tokens mode numbers addresses instead.
+        let t = redact_text(
+            "10.9.8.7 00:09:0f:aa:bb:cc",
+            &RedactOptions {
+                fake_addresses: false,
+                ..text_opts()
+            },
+            "",
+            &[],
+        )
+        .unwrap();
+        assert_eq!(t.text, "[IP-1] [MAC-1]");
+    }
+
+    #[test]
+    fn text_limits() {
+        let big = "a".repeat(MAX_TEXT + 1);
+        assert_eq!(
+            redact_text(&big, &text_opts(), "", &[]).unwrap_err(),
+            RedactError::TextTooLarge
+        );
+        // Report redaction keeps its old defaults.
+        let d = RedactOptions::default();
+        assert!(!d.macs && !d.serials && !d.certificates && !d.fake_addresses);
     }
 }

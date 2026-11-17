@@ -21,6 +21,7 @@ pub const COLLECTIONS: &[&str] = &[
     "ssh_connections",
     "ssh_known_hosts",
     "report_redaction",
+    "obfuscator_settings",
     "wol_devices",
     "settings",
     "rdp_hosts",

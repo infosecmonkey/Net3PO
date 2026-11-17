@@ -4,6 +4,7 @@
 
 pub mod commands;
 pub mod core;
+pub mod fake;
 mod html;
 mod markdown;
 mod pdf;

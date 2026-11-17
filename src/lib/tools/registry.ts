@@ -149,6 +149,14 @@ const TOOLS: ToolDef[] = [
     load: () => import("./DnsAnalyzer/DnsAnalyzer.svelte"),
   },
   {
+    id: "obfuscator",
+    icon: "eye-off",
+    name: "Obfuscator",
+    category: "Utilities",
+    enabled: true,
+    load: () => import("./Obfuscator/Obfuscator.svelte"),
+  },
+  {
     id: "ioc-extractor",
     icon: "scan-search",
     name: "IOC Extractor",
@@ -426,7 +434,7 @@ const LAYOUT: { category: string; tools: string[] }[] = [
   { category: "Discovery and SNMP", tools: ["lldp", "snmp-walk", "snmp-sweep", "port-mapper", "dhcp-monitor"] },
   { category: "Servers", tools: ["syslog-server", "tftp-server"] },
   { category: "Remote", tools: ["ssh", "sftp", "rdp", "vnc"] },
-  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor"] },
+  { category: "Utilities", tools: ["subnet-calculator", "timestamp-converter", "hash-calculator", "mtu-calculator", "regex-builder", "grep-builder", "filter-builder", "mac-vendor", "obfuscator"] },
   { category: "Fortinet", tools: ["forti-builder", "forti-sniffer", "debug-flow"] },
 ];
 
