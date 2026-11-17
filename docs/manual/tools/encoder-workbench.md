@@ -65,7 +65,9 @@ Example: input `H4sIAAAAAAAA/...` (Base64 text). Add **Base64 decode**: the resu
 
 ## Online activity and privacy
 
-Nothing goes online. Input and results stay in memory and are not saved unless you export or add to a project.
+Nothing goes online unless you click **explainshell.com**. Input and results stay in memory and are not saved unless you export or add to a project.
+
+When the final result is text, the **explainshell.com** button opens it as a shell command on explainshell.com after you confirm. That sends the text to the site in the URL, so don't use it for anything that contains secrets or internal names. Results over 4000 characters can't be sent.
 
 ## Export and projects
 

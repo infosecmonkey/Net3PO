@@ -4,6 +4,7 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { DecodeResult, DecodedLayer, IocKind } from "$lib/tools/types";
   import { buildDecodeReport } from "./report";
+  import { explainShellBlocked, openExplainShell } from "$lib/explainshell";
 
   let text = $state("");
   let sourceName = $state("");
@@ -230,9 +231,19 @@
             <span class="muted size">{fmtSize(l.size)}</span>
           </summary>
           <div class="layer-body">
-            <button class="small copy" onclick={() => copy(l.text, `layer-${l.index}`)}>
-              {copied === `layer-${l.index}` ? "Copied" : "Copy"}
-            </button>
+            <div class="layer-tools">
+              {#if l.language === "bash"}
+                <button
+                  class="small"
+                  onclick={() => void openExplainShell(l.text)}
+                  disabled={l.truncated || explainShellBlocked(l.text) !== null}
+                  title={l.truncated ? "Layer is shortened; copy one command instead" : explainShellBlocked(l.text) ?? "Open this layer on explainshell.com (online)"}
+                >explainshell.com</button>
+              {/if}
+              <button class="small" onclick={() => copy(l.text, `layer-${l.index}`)}>
+                {copied === `layer-${l.index}` ? "Copied" : "Copy"}
+              </button>
+            </div>
             <pre class="code mono">{l.text}</pre>
             {#if l.truncated}<p class="hint">Shown text is shortened; export or copy for the displayed part only.</p>{/if}
             {#if l.strings.length > 0}
@@ -579,11 +590,13 @@
     padding: 0 0.7rem 0.7rem;
   }
 
-  .copy {
+  .layer-tools {
     position: absolute;
     top: 0.4rem;
     right: 1.2rem;
     z-index: 1;
+    display: flex;
+    gap: 0.35rem;
   }
 
   .code {

@@ -3,6 +3,7 @@
   // intermediate result as text or hex. Output is never executed.
   import { invoke } from "@tauri-apps/api/core";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import { explainShellBlocked, openExplainShell } from "$lib/explainshell";
   import { buildCodecReport, OP_GROUPS, OP_LABEL, type Op, type Run, type View } from "./model";
 
   let input = $state("");
@@ -124,6 +125,14 @@
           {#each finalView.suggestions as sg (sg)}<button class="sugg" onclick={() => add(sg)}>+ {OP_LABEL[sg]}</button>{/each}
         {/if}
         <span class="spacer"></span>
+        {#if finalView.text !== null}
+          <button
+            class="mini"
+            onclick={() => finalView?.text && void openExplainShell(finalView.text)}
+            disabled={finalView.textTruncated || explainShellBlocked(finalView.text) !== null}
+            title={finalView.textTruncated ? "Result is shortened; copy one command instead" : explainShellBlocked(finalView.text) ?? "Open the result as a shell command on explainshell.com (online)"}
+          >explainshell.com</button>
+        {/if}
         <button class="mini" onclick={copyFinal}>{copied ? "Copied" : "Copy result"}</button>
         <ExportMenu build={() => (result ? buildCodecReport(result) : null)} name="encoder" />
       </div>

