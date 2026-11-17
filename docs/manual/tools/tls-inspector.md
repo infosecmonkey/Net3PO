@@ -110,6 +110,7 @@ No differences between macOS, Windows and Linux. Trust uses the bundled root sto
 
 ## Related tools
 
+- [Certificate Converter](cert-converter.md) to convert certificates and keys between PEM, DER, P7B and PFX.
 - [HTTP Troubleshooter](http-troubleshooter.md) for HTTP-level checks on the same host.
 - [Port Scanner](port-scanner.md) to find which TLS ports are open.
 - [DNS Analyzer](dns-analyzer.md) to check MX hosts before testing their STARTTLS.

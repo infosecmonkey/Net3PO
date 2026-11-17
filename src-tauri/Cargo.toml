@@ -55,6 +55,15 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 webpki-roots = "1"
 ring = "0.17"
 x509-parser = { version = "0.18", features = ["verify"] }
+# Certificate converter: PKCS#12 read/write, key formats and legacy
+# encrypted PEM keys. All pure Rust; most already in the tree via russh.
+p12-keystore = "0.4"
+pkcs8 = { version = "0.11", features = ["encryption", "3des"] }
+p256 = { version = "0.14", default-features = false, features = ["arithmetic"] }
+p384 = { version = "0.14", default-features = false, features = ["arithmetic"] }
+aes = "0.9"
+cbc = { version = "0.2", features = ["alloc"] }
+des = "0.9"
 evtx = { version = "0.15", default-features = false }
 quick-xml = "0.42"
 # Hash calculator; all already in the tree via snmp2.
