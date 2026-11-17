@@ -36,10 +36,15 @@ Only the server's greeting is read: no method is selected, nothing is logged in 
 | Field | What it means | Default / accepted values |
 |---|---|---|
 | Name | Label in the list. If empty, the host is used. | Empty |
+| Group | Shared group to file it under. **+ Group** creates one. | Ungrouped |
 | Host | Host name, IPv4 or IPv6 address. | Required |
 | Port | TCP port (not a display number: display `:1` is port 5901). | 5900; 1 to 65535 |
 | User | Optional. Used by Screen Sharing and Remmina; most other viewers ignore it. | Empty |
 | Notes | Free text. Searchable. | Empty |
+
+The list shows hosts under their group, collapsible with `+` / `-`. Hover a group for **+** (add a host to it), **e** (rename) and **x** (delete). Groups without hosts in this tool are hidden.
+
+Groups are shared by SSH, SFTP, RDP and VNC: a group such as a customer or site holds that site's SSH connections, RDP hosts and VNC hosts. Create, rename or delete a group in any of these tools and the others follow. Deleting a group moves its members in every tool to Ungrouped.
 
 ## Which viewer opens
 
@@ -57,7 +62,7 @@ Only the server's greeting is read: no method is selected, nothing is logged in 
 
 ## Online activity and privacy
 
-The viewer you open connects to the host. **Check** opens one TCP connection to the host and port, reads the greeting and closes it. Saved hosts are stored in the app data folder as `vnc_hosts`. See [Privacy](../privacy.md).
+The viewer you open connects to the host. **Check** opens one TCP connection to the host and port, reads the greeting and closes it. Saved hosts are stored in the app data folder as `vnc_hosts`; groups as `ssh_groups`. See [Privacy](../privacy.md).
 
 ## Troubleshooting
 
