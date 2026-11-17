@@ -1,0 +1,1973 @@
+## Built-in command descriptions for the shell explainer. Written for Net3PO.
+## Format is described in db.rs. Lines starting with ## are comments.
+
+## ---------- Shells and interpreters ----------
+
+@cmd bash sh dash zsh ksh
+Run a shell: execute commands from a string (-c), a script file, or standard input.
+-c | Read commands from the first operand (the command string) instead of a file.
+-i | Run as an interactive shell.
+-l --login | Act as a login shell (read profile files).
+-s | Read commands from standard input; remaining operands become positional parameters.
+-x | Trace: print each command before running it (xtrace).
+-e | Exit as soon as a command fails (errexit).
+-u | Treat use of an unset variable as an error (nounset).
+-v | Print input lines as they are read (verbose).
+-n | Read commands but do not run them (syntax check).
+-o <option> | Set a shell option by name, for example pipefail.
+-p | Privileged mode: do not read the environment's startup files; keep the effective user ID.
+-r | Restricted shell.
+--norc | Do not read the interactive startup file (~/.bashrc).
+--noprofile | Do not read login profile files.
+--posix | Follow the POSIX standard where Bash differs.
+@shellc
+@arg script | Script file to run; further operands become $1, $2 and so on.
+
+@cmd python python3 python2
+Run the Python interpreter.
+-c <program> | Run the Python code given as a string.
+-m <module> | Run a library module as a script, for example http.server.
+-u | Unbuffered standard output and error.
+-i | Drop into the interactive prompt after running the script.
+-E | Ignore PYTHON* environment variables.
+-I | Isolated mode: ignore environment variables and the user site directory.
+-B | Do not write .pyc bytecode files.
+-O | Remove assert statements and __debug__ code.
+-q | Do not print the version banner in interactive mode.
+-V --version | Print the Python version.
+-W <arg> | Control warnings.
+-X <option> | Set an implementation-specific option.
+@arg script | Script file to run; further operands become sys.argv.
+
+@cmd perl
+Run the Perl interpreter.
+-e <program> | Run one line of Perl code given as a string.
+-E <program> | Like -e, with all optional features enabled.
+-n | Loop over input lines without printing them.
+-p | Loop over input lines and print each one (like sed).
+-i [ext] | Edit files in place, keeping a backup with the given extension.
+-l | Handle line endings automatically.
+-a | Autosplit each input line into @F (with -n or -p).
+-M <module> | Load a module before running the program.
+-w | Turn on warnings.
+-0 [octal] | Set the input record separator.
+@arg script | Script file to run.
+
+@cmd ruby
+Run the Ruby interpreter.
+-e <program> | Run one line of Ruby code given as a string.
+-n | Loop over input lines.
+-p | Loop over input lines and print each one.
+-r <library> | Require a library before running.
+-w | Turn on warnings.
+@arg script | Script file to run.
+
+@cmd php
+Run the PHP command-line interpreter.
+-r <code> | Run PHP code given as a string, without <?php tags.
+-f <file> | Parse and run a file.
+-S <addr:port> | Start the built-in web server.
+-t <docroot> | Document root for the built-in web server.
+-n | Do not load php.ini.
+-d <key=value> | Set an ini setting.
+@arg file | Script file to run.
+
+@cmd node nodejs
+Run JavaScript with Node.js.
+-e --eval <script> | Run JavaScript given as a string.
+-p --print <script> | Run JavaScript given as a string and print the result.
+-r --require <module> | Preload a module.
+-i --interactive | Open the REPL even if standard input is not a terminal.
+@arg script | Script file to run.
+
+@cmd pwsh powershell powershell.exe
+Run PowerShell.
+-c -Command <command> | Run the given PowerShell command text.
+-e -EncodedCommand <base64> | Run a Base64-encoded (UTF-16LE) command. Common in obfuscated scripts.
+-ec <base64> | Short form of -EncodedCommand.
+-enc <base64> | Short form of -EncodedCommand.
+-nop -NoProfile | Do not load the PowerShell profile.
+-noni -NonInteractive | Do not present an interactive prompt.
+-w -WindowStyle <style> | Window style, for example Hidden to run without a visible window.
+-ep -ExecutionPolicy <policy> | Execution policy for this session, for example Bypass.
+-f -File <file> | Run a script file.
+-sta | Start in single-threaded apartment mode.
+-NoLogo | Hide the startup banner.
+
+@cmd osascript
+Run AppleScript or JavaScript for Automation (macOS).
+-e <statement> | Run one line of script given as a string; may repeat.
+-l <language> | Script language, for example JavaScript.
+@arg script | Script file to run.
+
+@cmd awk gawk mawk nawk
+Pattern scanning and text processing language.
+-F <fs> | Field separator (default whitespace).
+-v <var=value> | Set a variable before the program starts.
+-f <progfile> | Read the awk program from a file.
+@arg program | The awk program, for example '{print $1}': runs the action for each input line.
+@arg file | Input file to process.
+
+@cmd sed gsed
+Stream editor: apply edit commands to each input line.
+-n --quiet | Do not print lines automatically; print only with the p command.
+-e --expression <script> | Add an edit script.
+-f --file <file> | Read edit commands from a file.
+-i --in-place [suffix] | Edit files in place (optional backup suffix).
+-E -r --regexp-extended | Use extended regular expressions.
+-s --separate | Treat files as separate streams.
+-z --null-data | Lines are separated by NUL characters.
+@arg script | Edit script, for example s/old/new/g (substitute every match on each line).
+@arg file | Input file.
+
+## ---------- Wrappers that run another command ----------
+
+@cmd sudo
+Run a command as another user, by default root.
+-u --user <user> | Run as this user instead of root.
+-g --group <group> | Run with this primary group.
+-E --preserve-env | Keep the caller's environment variables.
+-H --set-home | Set HOME to the target user's home directory.
+-i --login | Run the target user's login shell.
+-s --shell | Run a shell (or the command through a shell).
+-b --background | Run the command in the background.
+-k --reset-timestamp | Ignore cached credentials; ask for the password again.
+-n --non-interactive | Never prompt for a password; fail instead.
+-S --stdin | Read the password from standard input.
+-l --list | List the commands the user may run.
+-v --validate | Refresh cached credentials without running a command.
+-A --askpass | Use a helper program to ask for the password.
+@wrap 0
+@arg command | Command to run with elevated rights.
+
+@cmd doas
+Run a command as another user, by default root (OpenBSD style).
+-u <user> | Run as this user.
+-s | Run a shell.
+-n | Never prompt for a password.
+@wrap 0
+
+@cmd su
+Switch to another user, by default root.
+-c --command <command!> | Run this command as the target user instead of opening a shell.
+-l --login | Start a login shell with the target user's environment.
+-s --shell <shell> | Use this shell.
+-m -p --preserve-environment | Keep the current environment.
+@arg user | User to switch to (default root).
+
+@cmd env
+Run a command with a modified environment, or print the environment.
+-i --ignore-environment | Start with an empty environment.
+-u --unset <name> | Remove a variable from the environment.
+-C --chdir <dir> | Change to this directory first.
+-S --split-string <string> | Split the string into separate arguments (used in #! lines).
+-0 --null | End each output line with NUL.
+@wrap 0
+@arg command | Command to run with the environment above.
+
+@cmd nohup
+Run a command that keeps running after you log out (ignores the hangup signal). Output goes to nohup.out unless redirected.
+@wrap 0
+
+@cmd nice
+Run a command with a changed scheduling priority.
+-n --adjustment <n> | Add n to the niceness (higher is lower priority).
+@wrap 0
+
+@cmd ionice
+Run a command with a changed I/O scheduling class.
+-c --class <class> | Scheduling class: 1 realtime, 2 best-effort, 3 idle.
+-n --classdata <level> | Priority within the class.
+-p --pid <pid> | Change an existing process instead.
+@wrap 0
+
+@cmd time
+Run a command and report how long it took.
+-p | Use the portable POSIX output format.
+-v --verbose | Detailed resource usage (GNU time).
+@wrap 0
+
+@cmd timeout gtimeout
+Run a command with a time limit and kill it if it runs too long.
+-s --signal <signal> | Signal to send on timeout (default TERM).
+-k --kill-after <duration> | Send KILL if still running this long after the first signal.
+--preserve-status | Exit with the command's status even on timeout.
+--foreground | Allow the command to read from the terminal.
+@wrap 1
+@arg duration | Time limit, for example 10s, 5m or 1h.
+
+@cmd exec
+Replace the shell with the given command (no new process). With only redirections, changes the shell's own file descriptors.
+-a <name> | Pass this as the command's name (argv[0]).
+-c | Run the command with an empty environment.
+-l | Put a dash in front of argv[0], like a login shell.
+@wrap 0
+
+@cmd command
+Run a command, skipping shell functions and aliases with the same name.
+-v | Print how the name would be resolved instead of running it.
+-V | Describe how the name would be resolved.
+-p | Use a default PATH that finds the standard utilities.
+@wrap 0
+
+@cmd builtin
+Run a shell builtin, skipping functions with the same name.
+@wrap 0
+
+@cmd xargs
+Build and run command lines from standard input: input items become arguments of the command.
+-0 --null | Input items are separated by NUL (pairs with find -print0).
+-I <replace> | Replace this string in the command with each input item; runs once per item.
+-n --max-args <n> | Use at most n arguments per command line.
+-P --max-procs <n> | Run up to n commands in parallel.
+-d --delimiter <char> | Input items are separated by this character.
+-r --no-run-if-empty | Do not run the command if there is no input.
+-t --verbose | Print each command before running it.
+-p --interactive | Ask before running each command.
+-L --max-lines <n> | Use at most n input lines per command line.
+-a --arg-file <file> | Read items from a file instead of standard input.
+@wrap 0
+@arg command | Command to run (default echo).
+
+@cmd watch
+Run a command repeatedly and show its output full screen.
+-n --interval <seconds> | Seconds between runs (default 2).
+-d --differences | Highlight changes between runs.
+-t --no-title | Hide the header.
+-g --chgexit | Exit when the output changes.
+@wrap 0
+
+@cmd strace
+Trace the system calls a command makes.
+-f | Follow child processes.
+-p <pid> | Attach to a running process.
+-e <expr> | Choose which calls to trace, for example trace=network.
+-o <file> | Write the trace to a file.
+-s <size> | Longest string to print.
+@wrap 0
+
+@cmd stdbuf
+Run a command with changed buffering of its standard streams.
+-i --input <mode> | Buffering of standard input.
+-o --output <mode> | Buffering of standard output (0 or L for unbuffered or line buffered).
+-e --error <mode> | Buffering of standard error.
+@wrap 0
+
+@cmd setsid
+Run a command in a new session, detached from the terminal.
+-f --fork | Always fork.
+-w --wait | Wait for the command and return its exit status.
+@wrap 0
+
+@cmd chroot
+Run a command with a different root directory.
+--userspec <user:group> | Run as this user and group.
+@wrap 1
+@arg newroot | Directory to use as /.
+
+@cmd flock
+Run a command while holding a file lock.
+-n --nonblock | Fail instead of waiting if the lock is held.
+-x --exclusive | Take an exclusive lock (default).
+-s --shared | Take a shared lock.
+-w --timeout <seconds> | Give up after this long.
+-c --command <command!> | Run this command string through the shell.
+@wrap 1
+@arg lockfile | File to lock.
+
+@cmd caffeinate
+Keep a Mac awake while a command runs (macOS).
+-d | Prevent the display from sleeping.
+-i | Prevent idle sleep.
+-s | Prevent sleep on AC power.
+-t <seconds> | Stay awake for this long.
+@wrap 0
+
+@cmd eval
+Join the arguments into one string and run it as shell commands. The text is only known at run time.
+@remote 0
+
+@cmd ssh
+Log in to a remote host or run a command there over SSH.
+-p <port> | Remote port (default 22).
+-l <user> | Remote user name.
+-i <identity_file> | Private key file to authenticate with.
+-L <local_forward> | Forward a local port to a remote address: [bind:]port:host:hostport.
+-R <remote_forward> | Forward a remote port back to a local address (reverse tunnel).
+-D <port> | Dynamic SOCKS proxy on this local port.
+-J <jump_host> | Connect through this jump host.
+-N | Do not run a remote command (tunnels only).
+-f | Go to the background after authentication.
+-T | Do not allocate a terminal.
+-t | Force a terminal, for interactive programs.
+-v | Verbose debug output; repeat for more.
+-q | Quiet mode.
+-C | Compress traffic.
+-A | Forward the authentication agent.
+-X | Forward X11.
+-o <option> | Set a config option, for example StrictHostKeyChecking=no.
+-F <configfile> | Use this config file.
+-4 | IPv4 only.
+-6 | IPv6 only.
+@remote 1
+@arg destination | Host to connect to, as [user@]host.
+
+## ---------- Network ----------
+
+@cmd curl
+Transfer data from or to a server (HTTP, HTTPS, FTP and more).
+-o --output <file> | Write output to this file instead of standard output.
+-O --remote-name | Save to a local file named like the remote file.
+-s --silent | Silent mode: no progress meter or error messages.
+-S --show-error | Show errors even with -s.
+-L --location | Follow redirects.
+-k --insecure | Do not verify the server's TLS certificate.
+-f --fail | Fail silently (no output) on HTTP errors.
+-I --head | Fetch headers only (HEAD request).
+-i --include | Include response headers in the output.
+-v --verbose | Show the request, response headers and TLS details.
+-X --request <method> | HTTP method to use, for example POST.
+-H --header <header> | Add a request header.
+-d --data <data> | Send data in a POST request body.
+--data-binary <data> | Send data exactly as given, with no processing.
+--data-urlencode <data> | URL-encode and send data in a POST body.
+-F --form <name=content> | Send multipart form data (file upload with @file).
+-T --upload-file <file> | Upload this file.
+-u --user <user:password> | Server user name and password.
+-A --user-agent <name> | User-Agent header to send.
+-e --referer <url> | Referer header to send.
+-b --cookie <data> | Send cookies (string or file).
+-c --cookie-jar <file> | Write received cookies to this file.
+-x --proxy <proxy> | Use this proxy.
+-m --max-time <seconds> | Maximum time for the whole transfer.
+--connect-timeout <seconds> | Maximum time to connect.
+-r --range <range> | Fetch only a byte range.
+-C --continue-at <offset> | Resume a transfer.
+-w --write-out <format> | Print information after the transfer, for example %{http_code}.
+-G --get | Send -d data as a query string with GET.
+--compressed | Ask for a compressed response and decompress it.
+--resolve <host:port:addr> | Use this address for host and port instead of DNS.
+-4 --ipv4 | IPv4 only.
+-6 --ipv6 | IPv6 only.
+--retry <num> | Retry this many times on transient errors.
+--cacert <file> | CA certificate bundle to verify the server with.
+--cert <certificate> | Client certificate.
+--key <key> | Client private key.
+--http2 | Use HTTP/2.
+--tlsv1.2 | Use TLS 1.2 or later.
+-Z --parallel | Run transfers in parallel.
+@arg URL | URL to fetch.
+
+@cmd wget
+Download files over HTTP, HTTPS or FTP.
+-O --output-document <file> | Write the download to this file ("-" for standard output).
+-q --quiet | No output.
+-c --continue | Resume a partly downloaded file.
+-r --recursive | Download recursively.
+-l --level <depth> | Recursion depth.
+-np --no-parent | Do not ascend to the parent directory when recursive.
+-m --mirror | Mirror a site (recursive, timestamps, infinite depth).
+-P --directory-prefix <dir> | Save files under this directory.
+-b --background | Go to the background immediately.
+-U --user-agent <agent> | User-Agent header to send.
+--no-check-certificate | Do not verify the server's TLS certificate.
+-T --timeout <seconds> | Network timeout.
+-t --tries <n> | Number of retries.
+-i --input-file <file> | Read URLs from a file.
+--header <header> | Add a request header.
+--post-data <data> | Send a POST request with this body.
+-S --server-response | Print the server's response headers.
+@arg URL | URL to download.
+
+@cmd nc ncat netcat
+Netcat: read and write raw TCP or UDP connections.
+-l | Listen for an incoming connection instead of connecting.
+-p <port> | Local port (with -l on some versions).
+-u | Use UDP instead of TCP.
+-v | Verbose.
+-n | Do not resolve names; numeric addresses only.
+-z | Scan for listening ports without sending data.
+-w <seconds> | Timeout for connects and idle connections.
+-k | Keep listening after a client disconnects.
+-e <program> | Run this program with its input and output connected to the socket. Gives a remote shell when the program is a shell.
+-c <command!> | Run this command through the shell connected to the socket (remote shell).
+-N | Close the connection after end of input.
+-q <seconds> | Quit this long after end of input.
+-s <source> | Local source address.
+-4 | IPv4 only.
+-6 | IPv6 only.
+@arg host | Host to connect to.
+@arg port | Port or port range.
+
+@cmd socat
+Relay data between two addresses (sockets, files, programs, terminals).
+-d | Print diagnostics; repeat for more.
+-v | Log transferred data to standard error.
+-u | One direction only, from the first address to the second.
+-T <timeout> | Inactivity timeout.
+@arg address | Address, for example TCP:host:port, TCP-LISTEN:port, EXEC:cmd or STDIO. EXEC or SYSTEM with a shell gives a remote shell.
+
+@cmd telnet
+Connect to a TCP port interactively (unencrypted).
+-l <user> | User name for the remote login.
+@arg host | Host to connect to.
+@arg port | Port (default 23).
+
+@cmd ping ping6
+Send ICMP echo requests to test reachability and round-trip time.
+-c <count> | Stop after this many packets.
+-i <interval> | Seconds between packets.
+-s <size> | Payload size in bytes.
+-t <ttl> | Time to live (Linux), or timeout in seconds (macOS).
+-W <timeout> | Time to wait for each reply.
+-n | Numeric output only.
+-q | Quiet: print only the summary.
+-f | Flood ping (root only).
+-D | Do not fragment (macOS); print timestamps (Linux).
+-M <hint> | Path MTU discovery: do sets don't-fragment (Linux).
+-I <interface> | Send from this interface or address.
+-4 | IPv4 only.
+-6 | IPv6 only.
+@arg host | Host to ping.
+
+@cmd traceroute traceroute6 tracepath
+Show the routers on the path to a host.
+-n | Numeric addresses; no DNS lookups.
+-m <max_ttl> | Maximum number of hops.
+-q <nqueries> | Probes per hop.
+-w <waittime> | Seconds to wait for each reply.
+-I | Use ICMP echo probes.
+-T | Use TCP SYN probes.
+-p <port> | Destination port.
+-4 | IPv4 only.
+-6 | IPv6 only.
+@arg host | Destination host.
+
+@cmd dig
+DNS lookup tool.
+-t <type> | Record type to query.
+-x <addr> | Reverse lookup for this address.
+-p <port> | Server port.
+-4 | IPv4 only.
+-6 | IPv6 only.
+@arg query | Name to look up, @server to ask a specific server, a record type, or +option such as +short.
+
+@cmd nslookup
+Query DNS servers.
+-type= <type> | Record type to query.
+@arg name | Name to look up.
+@arg server | DNS server to ask.
+
+@cmd host
+Simple DNS lookup.
+-t <type> | Record type to query.
+-a | All records, verbose.
+-v | Verbose output.
+@arg name | Name or address to look up.
+@arg server | DNS server to ask.
+
+@cmd nmap
+Network scanner: discover hosts, open ports and services.
+-sS | TCP SYN scan (needs root).
+-sT | TCP connect scan.
+-sU | UDP scan.
+-sV | Detect service versions.
+-sn | Host discovery only, no port scan.
+-sC | Run the default scripts.
+-Pn | Skip host discovery; treat all hosts as up.
+-O | Detect the operating system.
+-A | Aggressive: OS and version detection, scripts and traceroute.
+-p <ports> | Ports to scan, for example 22,80,443 or 1-65535.
+-F | Fast: scan fewer ports.
+-T0 | Timing template 0 (paranoid, slowest).
+-T4 | Timing template 4 (aggressive, faster).
+-T5 | Timing template 5 (insane, fastest).
+-oN <file> | Normal output to a file.
+-oX <file> | XML output to a file.
+-oG <file> | Greppable output to a file.
+-oA <basename> | Output in all formats.
+-v | Verbose.
+-n | No DNS resolution.
+-iL <file> | Read targets from a file.
+--script <scripts> | Run these NSE scripts.
+--open | Show only open ports.
+--top-ports <n> | Scan the n most common ports.
+@arg target | Host, address range or network to scan.
+
+@cmd ip
+Show and change network interfaces, addresses, routes and neighbours (Linux).
+-4 | IPv4 only.
+-6 | IPv6 only.
+-s --stats | Show statistics.
+-d --details | Show details.
+-br --brief | Brief output.
+-c --color | Color output.
+-j --json | JSON output.
+@sub addr | Show or change IP addresses on interfaces.
+@sub address | Show or change IP addresses on interfaces.
+@sub a | Show or change IP addresses on interfaces.
+@sub link | Show or change network interfaces.
+@sub l | Show or change network interfaces.
+@sub route | Show or change the routing table.
+@sub r | Show or change the routing table.
+@sub neigh | Show or change the ARP or neighbour cache.
+@sub n | Show or change the ARP or neighbour cache.
+@sub rule | Show or change policy routing rules.
+@sub netns | Manage network namespaces.
+@arg args | Object arguments, for example show, add, del, dev <interface>.
+
+@cmd ifconfig
+Show or configure network interfaces.
+-a | Show all interfaces, including down ones.
+@arg interface | Interface name, then settings such as an address, up or down.
+
+@cmd netstat
+Show network connections, routing tables and interface statistics.
+-a | Show all sockets, including listening ones.
+-n | Numeric addresses and ports.
+-t | TCP sockets (Linux).
+-u | UDP sockets (Linux).
+-l | Listening sockets only (Linux).
+-p | Show the owning process (Linux); protocol filter (macOS).
+-r | Show the routing table.
+-i | Show interface statistics.
+-s | Show per-protocol statistics.
+-b | Show the owning program (Windows).
+-o | Show the owning process ID (Windows).
+
+@cmd ss
+Show sockets (Linux; replaces netstat).
+-a --all | All sockets.
+-l --listening | Listening sockets only.
+-n --numeric | Numeric addresses and ports.
+-t --tcp | TCP sockets.
+-u --udp | UDP sockets.
+-x --unix | Unix sockets.
+-p --processes | Show the owning process.
+-e --extended | Extended details.
+-s --summary | Summary statistics.
+-4 --ipv4 | IPv4 only.
+-6 --ipv6 | IPv6 only.
+@arg filter | Filter, for example state established or dport = :443.
+
+@cmd iptables ip6tables
+Configure Linux packet filter rules.
+-A --append <chain> | Add a rule to the end of a chain.
+-I --insert <chain> | Insert a rule at the top (or at a position) of a chain.
+-D --delete <chain> | Delete a rule.
+-F --flush [chain] | Delete all rules in a chain or all chains.
+-L --list [chain] | List rules.
+-S --list-rules [chain] | Print rules as commands.
+-P --policy <chain> | Set a chain's default policy.
+-N --new-chain <chain> | Create a chain.
+-X --delete-chain [chain] | Delete a user-defined chain.
+-t --table <table> | Table to work on: filter, nat, mangle or raw.
+-p --protocol <protocol> | Match this protocol.
+-s --source <address> | Match this source address.
+-d --destination <address> | Match this destination address.
+-i --in-interface <name> | Match this incoming interface.
+-o --out-interface <name> | Match this outgoing interface.
+-j --jump <target> | What to do with a match: ACCEPT, DROP, REJECT, LOG or a chain.
+-m --match <module> | Load a match module, for example state or conntrack.
+--dport <port> | Match this destination port.
+--sport <port> | Match this source port.
+-n --numeric | Numeric output.
+-v --verbose | Verbose output.
+
+@cmd ufw
+Uncomplicated Firewall front end for iptables.
+@sub enable | Turn the firewall on.
+@sub disable | Turn the firewall off.
+@sub status | Show the firewall state and rules.
+@sub allow | Add a rule that allows traffic.
+@sub deny | Add a rule that drops traffic.
+@sub reject | Add a rule that rejects traffic.
+@sub delete | Remove a rule.
+@sub reset | Remove all rules.
+
+@cmd tcpdump
+Capture and print network packets.
+-i <interface> | Interface to capture on.
+-n | Do not resolve addresses or ports.
+-nn | Do not resolve addresses or ports (numeric everything).
+-w <file> | Write raw packets to a pcap file.
+-r <file> | Read packets from a pcap file.
+-c <count> | Stop after this many packets.
+-s <snaplen> | Bytes to capture per packet (0 for the whole packet).
+-v | Verbose; repeat for more.
+-X | Print packet contents in hex and ASCII.
+-A | Print packet contents in ASCII.
+-e | Print link-level headers.
+-D | List interfaces.
+@arg expression | Capture filter, for example host 10.0.0.1 and port 443.
+
+@cmd scp
+Copy files to or from another host over SSH.
+-r | Copy directories recursively.
+-P <port> | Remote port.
+-i <identity_file> | Private key file.
+-p | Keep modification times and modes.
+-C | Compress.
+-q | Quiet.
+-o <option> | Set an SSH option.
+-3 | Copy between two remote hosts through this machine.
+@arg source | File to copy; remote files are written [user@]host:path.
+@arg target | Destination.
+
+@cmd sftp
+Interactive file transfer over SSH.
+-P <port> | Remote port.
+-i <identity_file> | Private key file.
+-b <batchfile> | Run commands from a file.
+-r | Recursive transfers.
+@arg destination | Host, as [user@]host[:path].
+
+@cmd rsync
+Copy and synchronize files, locally or over SSH, sending only differences.
+-a --archive | Archive mode: recursive, keep permissions, times, links, owner and group.
+-v --verbose | Verbose.
+-z --compress | Compress during transfer.
+-r --recursive | Recurse into directories.
+-n --dry-run | Show what would change without changing anything.
+-P | Keep partial files and show progress.
+-h --human-readable | Human-readable numbers.
+-e --rsh <command> | Remote shell to use, for example "ssh -p 2222".
+--delete | Delete files on the destination that are not in the source.
+--exclude <pattern> | Skip files matching the pattern.
+--progress | Show progress.
+@arg source | Source path (end with / to copy the contents, not the directory).
+@arg destination | Destination path.
+
+@cmd ftp tftp
+Transfer files with FTP or TFTP (unencrypted).
+@arg host | Server to connect to.
+
+@cmd openssl
+OpenSSL toolkit: certificates, keys, TLS testing, hashing and encryption.
+@sub s_client | Connect to a TLS server and show the handshake and certificate.
+  -connect <host:port> | Server to connect to.
+  -servername <name> | SNI name to send.
+  -showcerts | Print the whole certificate chain.
+  -starttls <protocol> | Upgrade a plain connection, for example smtp.
+  -quiet | Less output; also keeps the connection open for data.
+@sub x509 | Show, convert or sign X.509 certificates.
+  -in <file> | Input file.
+  -out <file> | Output file.
+  -text | Print the certificate in readable form.
+  -noout | Do not print the encoded certificate.
+  -inform <format> | Input format: PEM or DER.
+  -outform <format> | Output format: PEM or DER.
+  -fingerprint | Print the certificate fingerprint.
+  -subject | Print the subject.
+  -issuer | Print the issuer.
+  -dates | Print the validity dates.
+@sub req | Create certificate signing requests (and self-signed certificates).
+  -new | Make a new request.
+  -x509 | Output a self-signed certificate instead of a request.
+  -key <file> | Private key to use.
+  -newkey <alg:bits> | Generate a new key, for example rsa:2048.
+  -nodes | Do not encrypt the private key.
+  -noenc | Do not encrypt the private key.
+  -days <n> | Validity in days.
+  -subj <subject> | Subject, for example /CN=example.com.
+  -out <file> | Output file.
+  -in <file> | Input file.
+  -text | Print in readable form.
+  -noout | Do not print the encoded request.
+@sub pkcs12 | Create or read PKCS#12 (.pfx) files.
+  -export | Create a PKCS#12 file.
+  -in <file> | Input file.
+  -out <file> | Output file.
+  -inkey <file> | Private key file.
+  -nodes | Do not encrypt the extracted private key.
+  -legacy | Use legacy algorithms.
+@sub enc | Encrypt or decrypt with a symmetric cipher, or Base64 encode.
+  -d | Decrypt.
+  -e | Encrypt.
+  -a | Base64 encode or decode.
+  -base64 | Base64 encode or decode.
+  -A | Base64 on one line.
+  -in <file> | Input file.
+  -out <file> | Output file.
+  -k <password> | Password, given on the command line.
+  -pass <source> | Where to read the password from.
+  -pbkdf2 | Use PBKDF2 key derivation.
+@sub base64 | Base64 encode or decode.
+  -d | Decode.
+  -A | Single line.
+  -in <file> | Input file.
+  -out <file> | Output file.
+@sub dgst | Hash or sign data.
+  -sha256 | Use SHA-256.
+  -sha1 | Use SHA-1.
+  -md5 | Use MD5.
+  -sign <key> | Sign with this private key.
+  -verify <key> | Verify with this public key.
+@sub genrsa | Generate an RSA private key.
+@sub genpkey | Generate a private key.
+  -algorithm <alg> | Key algorithm, for example RSA or ED25519.
+  -out <file> | Output file.
+@sub rsa | Process RSA keys.
+  -in <file> | Input file.
+  -out <file> | Output file.
+  -pubout | Output the public key.
+  -text | Print in readable form.
+  -noout | Do not print the encoded key.
+@sub rand | Generate random bytes.
+  -hex | Hex output.
+  -base64 | Base64 output.
+@sub verify | Verify a certificate chain.
+  -CAfile <file> | Trusted CA certificates.
+  -untrusted <file> | Intermediate certificates.
+@sub version | Print the OpenSSL version.
+
+## ---------- Encoding and data ----------
+
+@cmd base64 gbase64
+Base64 encode or decode.
+-d --decode | Decode Base64 instead of encoding.
+-D | Decode Base64 (macOS).
+-i --ignore-garbage | Ignore characters outside the Base64 alphabet when decoding (GNU); input file (macOS).
+-w --wrap <cols> | Wrap encoded lines at this many characters (0 for no wrapping).
+-b --break <num> | Wrap encoded lines at this many characters (macOS).
+-o --output <file> | Output file (macOS).
+@arg file | Input file (default standard input).
+
+@cmd base32
+Base32 encode or decode.
+-d --decode | Decode instead of encoding.
+-w --wrap <cols> | Wrap encoded lines at this many characters.
+
+@cmd xxd
+Make a hex dump, or turn a hex dump back into binary.
+-r | Reverse: convert a hex dump back to binary.
+-p | Plain hex dump, no offsets or ASCII column.
+-i | Output as a C array.
+-c <cols> | Bytes per line.
+-l <len> | Stop after this many bytes.
+-s <seek> | Start at this offset.
+-u | Uppercase hex.
+-b | Binary digits instead of hex.
+@arg file | Input file.
+
+@cmd hexdump hd
+Display file contents in hex, decimal, octal or ASCII.
+-C | Canonical hex and ASCII display.
+-n <length> | Read only this many bytes.
+-s <offset> | Skip this many bytes first.
+-v | Show all data, do not collapse repeated lines.
+-e <format> | Custom format string.
+@arg file | Input file.
+
+@cmd od
+Dump files in octal and other formats.
+-A <radix> | Offset format: d, o, x or n.
+-t <type> | Output format, for example x1 for hex bytes.
+-c | Show characters.
+-x | Hex two-byte units.
+-N <bytes> | Read only this many bytes.
+-j <bytes> | Skip this many bytes first.
+-v | Do not collapse repeated lines.
+@arg file | Input file.
+
+@cmd gzip gunzip zcat
+Compress or decompress files with gzip.
+-d --decompress | Decompress.
+-c --stdout | Write to standard output and keep the original files.
+-k --keep | Keep the original files.
+-f --force | Force, overwrite existing files.
+-r --recursive | Recurse into directories.
+-l --list | List compressed file details.
+-t --test | Test file integrity.
+-v --verbose | Verbose.
+-1 --fast | Fastest compression.
+-9 --best | Best compression.
+@arg file | File to compress or decompress.
+
+@cmd bzip2 bunzip2 xz unxz zstd
+Compress or decompress files.
+-d --decompress | Decompress.
+-c --stdout | Write to standard output.
+-k --keep | Keep the original files.
+-f --force | Overwrite existing files.
+-v --verbose | Verbose.
+-T --threads <n> | Number of threads (xz, zstd).
+@arg file | File to compress or decompress.
+
+@cmd tar gtar bsdtar
+Create, list or extract tar archives.
+-c --create | Create a new archive.
+-x --extract --get | Extract files from an archive.
+-t --list | List the contents of an archive.
+-r --append | Append files to an archive.
+-u --update | Append only files newer than the copy in the archive.
+-f --file <archive> | Archive file to use ("-" for standard input or output).
+-v --verbose | List files as they are processed.
+-z --gzip | Filter the archive through gzip.
+-j --bzip2 | Filter the archive through bzip2.
+-J --xz | Filter the archive through xz.
+-a --auto-compress | Pick the compression from the archive name.
+-C --directory <dir> | Change to this directory first.
+-p --preserve-permissions | Keep file permissions when extracting.
+-P --absolute-names | Keep leading / in file names (can write anywhere when extracting).
+-O --to-stdout | Extract files to standard output.
+-h --dereference | Follow symlinks.
+-k --keep-old-files | Do not overwrite existing files when extracting.
+--exclude <pattern> | Skip files matching the pattern.
+--strip-components <n> | Drop this many leading path parts when extracting.
+@style bundled
+@arg file | File or directory to add or extract.
+
+@cmd zip
+Package and compress files into a .zip archive.
+-r | Recurse into directories.
+-e | Encrypt; prompt for a password.
+-P <password> | Encrypt with this password, given on the command line.
+-q | Quiet.
+-9 | Best compression.
+-j | Junk paths: store file names only.
+-m | Move files into the archive (delete originals).
+@arg zipfile | Archive to create or update.
+@arg file | File to add.
+
+@cmd unzip
+Extract files from a .zip archive.
+-d <dir> | Extract into this directory.
+-l | List contents.
+-o | Overwrite existing files without asking.
+-n | Never overwrite existing files.
+-q | Quiet.
+-P <password> | Password, given on the command line.
+-p | Extract to standard output.
+-j | Junk paths: extract without directories.
+@arg zipfile | Archive to extract.
+
+@cmd jq
+Filter and transform JSON.
+-r --raw-output | Print strings without JSON quotes.
+-c --compact-output | One-line JSON output.
+-s --slurp | Read all inputs into one array.
+-n --null-input | Do not read input; use null.
+-e --exit-status | Set the exit status from the last output.
+-S --sort-keys | Sort object keys.
+--arg <name> | Set $name to a string value (takes a name and a value).
+--argjson <name> | Set $name to a JSON value (takes a name and a JSON text).
+@arg filter | jq filter, for example .items[].name.
+@arg file | Input file.
+
+## ---------- Files and text ----------
+
+@cmd cat
+Print files one after another (concatenate) to standard output.
+-n --number | Number all lines.
+-b --number-nonblank | Number non-empty lines.
+-A --show-all | Show non-printing characters, tabs and line ends.
+-v --show-nonprinting | Show non-printing characters.
+-e | Show $ at line ends and non-printing characters.
+-s --squeeze-blank | Squeeze repeated empty lines.
+@arg file | File to print ("-" for standard input).
+
+@cmd tac
+Print files with lines in reverse order.
+@arg file | File to print.
+
+@cmd echo
+Print the arguments, separated by spaces, followed by a newline.
+-n | Do not print the trailing newline.
+-e | Interpret backslash escapes such as \n and \x41.
+-E | Do not interpret backslash escapes.
+@arg string | Text to print.
+
+@cmd printf
+Print formatted text.
+-v <var> | Assign the output to a shell variable instead of printing it.
+@arg format | Format string with escapes and % conversions, for example '%s\n'.
+@arg argument | Value used by the format.
+
+@cmd tee
+Copy standard input to standard output and to files.
+-a --append | Append to the files instead of overwriting.
+-i --ignore-interrupts | Ignore interrupt signals.
+@arg file | File to write.
+
+@cmd ls gls
+List directory contents.
+-l | Long format: permissions, owner, size and time.
+-a --all | Include names starting with a dot.
+-A --almost-all | Like -a without . and ..
+-h --human-readable | Human-readable sizes (with -l).
+-t | Sort by modification time, newest first.
+-r --reverse | Reverse the sort order.
+-S | Sort by size, largest first.
+-R --recursive | List subdirectories recursively.
+-d --directory | List directories themselves, not their contents.
+-i --inode | Show inode numbers.
+-1 | One entry per line.
+-F --classify | Add a marker to show the type (/ for directories, * for executables).
+-n --numeric-uid-gid | Numeric user and group IDs.
+-@ | Show extended attributes (macOS).
+-Z --context | Show SELinux context.
+--color [when] | Color output.
+@arg file | File or directory to list.
+
+@cmd cd
+Change the shell's current directory.
+-P | Resolve symbolic links.
+-L | Follow symbolic links (default).
+@arg dir | Directory ("-" for the previous one, nothing for home).
+
+@cmd pwd
+Print the current directory.
+-P | Resolve symbolic links.
+
+@cmd mkdir
+Create directories.
+-p --parents | Create parent directories as needed; no error if it exists.
+-m --mode <mode> | Permission mode for the new directory.
+-v --verbose | Print each directory created.
+@arg dir | Directory to create.
+
+@cmd rmdir
+Remove empty directories.
+-p --parents | Remove parent directories too.
+@arg dir | Directory to remove.
+
+@cmd rm
+Remove files or directories.
+-r -R --recursive | Remove directories and their contents recursively.
+-f --force | Ignore missing files and never prompt.
+-i | Ask before every removal.
+-I | Ask once before removing many files.
+-v --verbose | Print each file removed.
+-d --dir | Remove empty directories.
+--no-preserve-root | Do not refuse to remove / recursively.
+@arg file | File or directory to remove.
+
+@cmd cp
+Copy files and directories.
+-r -R --recursive | Copy directories recursively.
+-a --archive | Copy recursively and keep attributes and links.
+-p | Keep mode, ownership and timestamps.
+-f --force | Overwrite without asking.
+-i --interactive | Ask before overwriting.
+-n --no-clobber | Do not overwrite existing files.
+-v --verbose | Print each file copied.
+-u --update | Copy only when the source is newer.
+-L --dereference | Follow symlinks in the source.
+@arg source | File to copy.
+@arg dest | Destination file or directory (the last operand).
+
+@cmd mv
+Move or rename files.
+-f --force | Overwrite without asking.
+-i --interactive | Ask before overwriting.
+-n --no-clobber | Do not overwrite existing files.
+-v --verbose | Print each file moved.
+-u --update | Move only when the source is newer.
+@arg source | File to move.
+@arg dest | Destination (the last operand).
+
+@cmd ln
+Create links between files.
+-s --symbolic | Make a symbolic link instead of a hard link.
+-f --force | Remove existing destination files.
+-n --no-dereference | Treat a symlink to a directory as a file.
+-v --verbose | Print each link made.
+@arg target | What the link points to.
+@arg link_name | Name of the link to create.
+
+@cmd touch
+Create empty files or update their timestamps.
+-a | Change only the access time.
+-m | Change only the modification time.
+-c --no-create | Do not create missing files.
+-d --date <date> | Use this time instead of now.
+-t <stamp> | Use this time, as [[CC]YY]MMDDhhmm[.ss]. Often used to fake file times.
+-r --reference <file> | Copy the times from this file. Often used to hide changes.
+@arg file | File to touch.
+
+@cmd chmod
+Change file permission modes.
+-R --recursive | Apply to directories and their contents.
+-v --verbose | Print each file processed.
+-c --changes | Print only files that change.
+-f --silent | Suppress most errors.
+--reference <file> | Copy the mode from this file.
+@arg mode | Permission mode, octal like 755 or symbolic like u+x.
+@arg file | File to change.
+
+@cmd chown
+Change file owner and group.
+-R --recursive | Apply to directories and their contents.
+-h --no-dereference | Change symlinks themselves, not their targets.
+-v --verbose | Print each file processed.
+--reference <file> | Copy the owner from this file.
+@arg owner | New owner, as user[:group].
+@arg file | File to change.
+
+@cmd chgrp
+Change file group.
+-R --recursive | Apply to directories and their contents.
+@arg group | New group.
+@arg file | File to change.
+
+@cmd chattr
+Change Linux file attributes.
+-R | Recurse into directories.
+-V | Verbose.
+@arg mode | Attributes to add (+) or remove (-), for example +i (immutable: cannot be changed or deleted, even by root, until removed).
+@arg file | File to change.
+
+@cmd lsattr
+List Linux file attributes.
+-R | Recurse into directories.
+-a | Include hidden files.
+-d | List directories themselves.
+@arg file | File to list.
+
+@cmd stat
+Show file details: size, permissions, owner and times.
+-c --format <format> | Output format (GNU).
+-f <format> | Output format (macOS); file system status (GNU).
+-L --dereference | Follow symlinks.
+@arg file | File to show.
+
+@cmd file
+Guess a file's type from its contents.
+-b --brief | Do not print the file name.
+-i --mime | Print the MIME type.
+-L --dereference | Follow symlinks.
+-z | Look inside compressed files.
+@arg file | File to check.
+
+@cmd strings
+Print printable text strings found in a binary file.
+-a --all | Scan the whole file.
+-n --bytes <min> | Minimum string length (default 4).
+-e --encoding <encoding> | Character size, for example l for 16-bit little-endian (Windows wide strings).
+-t --radix <radix> | Print the offset of each string: d, o or x.
+@arg file | File to scan.
+
+@cmd head
+Print the first lines of files (default 10).
+-n --lines <n> | Number of lines to print.
+-c --bytes <n> | Number of bytes to print.
+-q --quiet | Do not print file name headers.
+@arg file | File to read.
+
+@cmd tail
+Print the last lines of files (default 10).
+-n --lines <n> | Number of lines to print (+n to start at line n).
+-c --bytes <n> | Number of bytes to print.
+-f --follow | Keep the file open and print new lines as they are added.
+-F | Like -f, and reopen the file if it is replaced (log rotation).
+-q --quiet | Do not print file name headers.
+@arg file | File to read.
+
+@cmd less more most
+Page through text one screen at a time.
+-N | Show line numbers.
+-S | Chop long lines instead of wrapping.
+-R | Show colors.
+-F | Exit if the text fits on one screen.
+@arg file | File to view.
+
+@cmd grep egrep fgrep rg
+Print lines that match a pattern.
+-i --ignore-case | Ignore case.
+-v --invert-match | Print lines that do not match.
+-r --recursive | Search directories recursively.
+-R --dereference-recursive | Recursive, following symlinks.
+-n --line-number | Show line numbers.
+-c --count | Print only a count of matching lines.
+-l --files-with-matches | Print only names of files with matches.
+-L --files-without-match | Print only names of files without matches.
+-o --only-matching | Print only the matched part.
+-w --word-regexp | Match whole words only.
+-x --line-regexp | Match whole lines only.
+-E --extended-regexp | Extended regular expressions.
+-F --fixed-strings | Pattern is a plain string, not a regex.
+-P --perl-regexp | Perl-compatible regular expressions.
+-e --regexp <pattern> | Use this pattern (useful when it starts with -).
+-f --file <file> | Read patterns from a file.
+-A --after-context <n> | Print n lines after each match.
+-B --before-context <n> | Print n lines before each match.
+-C --context <n> | Print n lines around each match.
+-h --no-filename | Do not print file names.
+-H --with-filename | Print file names.
+-q --quiet --silent | No output; exit status only.
+-s --no-messages | Suppress errors about missing files.
+-a --text | Treat binary files as text.
+-z --null-data | Lines end with NUL.
+--include <glob> | Search only matching files.
+--exclude <glob> | Skip matching files.
+--color [when] | Highlight matches.
+@arg pattern | Pattern to search for.
+@arg file | File or directory to search.
+
+@cmd find
+Search a directory tree for files matching tests, and act on them.
+-name <pattern> | File name matches this shell pattern.
+-iname <pattern> | Like -name, ignoring case.
+-path <pattern> | Whole path matches this pattern.
+-type <type> | File type: f file, d directory, l symlink.
+-size <n> | Size, for example +100M or -1k.
+-mtime <n> | Modified n days ago (+n older, -n newer).
+-mmin <n> | Modified n minutes ago.
+-atime <n> | Accessed n days ago.
+-ctime <n> | Status changed n days ago.
+-newer <file> | Modified more recently than this file.
+-user <name> | Owned by this user.
+-group <name> | Owned by this group.
+-perm <mode> | Permission bits match, for example -4000 for setuid files.
+-maxdepth <levels> | Descend at most this many levels.
+-mindepth <levels> | Ignore the first levels.
+-empty | Empty file or directory.
+-executable | Executable by the current user.
+-writable | Writable by the current user.
+-readable | Readable by the current user.
+-nouser | No owner in the user database.
+-prune | Do not descend into this directory.
+-print | Print the path (default action).
+-print0 | Print the path followed by NUL (pairs with xargs -0).
+-printf <format> | Print using a format.
+-ls | List in ls -dils format.
+-delete | Delete matching files.
+-exec <command> | Run a command for each match; {} is the path, ends with ; (one per file) or + (batched).
+-execdir <command> | Like -exec, run from the file's directory.
+-ok <command> | Like -exec, asking first.
+-o -or | Or: match either test.
+-a -and | And: match both tests (default).
+-not | Negate the next test.
+-L | Follow symbolic links.
+-xdev | Do not cross into other file systems.
+@arg path | Directory to search.
+
+@cmd locate mlocate plocate
+Find files by name using a prebuilt database.
+-i --ignore-case | Ignore case.
+-c --count | Print only a count.
+@arg pattern | Name pattern.
+
+@cmd which whereis type
+Show where a command is found.
+-a | Show all matches, not just the first.
+@arg name | Command name.
+
+@cmd cut
+Cut out selected fields or characters from each line.
+-d --delimiter <delim> | Field delimiter (default tab).
+-f --fields <list> | Fields to print, for example 1,3 or 2-.
+-c --characters <list> | Character positions to print.
+-b --bytes <list> | Byte positions to print.
+-s --only-delimited | Skip lines without the delimiter.
+@arg file | Input file.
+
+@cmd sort
+Sort lines of text.
+-n --numeric-sort | Sort numerically.
+-r --reverse | Reverse order.
+-u --unique | Drop duplicate lines.
+-k --key <keydef> | Sort by this field, for example 2 or 2,2n.
+-t --field-separator <sep> | Field separator.
+-h --human-numeric-sort | Sort human-readable sizes like 2K and 1G.
+-V --version-sort | Sort version numbers.
+-f --ignore-case | Ignore case.
+-o --output <file> | Write to this file.
+-R --random-sort | Shuffle.
+@arg file | Input file.
+
+@cmd uniq
+Drop or report repeated adjacent lines (sort first for all duplicates).
+-c --count | Prefix each line with its count.
+-d --repeated | Print only duplicated lines.
+-u --unique | Print only lines that are not repeated.
+-i --ignore-case | Ignore case.
+@arg input | Input file.
+
+@cmd wc
+Count lines, words and bytes.
+-l --lines | Count lines.
+-w --words | Count words.
+-c --bytes | Count bytes.
+-m --chars | Count characters.
+@arg file | Input file.
+
+@cmd tr
+Translate or delete characters from standard input.
+-d --delete | Delete characters in the first set.
+-s --squeeze-repeats | Squeeze repeated characters into one.
+-c -C --complement | Use the complement of the first set.
+@arg set1 | Characters to match, for example a-z or '[:upper:]'.
+@arg set2 | Replacement characters. 'A-Za-z' 'N-ZA-Mn-za-m' is ROT13.
+
+@cmd rev
+Reverse the characters of each line. Sometimes used to hide commands.
+@arg file | Input file.
+
+@cmd diff
+Compare files line by line.
+-u --unified [n] | Unified format with context.
+-r --recursive | Compare directories recursively.
+-q --brief | Report only whether files differ.
+-i --ignore-case | Ignore case.
+-w --ignore-all-space | Ignore all white space.
+-y --side-by-side | Side-by-side output.
+@arg file | File to compare.
+
+@cmd dd
+Copy and convert data block by block.
+if= <file> | Read from this file instead of standard input.
+of= <file> | Write to this file instead of standard output. Overwrites devices too.
+bs= <bytes> | Read and write this many bytes at a time.
+count= <n> | Copy only this many blocks.
+skip= <n> | Skip this many blocks of input first.
+seek= <n> | Skip this many blocks of output first.
+conv= <conversions> | Conversions, for example notrunc or sync.
+status= <level> | Progress output: none, noxfer or progress.
+
+@cmd split
+Split a file into pieces.
+-b --bytes <size> | Size of each piece.
+-l --lines <n> | Lines per piece.
+-d | Numeric suffixes.
+@arg file | File to split.
+@arg prefix | Name prefix for the pieces.
+
+@cmd mkfifo
+Create named pipes (FIFOs). Often combined with nc and a shell for a reverse shell.
+-m --mode <mode> | Permission mode.
+@arg name | Pipe to create.
+
+@cmd mktemp
+Create a temporary file or directory and print its name.
+-d --directory | Make a directory.
+-u --dry-run | Print a name without creating anything.
+-t | Use the temporary directory.
+@arg template | Name template ending in XXXXXX.
+
+@cmd shred
+Overwrite a file to make its contents hard to recover.
+-u --remove | Delete the file after overwriting.
+-n --iterations <n> | Overwrite this many times.
+-z --zero | Finish with a pass of zeros.
+-f --force | Change permissions if needed.
+-v --verbose | Show progress.
+@arg file | File to shred.
+
+@cmd sleep
+Wait for a number of seconds.
+@arg number | Time to wait (suffix s, m, h or d).
+
+@cmd date
+Print or set the date and time.
+-u --utc | Use UTC.
+-d --date <string> | Show this time instead of now (GNU).
+-r <seconds> | Show this epoch time (macOS); file modification time (GNU).
+-s --set <string> | Set the system time.
+-I --iso-8601 [fmt] | ISO 8601 format.
+@arg format | Output format, for example +%Y-%m-%d.
+
+@cmd yes
+Print a string (default y) repeatedly.
+@arg string | Text to repeat.
+
+@cmd seq
+Print a sequence of numbers.
+-w --equal-width | Pad with leading zeros.
+-s --separator <string> | Separator between numbers.
+@arg number | First, increment and last numbers.
+
+## ---------- Processes and system ----------
+
+@cmd ps
+Report running processes.
+-e -A | All processes.
+-f | Full format: user, PID, parent PID, start time and command line.
+-u <user> | Processes owned by this user.
+-p <pid> | Only these process IDs.
+-o <format> | Columns to show.
+-l | Long format.
+-x | Include processes without a terminal.
+-a | Processes of all users with a terminal.
+--forest | Show the process tree.
+@style bundled
+@arg options | BSD options without a dash: a all users, u user-oriented format, x include processes without a terminal.
+
+@cmd kill
+Send a signal to processes (default TERM).
+-s <signal> | Signal to send, by name or number.
+-l | List signal names.
+-9 | Send SIGKILL: stop the process at once; it cannot be caught.
+-15 | Send SIGTERM: ask the process to exit (default).
+-1 | Send SIGHUP: hang up; many daemons reload their configuration.
+-2 | Send SIGINT: interrupt, like Ctrl+C.
+-0 | Signal 0: check whether the process exists without sending anything.
+@arg pid | Process ID (negative for a process group).
+
+@cmd pkill pgrep
+Find processes by name (pgrep) or signal them (pkill).
+-f --full | Match the whole command line, not just the name.
+-u --euid <user> | Only processes owned by this user.
+-x --exact | Match the name exactly.
+-l --list-name | Show names with the PIDs (pgrep).
+-a --list-full | Show full command lines (pgrep).
+-n --newest | Only the newest match.
+-9 | Send SIGKILL.
+@arg pattern | Process name pattern.
+
+@cmd killall
+Signal processes by name.
+-9 | Send SIGKILL.
+-s --signal <signal> | Signal to send.
+-u --user <user> | Only processes owned by this user.
+@arg name | Process name.
+
+@cmd top htop
+Show running processes, updated live.
+-b | Batch mode: plain output for logging (top).
+-n <iterations> | Number of updates before exiting (top).
+-u <user> | Only this user's processes.
+-p <pid> | Only these process IDs.
+-d <delay> | Seconds between updates.
+
+@cmd lsof
+List open files, including network sockets.
+-i [addr] | Network files, optionally filtered, for example -i :443 or -i TCP.
+-n | Numeric addresses.
+-P | Numeric ports.
+-p <pid> | Only this process.
+-u <user> | Only this user.
+-t | Print PIDs only.
++D <dir> | Files open under this directory.
+@arg file | Show processes that have this file open.
+
+@cmd jobs
+List the shell's background jobs.
+-l | Include process IDs.
+-p | Print only process IDs.
+
+@cmd bg fg
+Resume a stopped job in the background (bg) or foreground (fg).
+@arg job | Job, for example %1.
+
+@cmd disown
+Remove jobs from the shell's job table so they keep running after the shell exits.
+-h | Keep the job but do not send it SIGHUP.
+-a | All jobs.
+@arg job | Job, for example %1.
+
+@cmd wait
+Wait for background jobs to finish.
+-n | Wait for the next job to finish.
+@arg id | Job or process ID.
+
+@cmd systemctl
+Control systemd services and the system.
+--user | Act on the user's services instead of the system's.
+--now | With enable or disable, also start or stop the unit.
+-q --quiet | Quiet.
+--no-pager | Do not pipe output into a pager.
+@sub start | Start a service.
+@sub stop | Stop a service.
+@sub restart | Restart a service.
+@sub reload | Reload a service's configuration.
+@sub status | Show a service's state and recent log lines.
+@sub enable | Start a service automatically at boot. Common persistence step.
+@sub disable | Do not start a service at boot.
+@sub mask | Prevent a service from being started at all.
+@sub unmask | Undo mask.
+@sub daemon-reload | Reload unit files after changing them.
+@sub list-units | List loaded units.
+@sub list-timers | List timers.
+@sub is-active | Check whether a unit is running.
+@sub is-enabled | Check whether a unit starts at boot.
+@sub cat | Show a unit's files.
+@sub edit | Edit a unit with an override file.
+@sub poweroff | Shut down.
+@sub reboot | Restart the system.
+
+@cmd service
+Run a System V init script (start, stop, restart, status).
+@arg service | Service name.
+@arg command | Action: start, stop, restart or status.
+
+@cmd journalctl
+Read the systemd journal (logs).
+-u --unit <unit> | Only this service.
+-f --follow | Follow new entries.
+-n --lines <n> | Show the last n entries.
+-b --boot [id] | Entries from this boot.
+-p --priority <level> | Only entries at this priority or more severe.
+-r --reverse | Newest first.
+-x --catalog | Add explanations.
+-e --pager-end | Jump to the end.
+--since <time> | Entries since this time.
+--until <time> | Entries until this time.
+--no-pager | Do not pipe into a pager.
+--vacuum-time <time> | Delete archived logs older than this. Can be used to destroy evidence.
+--rotate | Rotate journal files.
+
+@cmd launchctl
+Control launchd services (macOS).
+@sub load | Load a job from a plist. Common persistence step.
+@sub unload | Unload a job.
+@sub bootstrap | Load a service into a domain.
+@sub bootout | Remove a service from a domain.
+@sub start | Start a job.
+@sub stop | Stop a job.
+@sub list | List loaded jobs.
+@sub print | Print a domain or service.
+@sub kickstart | Start or restart a service.
+@sub enable | Allow a service to load.
+@sub disable | Prevent a service from loading.
+@sub setenv | Set an environment variable for launched jobs.
+
+@cmd defaults
+Read and write macOS preferences.
+@sub read | Print preferences.
+@sub write | Set a preference.
+@sub delete | Remove a preference.
+@sub domains | List domains.
+
+@cmd crontab
+Install, list or edit a user's scheduled jobs (cron).
+-l | List the current crontab.
+-e | Edit the crontab.
+-r | Remove the crontab.
+-i | Ask before removing.
+-u <user> | Act on this user's crontab.
+@arg file | Replace the crontab with this file ("-" for standard input). Common persistence step.
+
+@cmd at
+Run commands once at a later time.
+-f <file> | Read commands from a file.
+-l | List pending jobs.
+-r -d | Remove a job.
+-m | Send mail when the job finishes.
+@arg time | When to run, for example now + 5 minutes.
+
+@cmd mount
+Mount a file system.
+-t --types <type> | File system type.
+-o --options <options> | Mount options, for example ro or remount,rw.
+-a --all | Mount everything in /etc/fstab.
+-r --read-only | Mount read-only.
+@arg device | Device or remote share.
+@arg dir | Mount point.
+
+@cmd umount
+Unmount file systems.
+-f --force | Force unmount.
+-l --lazy | Detach now, clean up when no longer busy.
+@arg target | Mount point or device.
+
+@cmd df
+Show free disk space.
+-h --human-readable | Human-readable sizes.
+-T --print-type | Show file system types.
+-i --inodes | Inode usage.
+@arg file | File system to show.
+
+@cmd du
+Show disk usage of files and directories.
+-h --human-readable | Human-readable sizes.
+-s --summarize | One total per argument.
+-a --all | Include files, not just directories.
+-c --total | Print a grand total.
+-d --max-depth <n> | Depth to report.
+-x --one-file-system | Stay on one file system.
+@arg file | File or directory.
+
+@cmd uname
+Print system information.
+-a --all | All information.
+-s --kernel-name | Kernel name.
+-r --kernel-release | Kernel release.
+-m --machine | Hardware name.
+-n --nodename | Host name.
+-v --kernel-version | Kernel version.
+-o --operating-system | Operating system.
+-p --processor | Processor type.
+
+@cmd hostname
+Show or set the host name.
+-f --fqdn | Fully qualified domain name.
+-I --all-ip-addresses | All IP addresses (Linux).
+-i --ip-address | Address of the host name.
+-s --short | Short name.
+
+@cmd whoami
+Print the current user name.
+
+@cmd id
+Print user and group IDs.
+-u --user | Effective user ID only.
+-g --group | Effective group ID only.
+-G --groups | All group IDs.
+-n --name | Names instead of numbers.
+@arg user | User to show.
+
+@cmd w who users last lastlog
+Show who is logged in, or recent logins.
+@arg user | User to show.
+
+@cmd history
+Show or change the shell's command history.
+-c | Clear the history list. Often used to hide activity.
+-d <offset> | Delete one entry.
+-w | Write the history to the history file.
+-a | Append new lines to the history file.
+-r | Read the history file.
+-n | Read lines not yet read from the history file.
+@arg n | Show the last n entries.
+
+@cmd uptime
+Show how long the system has been running and the load average.
+-p --pretty | Readable format.
+-s --since | Boot time.
+
+@cmd free
+Show memory use.
+-h --human | Human-readable sizes.
+-m --mebi | Sizes in MiB.
+-g --gibi | Sizes in GiB.
+
+@cmd lsblk
+List block devices.
+-f --fs | File system details.
+-a --all | All devices.
+-o --output <list> | Columns to show.
+
+@cmd dmesg
+Print kernel messages.
+-T --ctime | Readable timestamps.
+-w --follow | Wait for new messages.
+-C --clear | Clear the buffer.
+-c --read-clear | Print, then clear the buffer.
+-l --level <list> | Only these levels.
+
+@cmd shutdown reboot poweroff halt
+Shut down or restart the system.
+-r | Restart.
+-h | Halt or power off.
+-c | Cancel a pending shutdown.
+@arg time | When, for example now or +5.
+
+@cmd useradd adduser
+Create a user account.
+-m --create-home | Create the home directory.
+-d --home-dir <dir> | Home directory.
+-s --shell <shell> | Login shell.
+-g --gid <group> | Primary group.
+-G --groups <groups> | Extra groups, for example sudo or wheel (admin rights).
+-u --uid <uid> | User ID. 0 makes the account root-equivalent.
+-o --non-unique | Allow a duplicate user ID.
+-p --password <hash> | Encrypted password, given on the command line.
+-r --system | Create a system account.
+-c --comment <comment> | Full name or comment.
+-M --no-create-home | Do not create the home directory.
+@arg login | User name.
+
+@cmd usermod
+Change a user account.
+-a --append | Add to the -G groups instead of replacing them.
+-G --groups <groups> | Extra groups, for example sudo or wheel (admin rights).
+-g --gid <group> | Primary group.
+-s --shell <shell> | Login shell.
+-d --home <dir> | Home directory.
+-L --lock | Lock the password.
+-U --unlock | Unlock the password.
+-e --expiredate <date> | Account expiry date.
+-u --uid <uid> | User ID.
+-o --non-unique | Allow a duplicate user ID.
+-p --password <hash> | Encrypted password, given on the command line.
+@arg login | User name.
+
+@cmd userdel deluser
+Delete a user account.
+-r --remove | Remove the home directory and mail spool.
+-f --force | Force removal.
+@arg login | User name.
+
+@cmd passwd
+Change a user's password.
+-l --lock | Lock the account's password.
+-u --unlock | Unlock the password.
+-d --delete | Delete the password (empty password).
+-e --expire | Force a password change at next login.
+-S --status | Show password status.
+--stdin | Read the new password from standard input.
+@arg user | User name.
+
+@cmd chpasswd
+Set passwords for many users from standard input (user:password lines).
+-e --encrypted | Passwords are already hashed.
+
+@cmd groupadd
+Create a group.
+-g --gid <gid> | Group ID.
+-r --system | System group.
+@arg group | Group name.
+
+@cmd visudo
+Edit the sudoers file safely.
+-c --check | Check the file syntax only.
+-f --file <file> | Edit this file instead.
+
+@cmd setenforce
+Change the SELinux mode.
+@arg mode | 0 or Permissive (log only, do not block), 1 or Enforcing.
+
+@cmd modprobe insmod rmmod
+Load or remove Linux kernel modules.
+-r --remove | Remove the module.
+-v --verbose | Verbose.
+@arg module | Module name or file.
+
+@cmd sysctl
+Read or set kernel parameters.
+-w --write | Set a value.
+-a --all | Show all values.
+-p --load [file] | Load settings from a file.
+@arg variable | Parameter, optionally with =value.
+
+@cmd export
+Mark shell variables to be passed to commands the shell starts.
+-n | Remove the export property.
+-p | List exported variables.
+-f | Names refer to functions.
+@arg name | Variable, optionally with =value.
+
+@cmd unset
+Remove shell variables or functions.
+-f | Remove functions.
+-v | Remove variables.
+@arg name | Name to remove.
+
+@cmd set
+Set shell options and positional parameters, or list variables.
+-e | Exit when a command fails.
+-u | Error on unset variables.
+-x | Print each command before running it.
+-o <option> | Set an option by name, for example pipefail.
+-v | Print input lines as they are read.
+-f | Turn off file name globbing.
+-m | Job control.
+-a | Export every variable that is set.
+-C | Do not overwrite existing files with >.
+@arg arg | Positional parameters ($1, $2 and so on); after -- they are set even if they start with -.
+
+@cmd source .
+Read and run commands from a file in the current shell (not a new process).
+@arg file | File to run.
+@arg arg | Positional parameters for the file.
+
+@cmd alias
+Define or list command aliases.
+-p | List all aliases.
+@arg name=value | Alias definition. Aliases can hide what a command really runs.
+
+@cmd unalias
+Remove aliases.
+-a | Remove all aliases.
+@arg name | Alias to remove.
+
+@cmd read
+Read a line from standard input into variables.
+-r | Do not treat backslashes as escapes.
+-p <prompt> | Show a prompt first.
+-s | Silent: do not echo input (passwords).
+-t <timeout> | Give up after this many seconds.
+-n <nchars> | Return after this many characters.
+-d <delim> | Read until this character instead of newline.
+-a <array> | Read words into an array.
+-u <fd> | Read from this file descriptor.
+@arg name | Variable to set.
+
+@cmd trap
+Run a command when the shell receives a signal or exits.
+-l | List signal names.
+-p | Show current traps.
+@arg action | Command to run, or '' to ignore the signal, or - to reset.
+@arg signal | Signal names, or EXIT, ERR, DEBUG or RETURN.
+
+@cmd ulimit
+Show or set resource limits for the shell and its children.
+-a | Show all limits.
+-n | Open files.
+-c | Core file size.
+-u | Number of processes.
+-s | Stack size.
+-v | Virtual memory.
+-H | Hard limit.
+-S | Soft limit.
+@arg limit | New value, or unlimited.
+
+@cmd umask
+Show or set the default permission mask for new files.
+-S | Symbolic output.
+@arg mask | Mask, for example 022 (new files 644, directories 755).
+
+@cmd test [ [[
+Evaluate a condition; exit status 0 if true.
+-e | File exists.
+-f | Regular file exists.
+-d | Directory exists.
+-r | File is readable.
+-w | File is writable.
+-x | File is executable.
+-s | File exists and is not empty.
+-L -h | File is a symbolic link.
+-z | String is empty.
+-n | String is not empty.
+-eq | Numbers are equal.
+-ne | Numbers are not equal.
+-lt | Less than.
+-le | Less than or equal.
+-gt | Greater than.
+-ge | Greater than or equal.
+-o | Or.
+-a | And.
+@arg expression | Condition to test; [ needs a closing ].
+
+@cmd true false :
+Do nothing and exit successfully (true, :) or with failure (false).
+
+@cmd exit logout
+Exit the shell.
+@arg n | Exit status.
+
+@cmd return
+Return from a shell function.
+@arg n | Return status.
+
+@cmd shift
+Shift the positional parameters left ($2 becomes $1).
+@arg n | How many to shift.
+
+@cmd let
+Evaluate arithmetic expressions.
+@arg expression | Arithmetic, for example i=i+1.
+
+@cmd declare typeset local readonly
+Declare shell variables and give them attributes.
+-a | Indexed array.
+-A | Associative array.
+-i | Integer.
+-r | Read-only.
+-x | Export to the environment.
+-f | Functions.
+-p | Print declarations.
+-g | Global, inside a function.
+@arg name | Variable, optionally with =value.
+
+@cmd getent
+Look up entries in system databases (passwd, group, hosts).
+@arg database | Database, for example passwd, group or hosts.
+@arg key | Entry to look up.
+
+## ---------- Packages and development ----------
+
+@cmd apt apt-get
+Install, update and remove packages (Debian, Ubuntu).
+-y --yes --assume-yes | Answer yes to prompts.
+-q --quiet | Less output.
+--no-install-recommends | Skip recommended packages.
+@sub install | Install packages.
+@sub remove | Remove packages.
+@sub purge | Remove packages and their configuration.
+@sub update | Refresh the package lists.
+@sub upgrade | Upgrade installed packages.
+@sub full-upgrade | Upgrade, adding or removing packages as needed.
+@sub dist-upgrade | Upgrade, adding or removing packages as needed.
+@sub autoremove | Remove packages no longer needed.
+@sub search | Search package descriptions.
+@sub show | Show package details.
+@sub list | List packages.
+
+@cmd dnf yum
+Install, update and remove packages (Fedora, RHEL family).
+-y --assumeyes | Answer yes to prompts.
+-q --quiet | Less output.
+@sub install | Install packages.
+@sub remove | Remove packages.
+@sub update | Update packages.
+@sub upgrade | Update packages.
+@sub search | Search packages.
+@sub info | Show package details.
+@sub list | List packages.
+
+@cmd brew
+Homebrew package manager (macOS, Linux).
+@sub install | Install a package.
+@sub uninstall | Remove a package.
+@sub upgrade | Upgrade packages.
+@sub update | Update Homebrew itself.
+@sub list | List installed packages.
+@sub search | Search packages.
+@sub info | Show package details.
+
+@cmd pip pip3
+Install Python packages.
+@sub install | Install packages.
+  -r --requirement <file> | Install from a requirements file.
+  -U --upgrade | Upgrade to the newest version.
+  --user | Install into the user's directory.
+  -e --editable <path> | Install a project in editable mode.
+  --index-url <url> | Package index to use instead of PyPI.
+  --extra-index-url <url> | Extra package index. Can pull lookalike packages.
+@sub uninstall | Remove packages.
+@sub list | List installed packages.
+@sub freeze | Print installed packages in requirements format.
+@sub show | Show package details.
+
+@cmd npm
+Node.js package manager.
+@sub install | Install packages.
+@sub i | Install packages.
+@sub ci | Clean install from the lock file.
+@sub run | Run a script from package.json.
+@sub test | Run the test script.
+@sub start | Run the start script.
+@sub publish | Publish a package.
+@sub audit | Check dependencies for known vulnerabilities.
+
+@cmd git
+Version control.
+-C <path> | Run as if started in this directory.
+-c <name=value> | Set a config value for this command.
+--no-pager | Do not pipe output into a pager.
+@sub clone | Copy a repository into a new directory.
+  --depth <n> | Copy only the latest n commits.
+  -b --branch <name> | Check out this branch.
+  --recursive | Also clone submodules.
+@sub status | Show changed files.
+  -s --short | Short format.
+@sub add | Stage changes for the next commit.
+  -A --all | Stage all changes.
+  -p --patch | Choose changes interactively.
+@sub commit | Record staged changes.
+  -m --message <message> | Commit message.
+  -a --all | Stage modified files first.
+  --amend | Replace the last commit.
+@sub push | Upload commits to a remote.
+  -u --set-upstream | Remember the remote branch.
+  -f --force | Overwrite the remote branch.
+  --force-with-lease | Overwrite only if the remote has not moved.
+@sub pull | Fetch and merge from a remote.
+  --rebase | Rebase instead of merging.
+@sub fetch | Download objects and refs from a remote.
+@sub checkout | Switch branches or restore files.
+  -b | Create a new branch.
+@sub switch | Switch branches.
+  -c --create | Create a new branch.
+@sub branch | List, create or delete branches.
+  -d --delete | Delete a branch.
+  -D | Force delete a branch.
+  -a --all | List remote branches too.
+@sub merge | Join branches.
+@sub rebase | Reapply commits on top of another base.
+@sub log | Show the commit history.
+  --oneline | One line per commit.
+  --graph | Draw the branch graph.
+  -n --max-count <n> | Limit the number of commits.
+  -p --patch | Show diffs.
+@sub diff | Show changes.
+  --staged --cached | Staged changes.
+@sub reset | Move the current branch or unstage files.
+  --hard | Also discard working tree changes.
+  --soft | Keep changes staged.
+@sub stash | Set changes aside.
+@sub tag | List or create tags.
+  -a --annotate | Annotated tag.
+  -m --message <message> | Tag message.
+@sub remote | Manage remotes.
+  -v --verbose | Show URLs.
+@sub show | Show an object.
+@sub config | Get or set options.
+  --global | User-wide settings.
+@sub init | Create a repository.
+
+@cmd docker podman
+Manage containers and images.
+@sub run | Create and start a container.
+  -d --detach | Run in the background.
+  -i --interactive | Keep standard input open.
+  -t --tty | Allocate a terminal.
+  --rm | Remove the container when it exits.
+  -p --publish <host:container> | Publish a container port on the host.
+  -v --volume <host:container> | Mount a host path into the container.
+  -e --env <name=value> | Set an environment variable.
+  --name <name> | Container name.
+  --privileged | Give the container full access to the host's devices. Can escape to the host.
+  --network <network> | Network to join, for example host.
+  --pid <mode> | PID namespace, for example host to see host processes.
+  -u --user <user> | Run as this user.
+  --entrypoint <command> | Override the image's entrypoint.
+  -w --workdir <dir> | Working directory inside the container.
+@sub exec | Run a command in a running container.
+  -i --interactive | Keep standard input open.
+  -t --tty | Allocate a terminal.
+  -u --user <user> | Run as this user.
+@sub ps | List containers.
+  -a --all | Include stopped containers.
+@sub images | List images.
+@sub pull | Download an image.
+@sub push | Upload an image.
+@sub build | Build an image from a Dockerfile.
+  -t --tag <name> | Image name and tag.
+  -f --file <file> | Dockerfile to use.
+@sub logs | Show container output.
+  -f --follow | Follow new output.
+@sub stop | Stop containers.
+@sub rm | Remove containers.
+  -f --force | Force removal of running containers.
+@sub rmi | Remove images.
+@sub compose | Run multi-container applications.
+@sub cp | Copy files between a container and the host.
+@sub inspect | Show low-level details.
+
+@cmd kubectl
+Control Kubernetes clusters.
+-n --namespace <namespace> | Namespace to use.
+-A --all-namespaces | All namespaces.
+-o --output <format> | Output format, for example yaml or wide.
+--context <name> | Cluster context to use.
+-f --filename <file> | File with resource definitions.
+@sub get | List resources.
+@sub describe | Show resource details.
+@sub apply | Create or update resources from a file.
+@sub delete | Delete resources.
+@sub logs | Print container logs.
+@sub exec | Run a command in a container.
+@sub port-forward | Forward local ports to a pod.
+@sub create | Create a resource.
+@sub edit | Edit a resource.
+@sub rollout | Manage rollouts.
+@sub scale | Change the number of replicas.
+@sub config | Manage kubeconfig.
+
+@cmd make
+Build targets from a Makefile.
+-j --jobs [n] | Run jobs in parallel.
+-C --directory <dir> | Change to this directory first.
+-f --file <file> | Use this makefile.
+-n --dry-run | Print commands without running them.
+-k --keep-going | Continue after errors.
+@arg target | Target to build.
+
+@cmd gcc cc clang g++ clang++
+Compile C or C++ programs.
+-o <file> | Output file name.
+-c | Compile only; do not link.
+-g | Include debug information.
+-O2 | Optimize.
+-Wall | Turn on common warnings.
+-I <dir> | Add an include directory.
+-L <dir> | Add a library directory.
+-l <library> | Link with this library.
+-shared | Build a shared library.
+-fPIC | Position-independent code, for shared libraries.
+-static | Link statically.
+@arg file | Source file.

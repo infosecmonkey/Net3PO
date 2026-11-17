@@ -33,6 +33,7 @@ pub mod regex_builder;
 pub mod remote_launch;
 pub mod script_decoder;
 pub mod sftp;
+pub mod shell_explain;
 pub mod snmp_sweep;
 pub mod snmp_walk;
 pub mod socket_tools;

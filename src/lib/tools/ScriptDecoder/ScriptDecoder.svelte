@@ -4,6 +4,7 @@
   import ExportMenu from "$lib/components/ExportMenu.svelte";
   import type { DecodeResult, DecodedLayer, IocKind } from "$lib/tools/types";
   import { buildDecodeReport } from "./report";
+  import ShellExplain from "$lib/components/shell/ShellExplain.svelte";
 
   let text = $state("");
   let sourceName = $state("");
@@ -12,6 +13,7 @@
   let busy = $state(false);
   let defanged = $state(true);
   let copied = $state("");
+  let explainOpen = $state<Record<number, boolean>>({});
 
   const LEVEL: Record<string, string> = { fail: "FAIL", warn: "WARN", info: "INFO" };
   const KIND: Record<DecodedLayer["kind"], string> = {
@@ -47,6 +49,7 @@
     error = "";
     try {
       result = await invoke<DecodeResult>("script_decode", { text });
+      explainOpen = {};
     } catch (e) {
       result = null;
       error = String(e);
@@ -230,11 +233,21 @@
             <span class="muted size">{fmtSize(l.size)}</span>
           </summary>
           <div class="layer-body">
-            <button class="small copy" onclick={() => copy(l.text, `layer-${l.index}`)}>
-              {copied === `layer-${l.index}` ? "Copied" : "Copy"}
-            </button>
+            <div class="layer-tools">
+              {#if l.language === "bash"}
+                <button
+                  class="small"
+                  onclick={() => (explainOpen[l.index] = !explainOpen[l.index])}
+                  title="Explain each command, option and operator in this layer"
+                >{explainOpen[l.index] ? "Hide explanation" : "Explain"}</button>
+              {/if}
+              <button class="small" onclick={() => copy(l.text, `layer-${l.index}`)}>
+                {copied === `layer-${l.index}` ? "Copied" : "Copy"}
+              </button>
+            </div>
             <pre class="code mono">{l.text}</pre>
             {#if l.truncated}<p class="hint">Shown text is shortened; export or copy for the displayed part only.</p>{/if}
+            {#if explainOpen[l.index] && l.language === "bash"}<ShellExplain text={l.text} />{/if}
             {#if l.strings.length > 0}
               <h3>Strings <span class="muted">({l.strings.length})</span></h3>
               <pre class="code mono strings">{l.strings.join("\n")}</pre>
@@ -579,11 +592,13 @@
     padding: 0 0.7rem 0.7rem;
   }
 
-  .copy {
+  .layer-tools {
     position: absolute;
     top: 0.4rem;
     right: 1.2rem;
     z-index: 1;
+    display: flex;
+    gap: 0.35rem;
   }
 
   .code {

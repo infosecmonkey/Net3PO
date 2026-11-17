@@ -32,6 +32,7 @@
 | Text / Hex (per result) | Switches a result between text and a hex dump. | Shown when the result is valid text. |
 | Suggestions | One-click steps guessed from what the final result looks like. | |
 | Copy result | Copies the final result (text, or hex for binary output). | |
+| Explain as shell | Explains the final result as a shell command line (see below). Click again to hide. | Shown when the result is text. |
 
 Available steps:
 
@@ -53,6 +54,16 @@ With no steps, the input is shown with its byte count. With steps, each one gets
 
 Below the last successful step, **Looks like it could be:** offers next steps based on the bytes: Gzip, XZ or Zlib decompress from their magic bytes, Hex decode for even-length hex, Base64 or Base64url decode for strings in those alphabets, URL decode when `%XX` escapes are present, and HTML entity decode when entities are present.
 
+**Explanation.** Click **Explain as shell** when the decoded result is a command line. The command line is shown with each part underlined, and every part is listed below it with a description. Hover over either to highlight the matching one.
+
+- **command**: what the program does. Wrappers such as `sudo`, `env`, `nohup`, `timeout` and `xargs` are explained along with the command they run.
+- **option**: each flag, including bundled flags like `-xzvf` (one line per letter) and the value an option takes, for example `-o out.bin`.
+- **argument**, **operator**, **redirect**, **variable**, **keyword**: operands, `|` `&&` `;` `&`, redirections such as `2>&1` or `>/dev/null`, `NAME=value` assignments, and `if`, `for`, `case` and the like.
+- Text that is itself run, such as `bash -c '...'`, `$(...)`, `eval`, `ssh host '...'` and `find -exec ... \;`, gets its own explanation nested under the item.
+- Some items are marked **check**, for example `/dev/tcp/host/port`, a download or file piped straight into a shell, or `chmod` with setuid. A note above the line says why.
+
+Descriptions come from a built-in list of common and security-relevant commands, then from the man pages on this computer (macOS and Linux), marked **man page**. Parts with no description are shown in italics. Windows has no man pages, so only the built-in list is used there. Only Bash and POSIX shell syntax is understood, not PowerShell or cmd.exe.
+
 Example: input `H4sIAAAAAAAA/...` (Base64 text). Add **Base64 decode**: the result is binary and shown as hex starting `1f 8b`, and the bar suggests **+ Gzip decompress**. Add it: the result is readable text, for example `GET /login?next=https%3A%2F%2Fapp.example.com%2F`, and the bar now suggests **+ URL decode**. One more click gives `GET /login?next=https://app.example.com/`.
 
 ## What the results do and do not tell you
@@ -65,7 +76,7 @@ Example: input `H4sIAAAAAAAA/...` (Base64 text). Add **Base64 decode**: the resu
 
 ## Online activity and privacy
 
-Nothing goes online. Input and results stay in memory and are not saved unless you export or add to a project.
+Nothing goes online, and the explanation never runs anything. To describe commands it reads local man pages with the `man` program. Input and results stay in memory and are not saved unless you export or add to a project.
 
 ## Export and projects
 

@@ -3,6 +3,7 @@
   // intermediate result as text or hex. Output is never executed.
   import { invoke } from "@tauri-apps/api/core";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
+  import ShellExplain from "$lib/components/shell/ShellExplain.svelte";
   import { buildCodecReport, OP_GROUPS, OP_LABEL, type Op, type Run, type View } from "./model";
 
   let input = $state("");
@@ -11,6 +12,7 @@
   let result = $state<Run | null>(null);
   let hexView = $state<Record<number, boolean>>({});
   let copied = $state(false);
+  let explain = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
@@ -124,9 +126,15 @@
           {#each finalView.suggestions as sg (sg)}<button class="sugg" onclick={() => add(sg)}>+ {OP_LABEL[sg]}</button>{/each}
         {/if}
         <span class="spacer"></span>
+        {#if finalView.text !== null}
+          <button class="mini" onclick={() => (explain = !explain)} title="Explain the result as a shell command line">
+            {explain ? "Hide explanation" : "Explain as shell"}
+          </button>
+        {/if}
         <button class="mini" onclick={copyFinal}>{copied ? "Copied" : "Copy result"}</button>
         <ExportMenu build={() => (result ? buildCodecReport(result) : null)} name="encoder" />
       </div>
+      {#if explain && finalView.text !== null}<ShellExplain text={finalView.text} />{/if}
     {/if}
   {/if}
 </div>
