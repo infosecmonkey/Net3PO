@@ -7,15 +7,13 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::net::IpAddr;
 
-use pcap_parser::{PcapBlockOwned, PcapError, create_reader, pcapng::Block};
 use serde::Serialize;
 
 use super::decode::{self, Decoded};
+use super::packets;
 
 /// Summaries kept for browsing; statistics still cover every packet.
 pub const MAX_SUMMARIES: usize = 200_000;
-/// Largest single block accepted (a frame larger than this is malformed).
-const MAX_BLOCK: usize = 16 * 1024 * 1024;
 /// Distinct conversations, talkers and DNS names tracked.
 const MAX_KEYS: usize = 50_000;
 
@@ -251,208 +249,73 @@ impl Acc {
     }
 }
 
-struct Iface {
-    link: i32,
-    /// Timestamp units per second.
-    resolution: u64,
-    offset_s: i64,
-}
-
-fn ns(units: u128, resolution: u64, offset_s: i64) -> i64 {
-    let r = resolution.max(1) as u128;
-    let n = units / r * 1_000_000_000 + (units % r) * 1_000_000_000 / r;
-    (n as i64).saturating_add(offset_s.saturating_mul(1_000_000_000))
-}
-
-/// One packet from the reader, before decoding.
-struct Raw<'a> {
-    link: i32,
-    ts_ns: i64,
-    orig: u32,
-    data: &'a [u8],
-    /// Where `data` starts in the stream.
-    offset: u64,
-}
-
 /// Scan a capture. `progress(bytes_read)` returns false to stop.
-pub fn scan<R: Read + Send>(
-    input: R,
-    mut progress: impl FnMut(u64) -> bool,
-) -> Result<Scan, String> {
-    let mut reader = create_reader(1 << 20, input).map_err(|e| match e {
-        PcapError::HeaderNotRecognized => "not a PCAP or PCAPNG file".to_string(),
-        other => format!("could not read the capture: {other:?}"),
-    })?;
+pub fn scan<R: Read + Send>(input: R, progress: impl FnMut(u64) -> bool) -> Result<Scan, String> {
     let mut summaries = Vec::new();
     let mut st = Stats::default();
     let mut acc = Acc::default();
     let mut warnings: Vec<String> = Vec::new();
-    let mut ifaces: Vec<Iface> = Vec::new();
-    let mut legacy_link: i32 = 1;
-    let mut legacy_ns = false;
-    let mut format = String::from("PCAP");
     let mut links_seen: Vec<i32> = Vec::new();
-    let mut base: u64 = 0;
-    let mut cancelled = false;
     let mut index: u32 = 0;
 
-    loop {
-        match reader.next() {
-            Ok((len, block)) => {
-                let block_start = base;
-                let raw = match &block {
-                    PcapBlockOwned::LegacyHeader(h) => {
-                        legacy_link = h.network.0;
-                        legacy_ns = h.is_nanosecond_precision();
-                        None
-                    }
-                    PcapBlockOwned::Legacy(b) => {
-                        let frac = b.ts_usec as i64;
-                        let ts = b.ts_sec as i64 * 1_000_000_000
-                            + if legacy_ns { frac } else { frac * 1000 };
-                        Some(Raw {
-                            link: legacy_link,
-                            ts_ns: ts,
-                            orig: b.origlen,
-                            data: b.data,
-                            offset: block_start + 16,
-                        })
-                    }
-                    PcapBlockOwned::NG(Block::SectionHeader(_)) => {
-                        format = "PCAPNG".into();
-                        ifaces.clear();
-                        None
-                    }
-                    PcapBlockOwned::NG(Block::InterfaceDescription(idb)) => {
-                        ifaces.push(Iface {
-                            link: idb.linktype.0,
-                            resolution: idb.ts_resolution().unwrap_or(1_000_000),
-                            offset_s: idb.if_tsoffset,
-                        });
-                        None
-                    }
-                    PcapBlockOwned::NG(Block::EnhancedPacket(epb)) => {
-                        match ifaces.get(epb.if_id as usize) {
-                            Some(i) => {
-                                let units = ((epb.ts_high as u128) << 32) | epb.ts_low as u128;
-                                Some(Raw {
-                                    link: i.link,
-                                    ts_ns: ns(units, i.resolution, i.offset_s),
-                                    orig: epb.origlen,
-                                    data: epb.data,
-                                    offset: block_start + 28,
-                                })
-                            }
-                            None => {
-                                if warnings.len() < 20 {
-                                    warnings.push(format!(
-                                        "packet refers to unknown interface {}",
-                                        epb.if_id
-                                    ));
-                                }
-                                None
-                            }
-                        }
-                    }
-                    PcapBlockOwned::NG(Block::SimplePacket(spb)) => ifaces.first().map(|i| Raw {
-                        link: i.link,
-                        ts_ns: 0,
-                        orig: spb.origlen,
-                        data: spb.data,
-                        offset: block_start + 12,
-                    }),
-                    _ => None,
-                };
-                if let Some(r) = raw {
-                    if !links_seen.contains(&r.link) {
-                        links_seen.push(r.link);
-                        if decode::link_name(r.link).is_none() {
-                            warnings.push(format!("link type {} is not decoded; packets are counted but not dissected", r.link));
-                        }
-                    }
-                    let d = decode::decode(r.link, r.data, false);
-                    let cap = r.data.len() as u32;
-                    let truncated = cap < r.orig;
-                    st.packets += 1;
-                    st.bytes += r.orig as u64;
-                    if r.ts_ns != 0 {
-                        st.first_ns = Some(st.first_ns.map_or(r.ts_ns, |f| f.min(r.ts_ns)));
-                        st.last_ns = Some(st.last_ns.map_or(r.ts_ns, |l| l.max(r.ts_ns)));
-                    }
-                    if truncated {
-                        st.truncated += 1;
-                    }
-                    if d.malformed.is_some() {
-                        st.malformed += 1;
-                    }
-                    if d.encrypted {
-                        st.encrypted += 1;
-                    }
-                    acc.add(&d, r.orig as u64, r.ts_ns, &mut st);
-                    if summaries.len() < MAX_SUMMARIES {
-                        summaries.push(Summary {
-                            index,
-                            ts_ns: r.ts_ns,
-                            orig_len: r.orig,
-                            cap_len: cap,
-                            src: d.src,
-                            dst: d.dst,
-                            proto: d.proto,
-                            info: d.info,
-                            truncated,
-                            malformed: d.malformed.is_some(),
-                            encrypted: d.encrypted,
-                            offset: r.offset,
-                            link: r.link,
-                            l4: d.l4,
-                            ips: d.ips,
-                        });
-                    }
-                    index = index.saturating_add(1);
-                }
-                reader.consume(len);
-                base += len as u64;
-                if st.packets.is_multiple_of(5000) && !progress(base) {
-                    cancelled = true;
-                    break;
+    let info = packets::each_packet(
+        input,
+        |r| {
+            if !links_seen.contains(&r.link) {
+                links_seen.push(r.link);
+                if decode::link_name(r.link).is_none() {
+                    warnings.push(format!(
+                        "link type {} is not decoded; packets are counted but not dissected",
+                        r.link
+                    ));
                 }
             }
-            Err(PcapError::Eof) => break,
-            Err(PcapError::Incomplete(_)) => {
-                if let Err(e) = reader.refill() {
-                    match e {
-                        PcapError::Eof | PcapError::UnexpectedEof => {
-                            warnings.push("the file ends in the middle of a packet; the last record is incomplete".into());
-                            break;
-                        }
-                        other => {
-                            warnings.push(format!("read stopped: {other:?}"));
-                            break;
-                        }
-                    }
-                }
+            let d = decode::decode(r.link, r.data, false);
+            let cap = r.data.len() as u32;
+            let truncated = cap < r.orig;
+            st.packets += 1;
+            st.bytes += r.orig as u64;
+            if r.ts_ns != 0 {
+                st.first_ns = Some(st.first_ns.map_or(r.ts_ns, |f| f.min(r.ts_ns)));
+                st.last_ns = Some(st.last_ns.map_or(r.ts_ns, |l| l.max(r.ts_ns)));
             }
-            Err(PcapError::BufferTooSmall) => {
-                let cur = reader.data().len().max(1 << 20);
-                if cur * 2 > MAX_BLOCK || !reader.grow(cur * 2) {
-                    warnings.push("a record larger than 16 MB was found; the file is damaged or not a capture. Stopped there.".into());
-                    break;
-                }
+            if truncated {
+                st.truncated += 1;
             }
-            Err(PcapError::UnexpectedEof) => {
-                warnings.push(
-                    "the file ends in the middle of a packet; the last record is incomplete".into(),
-                );
-                break;
+            if d.malformed.is_some() {
+                st.malformed += 1;
             }
-            Err(e) => {
-                warnings.push(format!(
-                    "damaged data after packet {index}: {e:?}. Stopped there."
-                ));
-                break;
+            if d.encrypted {
+                st.encrypted += 1;
             }
-        }
-    }
+            acc.add(&d, r.orig as u64, r.ts_ns, &mut st);
+            if summaries.len() < MAX_SUMMARIES {
+                summaries.push(Summary {
+                    index,
+                    ts_ns: r.ts_ns,
+                    orig_len: r.orig,
+                    cap_len: cap,
+                    src: d.src,
+                    dst: d.dst,
+                    proto: d.proto,
+                    info: d.info,
+                    truncated,
+                    malformed: d.malformed.is_some(),
+                    encrypted: d.encrypted,
+                    offset: r.offset,
+                    link: r.link,
+                    l4: d.l4,
+                    ips: d.ips,
+                });
+            }
+            index = index.saturating_add(1);
+            true
+        },
+        progress,
+    )?;
+    warnings.extend(info.warnings);
+    let format = info.format;
+    let cancelled = info.cancelled;
     if summaries.len() as u64 != st.packets {
         warnings.push(format!(
             "{} packets read; the first {} are listed, statistics cover all of them",

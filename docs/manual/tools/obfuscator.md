@@ -53,6 +53,7 @@ With **Fake addresses that keep subnets and vendors**, an assistant can still re
 - Private addresses stay private and public addresses stay public.
 - Two addresses in the same /8, /16 or /24 stay in the same fake /8, /16 or /24.
 - The last octet is kept, and `0` and `255` are kept in the middle octets. `10.20.30.0/24`, its gateway `.1` and `10.20.0.0/16` still read as a network, a gateway and a supernet.
+- In subnets where only zeros or 255s could change, such as `10.0.0.x` and `192.168.0.x`, the last octet is changed instead (`.0` and `.255` stay).
 - IPv6 works per 16-bit group: the /48 and /64 structure is kept, as are zero groups and link-local and unique-local prefixes.
 - MAC addresses keep their vendor prefix (OUI), notation and letter case.
 
