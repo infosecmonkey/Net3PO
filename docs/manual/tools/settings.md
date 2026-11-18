@@ -40,6 +40,15 @@ The template is split on spaces into arguments, then placeholders are filled in,
 
 Defaults: RDP `{file}`, VNC `{host}::{port}`. Examples: FreeRDP `/v:{target} /u:{user}`; TigerVNC `{host}::{port}`. There is no password placeholder. On macOS, picking an `.app` opens it with the arguments.
 
+## Updates
+
+| Option | What it does | Default |
+|---|---|---|
+| Check for updates when Net3PO starts | At each start, asks GitHub for the latest release and shows a message only when a newer version exists. Nothing about you or this computer is sent. A failed check stays quiet. | Off |
+| Check for updates now | The same check, on demand; also in About. | |
+
+Updates are never installed without your click. Each download is checked against Net3PO's signing key before it is installed; a download that does not match is refused. See [Installing](../installing.md#updating-and-uninstalling).
+
 ## Where settings are stored
 
 In the app data folder, as `settings`. See [Privacy](../privacy.md).

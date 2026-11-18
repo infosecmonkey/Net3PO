@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { checkForUpdates } from "$lib/updater.svelte";
 
   interface Props {
     onclose: () => void;
@@ -52,6 +53,13 @@
       <div class="btns">
         <button class="secondary" onclick={() => void openUrl(REPO)}>Source code</button>
         <button class="secondary" onclick={showNotices}>Third-party notices</button>
+        <button
+          class="secondary"
+          title="Asks GitHub for the latest release; nothing else is sent"
+          onclick={() => {
+            onclose();
+            void checkForUpdates(true);
+          }}>Check for updates</button>
         <button class="action" onclick={onclose}>Close</button>
       </div>
     {:else}

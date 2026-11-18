@@ -20,6 +20,10 @@ export interface ClientSetting {
 
 export interface Settings {
   remote: Record<Protocol, ClientSetting>;
+  updates: {
+    /** Check GitHub for a newer release when the app starts. Off by default. */
+    checkOnStart: boolean;
+  };
 }
 
 export interface DetectedClient {
@@ -50,6 +54,7 @@ function defaults(): Settings {
       rdp: { mode: "auto", id: "", path: "", args: "{file}" },
       vnc: { mode: "auto", id: "", path: "", args: "{host}::{port}" },
     },
+    updates: { checkOnStart: false },
   };
 }
 
@@ -75,6 +80,8 @@ function merge(saved: unknown): Settings {
       args: typeof s.args === "string" && s.args.trim() ? s.args : d.remote[p].args,
     };
   }
+  const updates = (saved as { updates?: { checkOnStart?: unknown } }).updates;
+  d.updates.checkOnStart = updates?.checkOnStart === true;
   return d;
 }
 

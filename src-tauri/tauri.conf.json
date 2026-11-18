@@ -43,5 +43,16 @@
       "signingIdentity": "-",
       "minimumSystemVersion": "11.0"
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "REPLACE_WITH_NET3PO_UPDATER_PUBLIC_KEY",
+      "endpoints": [
+        "https://github.com/infosecmonkey/Net3PO/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

@@ -22,6 +22,10 @@ nothing anywhere unless you click a button that does a network job.
 - **Optional online lookups** are separate buttons and say what they contact. For example the
   Email Header Analyzer can look up a sending IP in the regional internet registry (RDAP);
   without the click, header analysis stays offline.
+- **Update checks** happen only when you click **Check for updates**, or at startup if you
+  turned that on in Settings (off by default). The check downloads a small `latest.json` file
+  from the project's GitHub releases; an update is downloaded only when you click **Install
+  and restart**. No identifier, usage data or system details are sent.
 - **Links in tokens are never followed.** For example the JWT inspector shows `jku` and `x5u`
   URLs but never fetches them.
 
