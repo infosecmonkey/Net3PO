@@ -51,6 +51,7 @@ use tools::ntp_check::commands::ntp_check;
 use tools::obfuscator::commands::{obfuscate_restore, obfuscate_text};
 use tools::pcap_inspector::commands::{
     PcapRegistry, pcap_cancel, pcap_close, pcap_open, pcap_open_external, pcap_packet, pcap_query,
+    pcap_sanitize,
 };
 use tools::port_mapper::commands::{PortMapRegistry, port_map, port_map_cancel, port_map_save};
 use tools::port_scanner::commands::{ScanRegistry, port_scan, port_scan_cancel};
@@ -131,6 +132,7 @@ pub fn run() {
             pcap_query,
             pcap_packet,
             pcap_open_external,
+            pcap_sanitize,
             mac_db_info,
             fgt_parse,
             filter_build,

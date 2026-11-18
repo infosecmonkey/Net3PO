@@ -3,7 +3,8 @@
 //! IPv4: private ranges stay private, public stays public, and two addresses
 //! in the same /8, /16 or /24 stay together. The last octet is kept, and so
 //! are 0 and 255 in the middle octets, so `10.1.1.0/24` and `10.1.0.0/16`
-//! still read as networks. IPv6 works the same way per 16-bit group. MAC
+//! still read as networks. Where nothing else can change (10.0.0.x,
+//! 192.168.0.x) the last octet is permuted instead. IPv6 works the same way per 16-bit group. MAC
 //! addresses keep their vendor prefix (OUI).
 //!
 //! Each octet or group is passed through a small keyed Feistel permutation
@@ -146,7 +147,15 @@ pub fn fake_v4(key: &FakeKey, ip: Ipv4Addr) -> Ipv4Addr {
         _ => (p(&[], a, &public_first), p(&[a as u8], b, &mid)),
     };
     let nc = p(&[a as u8, b as u8], c, &mid);
-    Ipv4Addr::new(na as u8, nb as u8, nc as u8, d as u8)
+    // In subnets such as 10.0.0.x or 192.168.0.x every octet that may change
+    // is a kept 0 or 255, so the host octet changes instead (within 1..=254,
+    // so the whole /24 stays together and .0 and .255 keep their meaning).
+    let nd = if (na, nb, nc) == (a, b, c) {
+        p(&[a as u8, b as u8, c as u8, b'd'], d, &mid)
+    } else {
+        d
+    };
+    Ipv4Addr::new(na as u8, nb as u8, nc as u8, nd as u8)
 }
 
 /// A fake for an IPv6 address.
@@ -266,6 +275,16 @@ mod tests {
         assert_eq!(a.octets()[3], 5);
         assert_eq!(a.octets()[..2], c.octets()[..2]);
         assert_ne!(a.octets()[2], c.octets()[2]);
+        // Subnets where only zeros could change still change.
+        let z = f4(&k, "10.0.0.1");
+        assert_ne!(z, v4("10.0.0.1"));
+        assert_eq!(z.octets()[..3], [10, 0, 0]);
+        assert_eq!(f4(&k, "10.0.0.0"), v4("10.0.0.0"));
+        assert_ne!(f4(&k, "192.168.0.20"), v4("192.168.0.20"));
+        let mut seen = HashSet::new();
+        for d in 0..=255u8 {
+            assert!(seen.insert(fake_v4(&k, Ipv4Addr::new(192, 168, 0, d))));
+        }
         // Network forms survive.
         let net = f4(&k, "10.20.0.0");
         assert_eq!(net.octets()[2..], [0, 0]);

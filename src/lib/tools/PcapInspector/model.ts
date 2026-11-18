@@ -173,3 +173,26 @@ export function buildPcapReport(r: OpenResult): Report {
     ],
   };
 }
+
+export interface SanitizeOptions {
+  stripPayload: boolean;
+  addresses: boolean;
+  macs: boolean;
+  key: string;
+}
+
+export interface SanitizeReport {
+  packets: number;
+  written: number;
+  dropped: number;
+  stripped: number;
+  bytesRemoved: number;
+  otherCut: number;
+  addresses: number;
+  macs: number;
+  mapping: { kind: "ip" | "mac"; original: string; fake: string }[];
+  key: string;
+  format: string;
+  warnings: string[];
+  cancelled: boolean;
+}

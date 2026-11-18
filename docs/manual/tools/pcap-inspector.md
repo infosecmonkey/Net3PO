@@ -28,6 +28,7 @@
 | Open capture... | Loads a file. Captures are detected by their magic number; anything else is tried as FortiGate sniffer text. | PCAP or PCAPNG of any size (streamed). Sniffer text up to 64 MB, verbose level 3, 4 or 6 with hex. |
 | Stop | Cancels reading. Figures then cover only the part read. | Shown while loading. |
 | Open in Wireshark | Opens the file in the system's default app for captures. Converted sniffer text is first written as a `.pcap` to the app cache folder. | |
+| Clean copy... | Opens the clean copy options: see [Clean copy for sharing](#clean-copy-for-sharing). | |
 | Search box (Packets tab) | Case-insensitive substring match on source, destination, protocol and info. | Free text. |
 | Protocol | Show one protocol only. | "any protocol" or any label found in the file. |
 | IP address | Packets where either address equals this IP. | Exact address. |
@@ -51,6 +52,30 @@
 
 Example: a capture of a failing web request shows Top talkers `192.0.2.10` and `198.51.100.80`, a TCP conversation between `192.0.2.10:51544` and `198.51.100.80:443` with 3 packets, TCP resets 1, and in DNS `www.example.com A 1 query, 1 response`.
 
+## Clean copy for sharing
+
+**Clean copy...** writes a new PCAPNG file for sending to a vendor TAC, a forum or an AI assistant. The original file is not changed, and the copy cannot overwrite it.
+
+| Option | What it does | Default |
+|---|---|---|
+| Remove payloads | Keeps the link, IP and TCP/UDP headers (8 bytes of ICMP) and removes everything after them: application data, DNS names, TLS server names, logins. Each packet keeps its original length on the wire, so Wireshark shows it as "Packet size limited during capture". | On |
+| Replace IP addresses | IPv4 and IPv6 source and destination addresses, ARP addresses, addresses quoted inside ICMP errors, and neighbor discovery targets. Uses the Obfuscator's fake addresses: private stays private, public stays public, hosts in the same /8, /16 or /24 stay together. Loopback, multicast and documentation addresses are kept. IP, TCP, UDP and ICMPv6 checksums are corrected. | On |
+| Replace MAC addresses | Ethernet and Linux cooked capture addresses, ARP, and neighbor discovery link-layer options. The vendor prefix (OUI) is kept; broadcast and multicast MACs are kept. | On |
+| Match the Obfuscator session | Uses the Obfuscator's session key, so addresses get the same fakes as text you obfuscate there. If no session exists yet, this starts one. | Off |
+
+Click **Save clean copy...** and choose a file name. The result lists packets written, payloads removed, addresses and MACs replaced, and any packets left out. **Replaced addresses** lists original and fake values; it is shown in the app only and is not written anywhere.
+
+So that nothing passes through unexamined:
+
+- Frames that are not IP or ARP (LLDP, CDP, STP, LACP and others) are cut to their link header, because their contents (device names, management addresses) cannot be cleaned.
+- Packets with a link type that cannot be parsed (anything other than Ethernet, raw IP, loopback and Linux cooked capture) are left out, with a warning.
+
+Limits:
+
+- Without **Remove payloads**, names and addresses inside application data (DNS, DHCP, HTTP, TLS server names) are not changed.
+- Only the outer headers of tunnels (GRE, IPsec, VXLAN) are changed; with **Remove payloads** the inner packets are removed.
+- Checksums that were already wrong in the original (common with checksum offload on the capturing host) stay wrong.
+
 ## What the results do and do not tell you
 
 - "Facts derived from the capture file only. Encrypted payloads are counted, not decrypted, and protocols the inspector does not decode are labelled as such."
@@ -62,7 +87,7 @@ Example: a capture of a failing web request shows Top talkers `192.0.2.10` and `
 
 ## Online activity and privacy
 
-Nothing goes online. Captures are read locally. **Open in Wireshark** hands the file to another local application; for converted sniffer text, a `.pcap` copy is written to the app's cache folder for that purpose. Nothing else is saved unless you export or add to a project.
+Nothing goes online. Captures are read locally. **Clean copy** writes only the file you choose. **Open in Wireshark** hands the file to another local application; for converted sniffer text, a `.pcap` copy is written to the app's cache folder for that purpose. Nothing else is saved unless you export or add to a project.
 
 ## Export and projects
 

@@ -3,10 +3,22 @@
   // talkers, protocols and DNS from a capture file, or FortiGate sniffer
   // text. Facts from the capture only; Wireshark for deep analysis.
   import { Channel, invoke } from "@tauri-apps/api/core";
-  import { open } from "@tauri-apps/plugin-dialog";
+  import { open, save } from "@tauri-apps/plugin-dialog";
   import { onDestroy } from "svelte";
   import ExportMenu from "$lib/components/ExportMenu.svelte";
-  import { buildPcapReport, bytes, clock, duration, type Filter, type OpenResult, type PacketDetail, type Summary } from "./model";
+  import { session as obfuscatorSession } from "$lib/tools/Obfuscator/session.svelte";
+  import {
+    buildPcapReport,
+    bytes,
+    clock,
+    duration,
+    type Filter,
+    type OpenResult,
+    type PacketDetail,
+    type SanitizeOptions,
+    type SanitizeReport,
+    type Summary,
+  } from "./model";
 
   const PAGE = 500;
   type Tab = "packets" | "conversations" | "talkers" | "protocols" | "dns";
@@ -24,6 +36,13 @@
   let offset = $state(0);
   let detail = $state<PacketDetail | null>(null);
   let selected = $state<number | null>(null);
+
+  // Clean copy.
+  let cleanOpen = $state(false);
+  let cleanOpts = $state({ stripPayload: true, addresses: true, macs: true, matchObfuscator: false });
+  let cleaning = $state(false);
+  let cleanReport = $state<SanitizeReport | null>(null);
+  let cleanPath = $state("");
 
   async function choose() {
     const p = await open({
@@ -109,6 +128,38 @@
     }
   }
 
+  async function saveClean() {
+    if (!loaded) return;
+    const stem = loaded.name.replace(/\.[^.]+$/, "");
+    const out = await save({
+      defaultPath: `${stem}-clean.pcapng`,
+      filters: [{ name: "PCAPNG", extensions: ["pcapng"] }],
+    });
+    if (!out) return;
+    cleaning = true;
+    cleanReport = null;
+    error = "";
+    progress = { bytes: 0, total: 0 };
+    const ch = new Channel<{ type: "progress"; bytes: number; total: number }>();
+    ch.onmessage = (e) => (progress = { bytes: e.bytes, total: e.total });
+    const opts: SanitizeOptions = {
+      stripPayload: cleanOpts.stripPayload,
+      addresses: cleanOpts.addresses,
+      macs: cleanOpts.macs,
+      key: cleanOpts.matchObfuscator ? obfuscatorSession.key : "",
+    };
+    try {
+      cleanReport = await invoke<SanitizeReport>("pcap_sanitize", { id, out, opts, onEvent: ch });
+      cleanPath = out;
+      // Start the Obfuscator session with this key, so pasted text matches.
+      if (cleanOpts.matchObfuscator && !obfuscatorSession.key) obfuscatorSession.key = cleanReport.key;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      cleaning = false;
+    }
+  }
+
   function showFor(value: Partial<Filter>) {
     filter = { text: "", proto: "", ip: "", port: null, onlyFlagged: false, ...value };
     tab = "packets";
@@ -148,10 +199,67 @@
     {/if}
     {#if loaded}
       <button class="second" onclick={wireshark}>Open in Wireshark</button>
+      <button class="second" class:on={cleanOpen} onclick={() => (cleanOpen = !cleanOpen)}>Clean copy...</button>
       <span class="spacer"></span>
       <ExportMenu build={() => (loaded ? buildPcapReport(loaded) : null)} name={`capture-${loaded.name}`} />
     {/if}
   </div>
+  {#if loaded && cleanOpen}
+    <section class="clean">
+      <h2>Clean copy for sharing</h2>
+      <p class="muted small">
+        Writes a new PCAPNG file; the original is not changed. Use it before sending a capture to a vendor, a forum or an AI
+        assistant.
+      </p>
+      <div class="opts">
+        <label class="chk"><input type="checkbox" bind:checked={cleanOpts.stripPayload} /> Remove payloads (keep link, IP and TCP/UDP headers)</label>
+        <label class="chk"><input type="checkbox" bind:checked={cleanOpts.addresses} /> Replace IP addresses (keep subnets)</label>
+        <label class="chk"><input type="checkbox" bind:checked={cleanOpts.macs} /> Replace MAC addresses (keep vendor)</label>
+        <label class="chk" title="Same fake addresses as text you obfuscate in the Obfuscator during this app session">
+          <input type="checkbox" bind:checked={cleanOpts.matchObfuscator} /> Match the Obfuscator session
+        </label>
+      </div>
+      {#if !cleanOpts.stripPayload}
+        <p class="warn">Without removing payloads, names and addresses inside application data (DNS, DHCP, HTTP, TLS server names, logins) stay as they are.</p>
+      {/if}
+      <div class="row">
+        <button class="primary" onclick={saveClean} disabled={cleaning || !(cleanOpts.stripPayload || cleanOpts.addresses || cleanOpts.macs)}>
+          {cleaning ? "Writing..." : "Save clean copy..."}
+        </button>
+        {#if cleaning}
+          <button class="second" onclick={() => invoke("pcap_cancel", { id })}>Stop</button>
+          <span class="muted">{bytes(progress.bytes)}{progress.total ? ` of ${bytes(progress.total)}` : ""}</span>
+        {/if}
+      </div>
+      {#if cleanReport}
+        {@const r = cleanReport}
+        {#if r.cancelled}
+          <div class="warn">Stopped. The partial file was deleted.</div>
+        {:else}
+          <div class="okbox">
+            Saved {r.written.toLocaleString()} of {r.packets.toLocaleString()} packets to <span class="mono">{cleanPath}</span>.
+            {r.stripped ? `${r.stripped.toLocaleString()} payloads removed (${bytes(r.bytesRemoved)}). ` : ""}
+            {r.addresses ? `${r.addresses} IP addresses and ` : ""}{r.macs ? `${r.macs} MAC addresses replaced. ` : ""}
+            {r.otherCut ? `${r.otherCut.toLocaleString()} other frames (ARP variants, LLDP, CDP, STP and similar) cut to their link header. ` : ""}
+            {r.dropped ? `${r.dropped.toLocaleString()} packets left out (link type not supported).` : ""}
+          </div>
+        {/if}
+        {#each r.warnings as w (w)}<div class="warn">{w}</div>{/each}
+        {#if r.mapping.length}
+          <details class="map">
+            <summary>Replaced addresses ({r.mapping.length}{r.mapping.length >= 2000 ? ", first 2,000" : ""}); shown here only</summary>
+            <table>
+              <tbody>
+                {#each r.mapping as m (m.kind + m.original)}
+                  <tr><td class="muted">{m.kind === "ip" ? "IP" : "MAC"}</td><td class="mono">{m.original}</td><td class="mono">{m.fake}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </details>
+        {/if}
+      {/if}
+    </section>
+  {/if}
   {#if loading && progress.total}<div class="bar"><div class="fill" style="width: {Math.min(100, (100 * progress.bytes) / progress.total)}%"></div></div>{/if}
   {#if error}<div class="error">{error}</div>{/if}
 
@@ -570,5 +678,57 @@
 
   .grid td.errc {
     color: var(--error-fg);
+  }
+
+  .clean {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.7rem 0.9rem;
+    margin: 0.6rem 0;
+  }
+
+  .clean h2 {
+    font-size: 0.95rem;
+    margin: 0 0 0.2rem;
+  }
+
+  .opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    margin: 0.5rem 0;
+  }
+
+  .okbox {
+    border: 1px solid #16a34a;
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    margin: 0.5rem 0;
+    overflow-wrap: anywhere;
+  }
+
+  .map {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+  }
+
+  .map summary {
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .map table {
+    border-collapse: collapse;
+    margin-top: 0.3rem;
+  }
+
+  .map td {
+    padding: 0.1rem 0.8rem 0.1rem 0;
+    font-size: 0.78rem;
+  }
+
+  button.on {
+    border-color: var(--accent);
   }
 </style>

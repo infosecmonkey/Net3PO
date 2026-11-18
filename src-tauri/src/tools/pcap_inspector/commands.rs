@@ -15,6 +15,7 @@ use tauri_plugin_opener::OpenerExt;
 
 use super::core::{self, Filter, Stats, Summary};
 use super::decode::{self, Field};
+use super::sanitize;
 use crate::tools::fgt_sniffer::core as fgt;
 
 /// Captures kept loaded at once.
@@ -314,4 +315,85 @@ pub fn pcap_open_external(
             "could not open the capture: {e}. Is Wireshark installed and set to open .pcap files?"
         )
     })
+}
+
+/// Write a cleaned copy of a loaded capture to `out` (PCAPNG): payloads cut,
+/// addresses and MACs replaced, as `opts` says. Cancel with `pcap_cancel`.
+#[tauri::command]
+pub async fn pcap_sanitize(
+    registry: State<'_, PcapRegistry>,
+    id: u32,
+    out: String,
+    opts: sanitize::Options,
+    on_event: Channel<OpenEvent>,
+) -> Result<sanitize::Report, String> {
+    let source = {
+        let sets = registry.sets.lock().unwrap_or_else(|p| p.into_inner());
+        let ds = sets
+            .get(&id)
+            .ok_or("this capture is no longer loaded; open it again")?;
+        match &ds.source {
+            Source::File(p) => Source::File(p.clone()),
+            Source::Bytes(b) => Source::Bytes(b.clone()),
+        }
+    };
+    if let Source::File(p) = &source
+        && std::fs::canonicalize(p)
+            .ok()
+            .is_some_and(|a| std::fs::canonicalize(&out).ok().is_some_and(|b| a == b))
+    {
+        return Err(
+            "choose a different file name: the cleaned copy cannot replace the original".into(),
+        );
+    }
+    let cancel = Arc::new(AtomicBool::new(false));
+    registry
+        .cancel
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .insert(id, cancel.clone());
+    let path = out.clone();
+    let res = tokio::task::spawn_blocking(move || -> Result<sanitize::Report, String> {
+        let file =
+            std::fs::File::create(&path).map_err(|e| format!("could not create {path}: {e}"))?;
+        let writer = std::io::BufWriter::new(file);
+        let result = match &source {
+            Source::File(p) => {
+                let f = std::fs::File::open(p).map_err(|e| format!("could not reopen {p}: {e}"))?;
+                let total = f.metadata().map(|m| m.len()).unwrap_or(0);
+                let progress = |bytes: u64| {
+                    let _ = on_event.send(OpenEvent::Progress { bytes, total });
+                    !cancel.load(Ordering::Relaxed)
+                };
+                sanitize::sanitize(f, writer, &opts, progress)
+            }
+            Source::Bytes(b) => {
+                let total = b.len() as u64;
+                let progress = |bytes: u64| {
+                    let _ = on_event.send(OpenEvent::Progress { bytes, total });
+                    !cancel.load(Ordering::Relaxed)
+                };
+                sanitize::sanitize(Cursor::new(b.as_slice()), writer, &opts, progress)
+            }
+        };
+        match result {
+            Ok(r) if !r.cancelled => Ok(r),
+            Ok(r) => {
+                let _ = std::fs::remove_file(&path);
+                Ok(r)
+            }
+            Err(e) => {
+                let _ = std::fs::remove_file(&path);
+                Err(e)
+            }
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    registry
+        .cancel
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .remove(&id);
+    res
 }
