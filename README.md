@@ -6,16 +6,20 @@ needs no admin rights for the app itself, and sends no telemetry.
 
 ## Tools
 
-| Category | Tools |
+The sidebar groups tools the way troubleshooting usually goes. Every tool has
+a page in the [user manual](docs/manual/README.md), also available inside the
+app from the help button.
+
+| Group | Tools |
 | --- | --- |
-| Offline | Subnet Calculator (IPv4/IPv6, splitting), Regex Builder with networking recipes, Grep Builder (multi-pattern pipelines, GNU/BSD), MAC Vendor Lookup, Config Diff, Certificate Converter (PEM, DER, P7B, PFX; chain and key matching) |
-| Network | Dig, DNS Benchmark (UDP, TCP, DoT, DoH; DNSSEC and NXDOMAIN checks), DNS Analyzer (SPF, DMARC, DKIM, MX, DNSSEC, NS), Port Scanner (TCP connect), Syslog Server, TFTP Server |
-| SNMP | SNMP Walk (v1, v2c, v3), SNMP Sweep, Switch Port Mapper |
-| Advanced | DHCP Monitor (rogue server detection), Visual Traceroute with Path MTU |
-| Fortinet | Fortinet Command Builder, FortiGate Sniffer to PCAP |
-| Decoders | Script Decoder (Python, JavaScript, Bash, PowerShell): unwraps obfuscation layers statically, never executes input |
-| Remote | SSH with grouped saved connections, OS keychain secrets, host key pinning, tabs and a docked terminal; SFTP file browser with uploads and downloads on the same saved connections; RDP and VNC launchers for the installed clients |
-| Workspace | Projects: collect results from several tools and export one report (HTML, PDF, Markdown, text) |
+| Workspace | Projects: collect results and notes from several tools and export one report (HTML, PDF, Markdown, text), redacted if needed |
+| Analysis | DNS Analyzer (SPF, DMARC, DKIM, MX, DNSSEC, NS), Email Header Analyzer, TLS Inspector, Certificate Converter (PEM, DER, P7B, PFX; chain and key matching), JWT / SAML Inspector, Windows Event Log, PCAP Inspector (with clean copies for sharing and extraction of HTTP, FTP and TFTP files and G.711 calls), IOC Extractor, Config Diff, Script Decoder (unwraps obfuscated Python, JavaScript, Bash and PowerShell statically), Encoder Workbench (with a shell command explainer) |
+| Troubleshooting | Dig, DNS Benchmark (UDP, TCP, DoT, DoH), NTP Checker, Port Scanner (TCP connect), Visual Traceroute with Path MTU, HTTP Troubleshooter, Socket Tools, Connectivity Monitor, Throughput Tester (iperf3 compatible), Network Snapshot, Wake-on-LAN |
+| Discovery and SNMP | LLDP / CDP Neighbors, SNMP Walk (v1, v2c, v3), SNMP Sweep, Switch Port Mapper, DHCP Monitor (rogue server detection) |
+| Servers | Syslog Server, TFTP Server |
+| Remote | SSH (OS keychain secrets, host key pinning, tabs), SFTP, and RDP and VNC launchers for the installed clients, all sharing one set of connection groups |
+| Utilities | Subnet Calculator (IPv4/IPv6, splitting), Timestamp Converter, Hash Calculator, MTU Calculator, Regex Builder, Grep Builder, Packet Filter Builder, MAC Vendor Lookup, Obfuscator (remove IPs, names, accounts, secrets, MACs and serials before pasting into an AI assistant or a ticket, then restore the reply) |
+| Fortinet | Fortinet Command Builder, FortiGate Sniffer to PCAP, Debug Flow Parser, Session List Parser (`diagnose sys session list` with decoded flags and offload reasons) |
 
 ## Build from source
 
