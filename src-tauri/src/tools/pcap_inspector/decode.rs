@@ -257,7 +257,7 @@ fn arp(p: &[u8], d: &mut Decoded) {
     };
 }
 
-fn slice<'a>(lt: i32, data: &'a [u8]) -> Result<LaxSlicedPacket<'a>, String> {
+pub(crate) fn slice<'a>(lt: i32, data: &'a [u8]) -> Result<LaxSlicedPacket<'a>, String> {
     let ip = |b: &'a [u8]| LaxSlicedPacket::from_ip(b).map_err(|e| format!("IP header: {e}"));
     match lt {
         1 => LaxSlicedPacket::from_ethernet(data).map_err(|e| format!("Ethernet header: {e}")),

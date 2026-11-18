@@ -6,5 +6,6 @@
 pub mod commands;
 pub mod core;
 pub mod decode;
+pub mod extract;
 pub mod packets;
 pub mod sanitize;

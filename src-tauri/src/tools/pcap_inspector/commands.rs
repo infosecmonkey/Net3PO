@@ -15,7 +15,7 @@ use tauri_plugin_opener::OpenerExt;
 
 use super::core::{self, Filter, Stats, Summary};
 use super::decode::{self, Field};
-use super::sanitize;
+use super::{extract, sanitize};
 use crate::tools::fgt_sniffer::core as fgt;
 
 /// Captures kept loaded at once.
@@ -42,6 +42,8 @@ pub struct PcapRegistry {
     sets: Mutex<HashMap<u32, Dataset>>,
     order: Mutex<Vec<u32>>,
     cancel: Mutex<HashMap<u32, Arc<AtomicBool>>>,
+    /// Objects found by the last extraction, per capture.
+    extracted: Mutex<HashMap<u32, extract::Extracted>>,
 }
 
 #[derive(Clone, Serialize)]
@@ -173,6 +175,11 @@ pub fn pcap_cancel(registry: State<'_, PcapRegistry>, id: u32) {
 
 #[tauri::command]
 pub fn pcap_close(registry: State<'_, PcapRegistry>, id: u32) {
+    registry
+        .extracted
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .remove(&id);
     registry
         .sets
         .lock()
@@ -396,4 +403,194 @@ pub async fn pcap_sanitize(
         .unwrap_or_else(|p| p.into_inner())
         .remove(&id);
     res
+}
+
+fn source_of(registry: &PcapRegistry, id: u32) -> Result<Source, String> {
+    let sets = registry.sets.lock().unwrap_or_else(|p| p.into_inner());
+    let ds = sets
+        .get(&id)
+        .ok_or("this capture is no longer loaded; open it again")?;
+    Ok(match &ds.source {
+        Source::File(p) => Source::File(p.clone()),
+        Source::Bytes(b) => Source::Bytes(b.clone()),
+    })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractResult {
+    pub objects: Vec<extract::Object>,
+    pub warnings: Vec<String>,
+    pub cancelled: bool,
+}
+
+/// Find files and calls in a loaded capture. Objects stay in memory until
+/// saved, the capture is closed, or another extraction runs.
+#[tauri::command]
+pub async fn pcap_extract(
+    registry: State<'_, PcapRegistry>,
+    id: u32,
+    opts: extract::Options,
+    on_event: Channel<OpenEvent>,
+) -> Result<ExtractResult, String> {
+    let source = source_of(&registry, id)?;
+    registry
+        .extracted
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .remove(&id);
+    let cancel = Arc::new(AtomicBool::new(false));
+    registry
+        .cancel
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .insert(id, cancel.clone());
+    let res = tokio::task::spawn_blocking(move || -> Result<extract::Extracted, String> {
+        let progress = |total: u64| {
+            move |bytes: u64| {
+                let _ = on_event.send(OpenEvent::Progress { bytes, total });
+                !cancel.load(Ordering::Relaxed)
+            }
+        };
+        match &source {
+            Source::File(p) => {
+                let f = std::fs::File::open(p).map_err(|e| format!("could not reopen {p}: {e}"))?;
+                let total = f.metadata().map(|m| m.len()).unwrap_or(0);
+                extract::extract(f, &opts, progress(total))
+            }
+            Source::Bytes(b) => {
+                extract::extract(Cursor::new(b.as_slice()), &opts, progress(b.len() as u64))
+            }
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    registry
+        .cancel
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .remove(&id);
+    let x = res?;
+    let result = ExtractResult {
+        objects: x.objects.clone(),
+        warnings: x.warnings.clone(),
+        cancelled: x.cancelled,
+    };
+    registry
+        .extracted
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .insert(id, x);
+    Ok(result)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Saved {
+    pub id: u32,
+    pub path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveResult {
+    pub saved: Vec<Saved>,
+    pub errors: Vec<String>,
+}
+
+/// Create `name` in `dir` without replacing anything: `x.png`, `x (2).png`...
+fn create_unique(
+    dir: &std::path::Path,
+    name: &str,
+) -> std::io::Result<(std::fs::File, std::path::PathBuf)> {
+    let (stem, ext) = match name.rsplit_once('.') {
+        Some((a, b)) if !a.is_empty() => (a.to_string(), format!(".{b}")),
+        _ => (name.to_string(), String::new()),
+    };
+    for n in 1..=1000 {
+        let file = if n == 1 {
+            name.to_string()
+        } else {
+            format!("{stem} ({n}){ext}")
+        };
+        let path = dir.join(&file);
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(f) => return Ok((f, path)),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e),
+        }
+    }
+    Err(std::io::Error::other("too many files with this name"))
+}
+
+/// Write extracted objects into `folder`. Existing files are never replaced,
+/// and nothing is opened.
+#[tauri::command]
+pub async fn pcap_extract_save(
+    registry: State<'_, PcapRegistry>,
+    id: u32,
+    folder: String,
+    ids: Vec<u32>,
+) -> Result<SaveResult, String> {
+    let dir = std::path::PathBuf::from(&folder);
+    if !dir.is_dir() {
+        return Err(format!("{folder} is not a folder"));
+    }
+    let items: Vec<(u32, String, Vec<u8>)> = {
+        let ex = registry.extracted.lock().unwrap_or_else(|p| p.into_inner());
+        let x = ex
+            .get(&id)
+            .ok_or("nothing extracted from this capture; run Find again")?;
+        ids.iter()
+            .filter_map(|i| {
+                let k = *i as usize;
+                Some((*i, x.objects.get(k)?.name.clone(), x.data.get(k)?.clone()))
+            })
+            .collect()
+    };
+    tokio::task::spawn_blocking(move || {
+        let mut out = SaveResult {
+            saved: Vec::new(),
+            errors: Vec::new(),
+        };
+        for (i, name, data) in items {
+            let res = create_unique(&dir, &name).and_then(|(mut f, path)| {
+                use std::io::Write;
+                f.write_all(&data)?;
+                Ok(path)
+            });
+            match res {
+                Ok(path) => out.saved.push(Saved {
+                    id: i,
+                    path: path.to_string_lossy().into_owned(),
+                }),
+                Err(e) => out.errors.push(format!("{name}: {e}")),
+            }
+        }
+        out
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::create_unique;
+
+    #[test]
+    fn saving_never_replaces_files() {
+        let dir = std::env::temp_dir().join(format!("omnipacket-save-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let (_, a) = create_unique(&dir, "logo.png").unwrap();
+        let (_, b) = create_unique(&dir, "logo.png").unwrap();
+        let (_, c) = create_unique(&dir, "README").unwrap();
+        let (_, d) = create_unique(&dir, "README").unwrap();
+        assert!(a.ends_with("logo.png") && b.ends_with("logo (2).png"));
+        assert!(c.ends_with("README") && d.ends_with("README (2)"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

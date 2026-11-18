@@ -196,3 +196,34 @@ export interface SanitizeReport {
   warnings: string[];
   cancelled: boolean;
 }
+
+export interface ExtractOptions {
+  http: boolean;
+  ftp: boolean;
+  tftp: boolean;
+  voice: boolean;
+  decompress: boolean;
+}
+
+export type ObjectKind = "http" | "ftp" | "tftp" | "voice";
+
+export interface ExtractedObject {
+  id: number;
+  kind: ObjectKind;
+  name: string;
+  contentType: string;
+  size: number;
+  endpoints: string;
+  detail: string;
+  firstPacket: number;
+  complete: boolean;
+  sha256: string;
+}
+
+export interface ExtractResult {
+  objects: ExtractedObject[];
+  warnings: string[];
+  cancelled: boolean;
+}
+
+export const OBJECT_KIND: Record<ObjectKind, string> = { http: "HTTP", ftp: "FTP", tftp: "TFTP", voice: "Voice" };

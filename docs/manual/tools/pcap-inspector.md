@@ -29,6 +29,7 @@
 | Stop | Cancels reading. Figures then cover only the part read. | Shown while loading. |
 | Open in Wireshark | Opens the file in the system's default app for captures. Converted sniffer text is first written as a `.pcap` to the app cache folder. | |
 | Clean copy... | Opens the clean copy options: see [Clean copy for sharing](#clean-copy-for-sharing). | |
+| Extract files... | Opens the extraction options: see [Extract files and calls](#extract-files-and-calls). | |
 | Search box (Packets tab) | Case-insensitive substring match on source, destination, protocol and info. | Free text. |
 | Protocol | Show one protocol only. | "any protocol" or any label found in the file. |
 | IP address | Packets where either address equals this IP. | Exact address. |
@@ -76,6 +77,32 @@ Limits:
 - Only the outer headers of tunnels (GRE, IPsec, VXLAN) are changed; with **Remove payloads** the inner packets are removed.
 - Checksums that were already wrong in the original (common with checksum offload on the capturing host) stay wrong.
 
+## Extract files and calls
+
+**Extract files...** finds files and voice calls carried in clear text and saves the ones you pick.
+
+| Option | What it finds | Default |
+|---|---|---|
+| HTTP objects and uploads | Every HTTP/1.x response body (pages, images, scripts, downloads) and request body (uploads) on any TCP port. TCP streams are reassembled in sequence order; retransmissions and out-of-order segments are handled. Pipelined requests are paired with their responses. | On |
+| FTP transfers | Files and listings on FTP data connections, matched to the control connection's `PORT`, `EPRT`, `227` or `229` and named from `RETR`, `STOR`, `STOU` or `APPE`. | On |
+| TFTP transfers | Read and write requests and their data blocks, including the `blksize` option and block number wrap. | On |
+| Voice calls (RTP G.711) | RTP streams in G.711 mu-law (PCMU) or A-law (PCMA), decoded to 16-bit 8 kHz WAV, one file per direction. Lost packets become silence. | On |
+| Decode gzip and deflate bodies | Saves HTTP bodies decoded, as the browser saw them. Off saves them as sent. | On |
+
+Click **Find**. The table lists each object with its type, a safe file name, size, sender and receiver, details (request and status, FTP command, codec and packet loss) and the packet number where it starts. Hover a name for its SHA-256. **incomplete** means bytes are missing: lost or uncaptured packets, a capture that ends mid-transfer, or a size limit. Filter the list, tick the objects you want (or **Select shown**), and click **Save to folder...**.
+
+Saving never replaces an existing file: a second `logo.png` is saved as `logo (2).png`. File names are cleaned so they cannot point outside the folder or use names the OS reserves.
+
+The files come from network traffic and may be malicious. The app saves them and never opens them; scan them before you open them.
+
+Limits:
+
+- Encrypted traffic (HTTPS, FTPS, SFTP, SRTP, VPN tunnels) cannot be extracted. HTTP/2 and HTTP/3 are always encrypted in practice and are not decoded.
+- A connection whose start is not in the capture is found only if its first captured bytes begin an HTTP message.
+- Voice: G.711 only (the common default on SIP trunks and phones). Other codecs (G.722, G.729, Opus) are not decoded. Streams with fewer than 20 packets are ignored to avoid false matches.
+- Memory limits: 64 MB per stream or transfer, 512 MB buffered in total, 512 MB and 5,000 objects kept. Objects over a limit are marked incomplete or left out, with a warning.
+- Found objects are kept in memory until you save them, close the capture or search again.
+
 ## What the results do and do not tell you
 
 - "Facts derived from the capture file only. Encrypted payloads are counted, not decrypted, and protocols the inspector does not decode are labelled as such."
@@ -87,7 +114,7 @@ Limits:
 
 ## Online activity and privacy
 
-Nothing goes online. Captures are read locally. **Clean copy** writes only the file you choose. **Open in Wireshark** hands the file to another local application; for converted sniffer text, a `.pcap` copy is written to the app's cache folder for that purpose. Nothing else is saved unless you export or add to a project.
+Nothing goes online. Captures are read locally. **Clean copy** writes only the file you choose, and **Extract files** writes only the files you pick, into the folder you choose. **Open in Wireshark** hands the file to another local application; for converted sniffer text, a `.pcap` copy is written to the app's cache folder for that purpose. Nothing else is saved unless you export or add to a project.
 
 ## Export and projects
 
