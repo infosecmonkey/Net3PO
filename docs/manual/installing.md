@@ -1,7 +1,8 @@
 # Installing Net3PO
 
 Net3PO is free and open source (Apache-2.0). Download installers from the
-[Releases page](https://github.com/infosecmonkey/Net3PO/releases). Each release lists
+[latest release](https://github.com/infosecmonkey/Net3PO/releases/latest) (older ones are on the
+[Releases page](https://github.com/infosecmonkey/Net3PO/releases)). Each release lists
 `SHA256SUMS.txt`; check your download against it before installing.
 
 | Platform | File | Notes |
