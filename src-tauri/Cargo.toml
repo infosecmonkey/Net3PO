@@ -1,6 +1,6 @@
 [package]
 name = "omnipacket"
-version = "0.3.1"
+version = "0.3.2"
 description = "Network and security engineering toolkit"
 authors = ["InfoSecOps, Inc."]
 license = "Apache-2.0"
