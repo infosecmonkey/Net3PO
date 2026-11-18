@@ -7,7 +7,7 @@ nothing anywhere unless you click a button that does a network job.
 
 - **Offline tools never use the network:** Subnet Calculator, Timestamp Converter, Hash
   Calculator, MTU Calculator, Regex Builder, Grep Builder, Packet Filter Builder, MAC Vendor Lookup
-  (the vendor database is bundled), Obfuscator, Config Diff, Script Decoder, Encoder Workbench, IOC
+  (the vendor database is bundled; Settings can download a newer copy when you click), Obfuscator, Config Diff, Script Decoder, Encoder Workbench, IOC
   Extractor, PCAP Inspector, Windows Event Log, JWT / SAML Inspector, Certificate Converter, Debug Flow Parser, Session List Parser,
   FortiGate Sniffer to PCAP, the Fortinet Command Builder and Network Snapshot (which reads
   local configuration with the OS's own commands).
@@ -22,6 +22,9 @@ nothing anywhere unless you click a button that does a network job.
 - **Optional online lookups** are separate buttons and say what they contact. For example the
   Email Header Analyzer can look up a sending IP in the regional internet registry (RDAP);
   without the click, header analysis stays offline.
+- **MAC vendor database updates** happen only when you click **Check for update** or
+  **Download latest** in Settings: the app contacts `standards-oui.ieee.org` for the IEEE
+  registry files. Lookups themselves never go online.
 - **Links in tokens are never followed.** For example the JWT inspector shows `jku` and `x5u`
   URLs but never fetches them.
 
@@ -34,6 +37,7 @@ nothing anywhere unless you click a button that does a network job.
 | Saved RDP and VNC hosts, and app settings (which remote clients to open) | App data folder (`rdp_hosts`, `vnc_hosts`, `settings`) |
 | SSH passwords and key passphrases | OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service), only if you choose to save them |
 | Network snapshots | App data folder, `snapshots/` |
+| Downloaded MAC vendor database (only if you downloaded one) | App data folder, `mac-vendor/` |
 | Tool history and settings (for example recent targets) | App data folder |
 | Unsaved note draft, sidebar layout, redaction settings | App's local web storage |
 | Obfuscator categories, rules and exclusions (never its mapping, which stays in memory) | App data folder (`obfuscator_settings`) |

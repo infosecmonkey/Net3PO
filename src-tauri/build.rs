@@ -26,6 +26,7 @@ fn generate_oui_data() {
     let out_file = PathBuf::from(env::var("OUT_DIR").unwrap()).join("oui_data.csv");
     let seed = include_str!("seed_oui.csv").to_string();
 
+    let mut date = String::new();
     let (data, source) = if let Ok(path) = env::var("OUI_DATA_FILE") {
         match fs::read_to_string(&path) {
             Ok(s) => (s, "file"),
@@ -40,7 +41,10 @@ fn generate_oui_data() {
         (seed, "seed")
     } else {
         match fetch_all() {
-            Ok(s) => (s, "live"),
+            Ok((s, d)) => {
+                date = d;
+                (s, "live")
+            }
             Err(e) => {
                 warn(&format!(
                     "OUI fetch failed ({e}); using seed set. \
@@ -53,30 +57,47 @@ fn generate_oui_data() {
 
     fs::write(&out_file, data).expect("write oui_data.csv");
     println!("cargo:rustc-env=OUI_SOURCE={source}");
+    // IEEE date of the embedded data, so the app can tell whether the
+    // registry online is newer. Empty when unknown.
+    println!("cargo:rustc-env=OUI_DATE={date}");
 }
 
 fn warn(msg: &str) {
     println!("cargo:warning={msg}");
 }
 
-fn fetch_all() -> Result<String, String> {
+/// `Tue, 17 Nov 2026 21:01:40 GMT` as `2026-11-17`.
+fn http_date(v: &str) -> Option<String> {
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let parts: Vec<&str> = v.split_whitespace().collect();
+    let day: u32 = parts.get(1)?.parse().ok()?;
+    let name = parts.get(2)?;
+    let month = MONTHS.iter().position(|m| m == name)? + 1;
+    let year: u32 = parts.get(3)?.parse().ok()?;
+    Some(format!("{year:04}-{month:02}-{day:02}"))
+}
+
+/// The registry CSV and the newest IEEE Last-Modified date among the files.
+fn fetch_all() -> Result<(String, String), String> {
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(20))
         .timeout_read(Duration::from_secs(90))
         .build();
 
     let mut out = String::new();
+    let mut date = String::new();
     for url in URLS {
-        let body = agent
-            .get(url)
-            .call()
-            .map_err(|e| format!("{url}: {e}"))?
-            .into_string()
-            .map_err(|e| format!("{url}: {e}"))?;
+        let resp = agent.get(url).call().map_err(|e| format!("{url}: {e}"))?;
+        if let Some(d) = resp.header("Last-Modified").and_then(http_date) {
+            date = date.max(d);
+        }
+        let body = resp.into_string().map_err(|e| format!("{url}: {e}"))?;
         out.push_str(&body);
         if !out.ends_with('\n') {
             out.push('\n');
         }
     }
-    Ok(out)
+    Ok((out, date))
 }
