@@ -63,15 +63,36 @@ jobs:
 
       # Release builds fetch the live IEEE OUI registry (no OUI_OFFLINE); the
       # build script falls back to the bundled seed set if the fetch fails.
+      # Update files (.sig, .app.tar.gz, latest.json) are signed with the
+      # updater key from Actions secrets and built only here, so local and CI
+      # builds need no key. Installed apps fetch latest.json from the latest
+      # published release, so drafts never reach users.
+      - name: Check the updater signing key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set in the repository secrets; update files cannot be signed."
+            exit 1
+          fi
+          if grep -q REPLACE_WITH_NET3PO_UPDATER_PUBLIC_KEY src-tauri/tauri.conf.json; then
+            echo "::error::The updater public key in src-tauri/tauri.conf.json is still the placeholder."
+            exit 1
+          fi
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Net3PO ${{ github.ref_name }}
           releaseDraft: true
           prerelease: true
-          args: ${{ matrix.args }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          args: ${{ matrix.args }} --config '{"bundle":{"createUpdaterArtifacts":true}}'
           releaseBody: |
             Test build for the team. Builds are not code signed yet, so each OS warns once:
 
@@ -80,6 +101,8 @@ jobs:
             **Windows** (`-setup.exe` recommended, or `.msi`): SmartScreen may say "Windows protected your PC". Click **More info**, then **Run anyway**.
 
             **Linux** (`amd64`/`x86_64` for Intel and AMD PCs, `arm64`/`aarch64` for ARM, including VMs on Apple Silicon Macs; check with `uname -m`): `.deb` for Ubuntu and Debian (`sudo apt install ./Net3PO_*.deb`), `.rpm` for RHEL and Fedora (`sudo dnf install ./Net3PO-*.rpm`), or the `.AppImage` (`chmod +x` it and run).
+
+            **Updates:** from this version on, About > **Check for updates** installs new versions in place on macOS, Windows and the Linux AppImage (`.deb` and `.rpm` installs get a link to the new release instead). Settings has an option to check when the app starts; it is off by default.
 
             A few tools need extra privileges on some systems (for example Syslog or TFTP on their standard ports on Linux); the tool explains what it needs.
 

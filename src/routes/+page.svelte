@@ -10,9 +10,14 @@
   import { ssh } from "$lib/ssh/sessions.svelte";
   import { findTool } from "$lib/tools/registry";
   import { nav } from "$lib/nav.svelte";
-  import { loadSettings } from "$lib/settings.svelte";
+  import { loadSettings, settings } from "$lib/settings.svelte";
+  import UpdateDialog from "$lib/components/UpdateDialog.svelte";
+  import { checkForUpdates, updates } from "$lib/updater.svelte";
   // Settings decide which remote tools show; detection runs once at launch.
-  void loadSettings();
+  void loadSettings().then(() => {
+    // Opt-in only: no network request unless the user turned this on.
+    if (settings.value.updates.checkOnStart) void checkForUpdates(false);
+  });
 
   let ToolComponent = $state<Component | null>(null);
   let loading = $state(false);
@@ -79,6 +84,7 @@
   </div>
   {#if help.open}<HelpPanel />{/if}
   {#if notes.open}<NotesPanel />{/if}
+  {#if updates.open}<UpdateDialog />{/if}
 </div>
 
 <style>

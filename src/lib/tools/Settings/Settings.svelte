@@ -2,6 +2,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { detectClients, saveSettings, settings, type Protocol } from "$lib/settings.svelte";
   import { recommended } from "./recommended";
+  import { checkForUpdates, updates } from "$lib/updater.svelte";
 
   let detecting = $state(false);
   let saved = $state("");
@@ -172,6 +173,26 @@
         </details>
       </div>
     {/each}
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Updates</h2>
+    </div>
+    <div class="card">
+      <label class="choice">
+        <input type="checkbox" bind:checked={settings.value.updates.checkOnStart} onchange={persist} />
+        Check for updates when Net3PO starts
+      </label>
+      <p class="hint">
+        Off by default. When on, Net3PO asks GitHub for the latest release each time it starts, and shows a message only
+        when there is a newer version. Nothing about you or this computer is sent. Updates are never installed without
+        your click, and each one is checked against Net3PO's signing key first.
+      </p>
+      <button class="small" onclick={() => void checkForUpdates(true)} disabled={updates.status === "checking"}>
+        {updates.status === "checking" ? "Checking..." : "Check for updates now"}
+      </button>
+    </div>
   </section>
 </div>
 

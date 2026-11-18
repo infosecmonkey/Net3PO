@@ -83,7 +83,16 @@ only. See each tool's **Platform notes**.
 
 ## Updating and uninstalling
 
-Install the new version over the old one. Your projects, notes, saved SSH hosts and settings
+**Check for updates** in About (or in Settings > Updates) asks GitHub for the latest release.
+If there is a newer version, it shows the version and release notes; **Install and restart**
+downloads it, checks it against Net3PO's signing key, installs it and restarts the app. This
+works on macOS, Windows and the Linux AppImage. Copies installed from a `.deb` or `.rpm` show
+**Open release page** instead, because the package manager has to install the new version.
+To be told about new versions automatically, turn on **Check for updates when Net3PO starts**
+in Settings; it is off by default. Updates start working from version 0.3.3: earlier versions
+have to be updated by hand once.
+
+You can also install the new version over the old one by hand. Your projects, notes, saved SSH hosts and settings
 are kept (see [Privacy and data](privacy.md) for where they live). Uninstall with the normal
 OS method (drag to Trash, Apps and Features, `sudo apt remove net3-po`, `sudo dnf remove net3-po`);
 your data folder is left in place until you delete it.

@@ -1,8 +1,10 @@
+mod app_update;
 mod projects;
 mod report;
 mod store;
 mod tools;
 
+use app_update::update_kind;
 use projects::commands::{
     ProjectsLock, project_add, project_create, project_delete, project_export, project_get,
     project_list, project_note_delete, project_note_save, project_redact_preview, project_update,
@@ -91,6 +93,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(ScanRegistry::default())
         .manage(BenchRegistry::default())
         .manage(PcapRegistry::default())
@@ -114,6 +118,7 @@ pub fn run() {
         .manage(SftpRegistry::default())
         .manage(ProjectsLock::default())
         .invoke_handler(tauri::generate_handler![
+            update_kind,
             cidr_aggregate,
             cidr_compare,
             subnet_calculate,
