@@ -15,6 +15,9 @@
     type Filter,
     type OpenResult,
     type PacketDetail,
+    OBJECT_KIND,
+    type ExtractOptions,
+    type ExtractResult,
     type SanitizeOptions,
     type SanitizeReport,
     type Summary,
@@ -43,6 +46,22 @@
   let cleaning = $state(false);
   let cleanReport = $state<SanitizeReport | null>(null);
   let cleanPath = $state("");
+
+  // Extract files.
+  let extractOpen = $state(false);
+  let extractOpts = $state<ExtractOptions>({ http: true, ftp: true, tftp: true, voice: true, decompress: true });
+  let extracting = $state(false);
+  let extracted = $state<ExtractResult | null>(null);
+  let picked = $state<Record<number, boolean>>({});
+  let objFilter = $state("");
+  let savedMsg = $state("");
+
+  const shownObjects = $derived.by(() => {
+    const q = objFilter.trim().toLowerCase();
+    const list = extracted?.objects ?? [];
+    return q ? list.filter((o) => `${o.kind} ${o.name} ${o.contentType} ${o.endpoints} ${o.detail}`.toLowerCase().includes(q)) : list;
+  });
+  const pickedIds = $derived(Object.entries(picked).filter(([, v]) => v).map(([k]) => Number(k)));
 
   async function choose() {
     const p = await open({
@@ -160,6 +179,44 @@
     }
   }
 
+  async function findObjects() {
+    if (!loaded) return;
+    extracting = true;
+    extracted = null;
+    picked = {};
+    savedMsg = "";
+    error = "";
+    progress = { bytes: 0, total: 0 };
+    const ch = new Channel<{ type: "progress"; bytes: number; total: number }>();
+    ch.onmessage = (e) => (progress = { bytes: e.bytes, total: e.total });
+    try {
+      extracted = await invoke<ExtractResult>("pcap_extract", { id, opts: $state.snapshot(extractOpts), onEvent: ch });
+    } catch (e) {
+      error = String(e);
+    } finally {
+      extracting = false;
+    }
+  }
+
+  function pickAll(on: boolean) {
+    const next: Record<number, boolean> = { ...picked };
+    for (const o of shownObjects) next[o.id] = on;
+    picked = next;
+  }
+
+  async function saveObjects(ids: number[]) {
+    if (!ids.length) return;
+    const folder = await open({ directory: true, multiple: false, title: "Folder for the extracted files" });
+    if (typeof folder !== "string") return;
+    try {
+      const r = await invoke<{ saved: { id: number; path: string }[]; errors: string[] }>("pcap_extract_save", { id, folder, ids });
+      savedMsg = `Saved ${r.saved.length} file${r.saved.length === 1 ? "" : "s"} to ${folder}.`;
+      if (r.errors.length) error = r.errors.slice(0, 5).join("\n");
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   function showFor(value: Partial<Filter>) {
     filter = { text: "", proto: "", ip: "", port: null, onlyFlagged: false, ...value };
     tab = "packets";
@@ -200,6 +257,7 @@
     {#if loaded}
       <button class="second" onclick={wireshark}>Open in Wireshark</button>
       <button class="second" class:on={cleanOpen} onclick={() => (cleanOpen = !cleanOpen)}>Clean copy...</button>
+      <button class="second" class:on={extractOpen} onclick={() => (extractOpen = !extractOpen)}>Extract files...</button>
       <span class="spacer"></span>
       <ExportMenu build={() => (loaded ? buildPcapReport(loaded) : null)} name={`capture-${loaded.name}`} />
     {/if}
@@ -256,6 +314,68 @@
               </tbody>
             </table>
           </details>
+        {/if}
+      {/if}
+    </section>
+  {/if}
+  {#if loaded && extractOpen}
+    <section class="clean">
+      <h2>Extract files and calls</h2>
+      <p class="muted small">
+        Finds files carried in clear text (HTTP, FTP, TFTP) and G.711 voice calls (RTP, saved as WAV). Encrypted traffic such as
+        HTTPS, FTPS and SRTP cannot be extracted.
+      </p>
+      <div class="opts">
+        <label class="chk"><input type="checkbox" bind:checked={extractOpts.http} /> HTTP objects and uploads</label>
+        <label class="chk"><input type="checkbox" bind:checked={extractOpts.ftp} /> FTP transfers</label>
+        <label class="chk"><input type="checkbox" bind:checked={extractOpts.tftp} /> TFTP transfers</label>
+        <label class="chk"><input type="checkbox" bind:checked={extractOpts.voice} /> Voice calls (RTP G.711)</label>
+        <label class="chk"><input type="checkbox" bind:checked={extractOpts.decompress} /> Decode gzip and deflate bodies</label>
+      </div>
+      <div class="row">
+        <button class="primary" onclick={findObjects} disabled={extracting || !(extractOpts.http || extractOpts.ftp || extractOpts.tftp || extractOpts.voice)}>
+          {extracting ? "Searching..." : "Find"}
+        </button>
+        {#if extracting}
+          <button class="second" onclick={() => invoke("pcap_cancel", { id })}>Stop</button>
+          <span class="muted">{bytes(progress.bytes)}{progress.total ? ` of ${bytes(progress.total)}` : ""}</span>
+        {/if}
+      </div>
+      {#if extracted}
+        {#each extracted.warnings as w (w)}<div class="warn">{w}</div>{/each}
+        {#if extracted.cancelled}<div class="warn">Stopped; only the part read was searched.</div>{/if}
+        {#if !extracted.objects.length}
+          <p class="muted">Nothing found.</p>
+        {:else}
+          <p class="warn">
+            These files come from network traffic and may be malicious. They are saved, never opened. Scan them before you open
+            them.
+          </p>
+          <div class="row">
+            <input class="mono grow" bind:value={objFilter} placeholder="filter by name, type, address or request" spellcheck="false" />
+            <button class="mini" onclick={() => pickAll(true)}>Select shown</button>
+            <button class="mini" onclick={() => pickAll(false)}>Clear</button>
+            <button class="primary" onclick={() => saveObjects(pickedIds)} disabled={!pickedIds.length}>Save {pickedIds.length || ""} to folder...</button>
+          </div>
+          {#if savedMsg}<div class="okbox">{savedMsg}</div>{/if}
+          <div class="table-wrap objs">
+            <table class="pk">
+              <thead><tr><th></th><th>Type</th><th>Name</th><th>Size</th><th>From &gt; to</th><th>Details</th><th>#</th></tr></thead>
+              <tbody>
+                {#each shownObjects as o (o.id)}
+                  <tr class:bad={!o.complete}>
+                    <td><input type="checkbox" bind:checked={picked[o.id]} aria-label="Select {o.name}" /></td>
+                    <td>{OBJECT_KIND[o.kind]}</td>
+                    <td class="mono" title={`SHA-256 ${o.sha256}`}>{o.name}{#if !o.complete}<span class="tag" title="Bytes are missing (lost packets, capture cut or size limit)">incomplete</span>{/if}</td>
+                    <td class="num">{bytes(o.size)}</td>
+                    <td class="mono small">{o.endpoints}</td>
+                    <td class="small">{o.contentType ? `${o.contentType} · ` : ""}{o.detail}</td>
+                    <td class="num">{o.firstPacket}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
         {/if}
       {/if}
     </section>
@@ -730,5 +850,23 @@
 
   button.on {
     border-color: var(--accent);
+  }
+
+  .objs {
+    max-height: 22rem;
+  }
+
+  .tag {
+    font-size: 0.66rem;
+    border: 1px solid #b45309;
+    color: #b45309;
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    margin-left: 0.4rem;
+  }
+
+  td.num {
+    text-align: right;
+    white-space: nowrap;
   }
 </style>
