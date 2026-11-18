@@ -56,7 +56,7 @@
         OUI_DATA_FILE, to load the full IEEE registry.
       {:else}
         {db.total.toLocaleString()} assignments loaded
-        (MA-L {db.maL.toLocaleString()}, MA-M {db.maM.toLocaleString()}, MA-S {db.maS.toLocaleString()}){db.source === "file" ? ", from file" : ""}.
+        (MA-L {db.maL.toLocaleString()}, MA-M {db.maM.toLocaleString()}, MA-S {db.maS.toLocaleString()}){db.source === "file" ? ", from file" : ""}{db.source === "downloaded" ? ", downloaded" : ""}{db.ieeeDate ? `, IEEE data of ${db.ieeeDate}` : ""}. Update it in Settings.
       {/if}
     </div>
   {/if}

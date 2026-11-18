@@ -41,7 +41,9 @@ use tools::ioc::commands::{ioc_extract, ioc_transform};
 use tools::iperf::commands::{IperfRegistry, iperf_client, iperf_detect, iperf_server, iperf_stop};
 use tools::jwt_saml::commands::{jwt_inspect, saml_inspect, saml_read_file, saml_scan};
 use tools::lldp::commands::{LldpRegistry, lldp_listen, lldp_read_file, lldp_status, lldp_stop};
-use tools::mac_vendor::commands::{mac_db_info, mac_lookup};
+use tools::mac_vendor::commands::{
+    mac_db_check, mac_db_download, mac_db_info, mac_db_reset, mac_lookup,
+};
 use tools::mtu_calc::commands::mtu_calculate;
 use tools::net_snapshot::commands::{
     snap_compare, snap_delete, snap_export_file, snap_get, snap_import_file, snap_label, snap_list,
@@ -91,6 +93,13 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            use tauri::Manager;
+            if let Ok(dir) = app.path().app_data_dir() {
+                tools::mac_vendor::set_data_dir(dir);
+            }
+            Ok(())
+        })
         .manage(ScanRegistry::default())
         .manage(BenchRegistry::default())
         .manage(PcapRegistry::default())
@@ -136,6 +145,9 @@ pub fn run() {
             pcap_extract,
             pcap_extract_save,
             mac_db_info,
+            mac_db_check,
+            mac_db_download,
+            mac_db_reset,
             fgt_parse,
             filter_build,
             fgt_save,

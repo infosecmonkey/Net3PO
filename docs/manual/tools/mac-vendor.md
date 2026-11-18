@@ -32,7 +32,7 @@ There are no other options.
 
 **Dataset line** (above the input):
 
-- Normal: "N assignments loaded (MA-L x, MA-M y, MA-S z)". ", from file" is added when the build used a local copy of the registry.
+- Normal: "N assignments loaded (MA-L x, MA-M y, MA-S z), IEEE data of YYYY-MM-DD". ", downloaded" is added when you downloaded a newer copy in Settings, and ", from file" when the build used a local copy of the registry.
 - Warning: "Seed dataset (N entries). Build with network, or set OUI_DATA_FILE, to load the full IEEE registry." This build has only a small sample set, so most lookups will find no vendor.
 
 **Vendor**: the registered organization name, or "No matching vendor in the dataset".
@@ -67,12 +67,12 @@ Input `3A:5F:21:00:02:0A` (a typical randomized address): the first octet `3A` h
 - The vendor is who registered the prefix with the IEEE, not necessarily who built the device. NICs, Wi-Fi modules and virtual machines often carry the chip or hypervisor vendor's prefix.
 - MAC addresses are trivial to change. A vendor match is a hint, not proof of what a device is.
 - Locally administered addresses (randomized phone addresses, many virtual and container interfaces) are looked up anyway, but any match does not describe the device.
-- The registry is captured when the app is built. Assignments made after that build are not known until a newer release.
+- The built-in registry is captured when the app is built. To pick up newer assignments without a new release, use **Settings > MAC vendor database > Download latest** (see [Settings](settings.md#mac-vendor-database)).
 - Input must be whole octets: 3 to 8 octets.
 
 ## Online activity and privacy
 
-None. The IEEE registry is fetched when the app is built and embedded in the app; lookups never go online. Nothing you type is saved unless you export. See [Privacy](../privacy.md).
+Lookups never go online. The IEEE registry is embedded when the app is built; Settings can check for and download a newer copy, only when you click. Nothing you type is saved unless you export. See [Privacy](../privacy.md).
 
 ## Export and projects
 
@@ -92,7 +92,7 @@ Same on macOS, Windows and Linux.
 
 **"too many octets (maximum 8)".** Paste one address at a time.
 
-**Every lookup says "No matching vendor in the dataset".** Check the dataset line. If it says "Seed dataset", this build did not include the full registry. Use an official release, or rebuild with network access or with `OUI_DATA_FILE` pointing at a downloaded registry CSV.
+**Every lookup says "No matching vendor in the dataset".** Check the dataset line. If it says "Seed dataset", this build did not include the full registry. Click **Download latest** in Settings > MAC vendor database, use an official release, or rebuild with network access or with `OUI_DATA_FILE` pointing at a downloaded registry CSV.
 
 ## Related tools
 

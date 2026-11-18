@@ -40,6 +40,19 @@ The template is split on spaces into arguments, then placeholders are filled in,
 
 Defaults: RDP `{file}`, VNC `{host}::{port}`. Examples: FreeRDP `/v:{target} /u:{user}`; TigerVNC `{host}::{port}`. There is no password placeholder. On macOS, picking an `.app` opens it with the arguments.
 
+## MAC vendor database
+
+The MAC vendor data used by MAC Vendor Lookup and the Switch Port Mapper.
+
+| Control | What it does |
+|---|---|
+| Status line | Which data is in use (built in, or downloaded from the IEEE), the number of assignments per block, the IEEE date of the data, and when it was downloaded. |
+| Check for update | Asks the IEEE for the date of its three registry files (MA-L, MA-M, MA-S) without downloading them, and says whether they are newer than the data in use. |
+| Download latest | Downloads the three files (about 6 MB), checks that they hold the full registry, stores them in the app data folder and switches lookups to them at once. A failed, cut-off or suspiciously small download is refused and the current data stays in use. |
+| Use built-in data | Shown after a download. Removes the downloaded copy and goes back to the data built into the app. |
+
+Nothing is fetched unless you click. Downloads time out after 2 minutes and files over 64 MB are refused. The downloaded copy is kept across app updates; use **Download latest** again from time to time, or **Use built-in data** after updating the app if the built-in data is newer.
+
 ## Where settings are stored
 
 In the app data folder, as `settings`. See [Privacy](../privacy.md).

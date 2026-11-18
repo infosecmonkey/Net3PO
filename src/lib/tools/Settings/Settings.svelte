@@ -2,6 +2,84 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { detectClients, saveSettings, settings, type Protocol } from "$lib/settings.svelte";
   import { recommended } from "./recommended";
+  import { invoke } from "@tauri-apps/api/core";
+  import { ask } from "@tauri-apps/plugin-dialog";
+  import { onMount } from "svelte";
+  import type { MacDbInfo } from "$lib/tools/types";
+
+  // MAC vendor database.
+  let macDb = $state<MacDbInfo | null>(null);
+  let macBusy = $state<"" | "check" | "download" | "reset">("");
+  let macMsg = $state("");
+  let macErr = $state("");
+  let macNewer = $state<boolean | null>(null);
+
+  onMount(() => {
+    invoke<MacDbInfo>("mac_db_info")
+      .then((d) => (macDb = d))
+      .catch((e) => (macErr = String(e)));
+  });
+
+  async function macCheck() {
+    macBusy = "check";
+    macErr = "";
+    macMsg = "";
+    try {
+      const r = await invoke<{ remoteDate: string | null; newer: boolean | null }>("mac_db_check");
+      macNewer = r.newer;
+      macMsg =
+        r.newer === true
+          ? `The IEEE registry was updated on ${r.remoteDate}. Download it to use the new assignments.`
+          : r.newer === false
+            ? `Up to date: the IEEE registry was last updated on ${r.remoteDate}.`
+            : `The IEEE registry was last updated on ${r.remoteDate ?? "an unknown date"}. The date of the data in use is unknown, so download it to be sure.`;
+    } catch (e) {
+      macErr = `Could not reach the IEEE: ${e}`;
+    } finally {
+      macBusy = "";
+    }
+  }
+
+  async function macDownload() {
+    macBusy = "download";
+    macErr = "";
+    macMsg = "";
+    try {
+      macDb = await invoke<MacDbInfo>("mac_db_download");
+      macNewer = false;
+      macMsg = `Downloaded ${macDb.total.toLocaleString()} assignments${macDb.ieeeDate ? ` (IEEE data of ${macDb.ieeeDate})` : ""}. Lookups use them now.`;
+    } catch (e) {
+      macErr = String(e);
+    } finally {
+      macBusy = "";
+    }
+  }
+
+  async function macReset() {
+    const ok = await ask("Remove the downloaded MAC vendor database and use the one built into the app?", {
+      title: "MAC vendor database",
+      kind: "warning",
+    });
+    if (!ok) return;
+    macBusy = "reset";
+    macErr = "";
+    try {
+      macDb = await invoke<MacDbInfo>("mac_db_reset");
+      macNewer = null;
+      macMsg = "Using the built-in database.";
+    } catch (e) {
+      macErr = String(e);
+    } finally {
+      macBusy = "";
+    }
+  }
+
+  const SOURCE_LABEL: Record<string, string> = {
+    downloaded: "Downloaded from the IEEE",
+    live: "Built in",
+    file: "Built in (from a file)",
+    seed: "Built in (small sample set)",
+  };
 
   let detecting = $state(false);
   let saved = $state("");
@@ -172,6 +250,38 @@
         </details>
       </div>
     {/each}
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>MAC vendor database</h2>
+    </div>
+    <div class="card">
+      {#if macDb}
+        <p class="dbstate">
+          <strong>{SOURCE_LABEL[macDb.source] ?? macDb.source}</strong>: {macDb.total.toLocaleString()} assignments (MA-L
+          {macDb.maL.toLocaleString()}, MA-M {macDb.maM.toLocaleString()}, MA-S {macDb.maS.toLocaleString()}){macDb.ieeeDate
+            ? `, IEEE data of ${macDb.ieeeDate}`
+            : ""}{macDb.downloaded ? `, downloaded ${macDb.downloaded.slice(0, 10)}` : ""}.
+        </p>
+      {/if}
+      <p class="hint">
+        Used by MAC Vendor Lookup and the Switch Port Mapper. Check asks the IEEE only for the date of its registry files;
+        Download fetches the three registry files (about 6 MB) and keeps them in the app data folder. Nothing is fetched
+        unless you click.
+      </p>
+      <div class="row-btns">
+        <button class="small" onclick={macCheck} disabled={macBusy !== ""}>{macBusy === "check" ? "Checking..." : "Check for update"}</button>
+        <button class="small" class:primary-ish={macNewer === true} onclick={macDownload} disabled={macBusy !== ""}>
+          {macBusy === "download" ? "Downloading..." : "Download latest"}
+        </button>
+        {#if macDb?.source === "downloaded"}
+          <button class="small" onclick={macReset} disabled={macBusy !== ""}>Use built-in data</button>
+        {/if}
+      </div>
+      {#if macMsg}<p class="ok-text">{macMsg}</p>{/if}
+      {#if macErr}<p class="warn-text">{macErr}</p>{/if}
+    </div>
   </section>
 </div>
 
@@ -394,5 +504,27 @@
     font-size: 0.8rem;
     margin-bottom: 0.8rem;
     white-space: pre-wrap;
+  }
+
+  .dbstate {
+    margin: 0 0 0.4rem;
+    font-size: 0.84rem;
+  }
+
+  .row-btns {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .ok-text {
+    color: #15803d;
+    font-size: 0.8rem;
+    margin: 0.5rem 0 0;
+  }
+
+  button.primary-ish {
+    border-color: var(--accent);
   }
 </style>

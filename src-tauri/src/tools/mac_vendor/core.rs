@@ -40,7 +40,7 @@ pub struct Database {
 }
 
 /// Counts per block, for showing dataset coverage in the UI.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DbStats {
     pub total: usize,

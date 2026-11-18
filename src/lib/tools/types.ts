@@ -161,11 +161,17 @@ export interface MacInfo {
 }
 
 export interface MacDbInfo {
+  /** "downloaded", "live" (built in from IEEE), "file" or "seed". */
   source: string;
   total: number;
   maL: number;
   maM: number;
   maS: number;
+  /** IEEE date of the data in use, YYYY-MM-DD. */
+  ieeeDate: string | null;
+  /** When the downloaded copy was fetched (RFC 3339). */
+  downloaded: string | null;
+  builtinDate: string | null;
 }
 
 // FortiGate sniffer to PCAP.
